@@ -197,11 +197,18 @@ html[data-theme="dark"] input[type="checkbox"] {
 
 /* ============ View-only badge + editor lock — shown on readonly pages ============ */
 
-/* Prevent clicking into the CodeMirror editor, which would reveal ${...}
-   template source text. Scrolling still works via the outer page container. */
-html[data-path-readonly="true"] .cm-editor {
+/* Prevent clicking into the text layer, which would reveal ${...} template
+   source text. Targets .cm-content only so .cm-scroller keeps scroll events.
+   Cursor hidden because forcedROMode doesn't suppress it visually. */
+html[data-path-readonly="true"] .cm-content {
   pointer-events: none;
   user-select: none;
+  cursor: default;
+}
+
+html[data-path-readonly="true"] .cm-cursor,
+html[data-path-readonly="true"] .cm-cursorLayer {
+  display: none !important;
 }
 
 html[data-path-readonly="true"] #sb-top::after {
