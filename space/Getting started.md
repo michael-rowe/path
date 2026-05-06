@@ -85,20 +85,6 @@ Status flows from `draft` → `ready` → `submitted`. Only claims with `status:
 
 ---
 
-## Step 6: Export your portfolio
-
-When you have at least one claim marked `ready`:
-
-1. Open the command palette and run **Path: Export to PDF** or **Path: Export to Word**
-2. Path checks your profile is complete and warns you about any draft claims
-3. The compiled file lands in the `exports/` folder next to your `docker-compose.yml`
-
-The export includes your cover page (from your profile), your personal statement if you have one with `status: ready`, and all ready claims in criterion order.
-
-> **Note:** PDF export requires the export profile to be running. If you started with `docker compose up -d` (no export), Word export is still available. To enable PDF, restart with `docker compose --profile export up -d`. See the README for details.
-
----
-
-Once all six steps are done, open [[paths/index]] to track coverage across your criteria. The coverage dashboard shows which criteria have claims, CPD, and reflections — and clicking any gap takes you directly to that criterion's page.
+Once all steps are done, open [[paths/index]] to track coverage across your criteria. The coverage dashboard shows which criteria have claims, CPD, and reflections — and clicking any gap takes you directly to that criterion's page.
 
 The [[manual/index|manual]] has plain-language guidance on every feature.

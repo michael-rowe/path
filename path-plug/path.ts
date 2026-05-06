@@ -842,16 +842,6 @@ function buildLeftPanel(): { html: string; script: string } {
           icon: "refresh-cw",
           command: "Path: Check framework updates",
         },
-        {
-          label: "Export to PDF",
-          icon: "file-down",
-          command: "Path: Export to PDF",
-        },
-        {
-          label: "Export to Word",
-          icon: "file-text",
-          command: "Path: Export to Word",
-        },
       ],
     },
   ];

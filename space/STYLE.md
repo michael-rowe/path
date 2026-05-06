@@ -183,6 +183,18 @@ html[data-theme="dark"] .ph-cell.ph-3 { background: #3730a3; color: white; }
 html[data-theme="dark"] .ph-cell.ph-4 { background: #4338ca; color: white; }
 html[data-theme="dark"] .ph-cell.ph-5 { background: #4f46e5; color: white; }
 
+/* ============ Task list checkboxes — theme-aware accent colour ============ */
+
+input[type="checkbox"] {
+  accent-color: #4f46e5;
+  width: 1.05em;
+  height: 1.05em;
+  cursor: default;
+}
+html[data-theme="dark"] input[type="checkbox"] {
+  accent-color: #818cf8;
+}
+
 /* ============ Light/dark toggle — swap visible button ============ */
 
 button[title*="Toggle light mode" i],
