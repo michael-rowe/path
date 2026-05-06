@@ -994,9 +994,9 @@ function onboardingLaunchToggle()
     dismissed = string.find(content, "dismissed: true") ~= nil
   end)
   if dismissed then
-    return "- [x] Don't show this on launch &nbsp; {[Path: Re-enable launch redirect]}"
+    return "- [x] Don't show this on launch"
   else
-    return "- [ ] {[Path: Dismiss launch redirect]}"
+    return "- [ ] Don't show this on launch"
   end
 end
 
