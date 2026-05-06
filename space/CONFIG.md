@@ -498,16 +498,15 @@ queries the space so the status updates as the user populates their portfolio.
 
 ```space-lua
 function onboardingStatus()
-  local results = {}
+  local steps = {}
 
-  local function add(done, done_text, todo_text)
-    table.insert(results, {
-      done = done,
-      text = done and ("[x] " .. done_text) or ("[ ] " .. todo_text),
-    })
+  local function add(done, done_label, todo_label, hint)
+    table.insert(steps, { done = done,
+      label = done and done_label or todo_label,
+      hint  = (not done) and hint or nil })
   end
 
-  -- 1. Profile: full_name and job_title both filled
+  -- 1. Profile
   local profiles = query[[
     from p = tags.page
     where p.type == "profile" and p.full_name ~= nil and p.full_name ~= ""
@@ -518,65 +517,94 @@ function onboardingStatus()
     and profiles[1].full_name ~= "Your Name"
     and (profiles[1].job_title or "") ~= ""
     and profiles[1].job_title ~= "Your job title"
-  add(profile_ok,
-    "Profile filled",
-    "**Fill in your profile** — open [[profile]] and add your name and job title. These appear on every document you export.")
+  add(profile_ok, "Profile filled", "Fill in your profile",
+    "Open your profile page and add your name and job title. These appear on the cover page of every export.")
 
-  -- 2. Framework installed: _system/installed-frameworks exists and has an entry
+  -- 2. Framework
   local fw_content = ""
   if space.pageExists("_system/installed-frameworks") then
     fw_content = space.readPage("_system/installed-frameworks") or ""
   end
-  add(string.find(fw_content, "slug:") ~= nil,
-    "Framework installed",
-    "**Install a framework** — run **Path: Add framework** from the command palette. This loads the criteria, templates, and coverage dashboard for your chosen standards (e.g. UoL Professor, AdvanceHE D4, HCPC CPD).")
+  add(string.find(fw_content, "slug:") ~= nil, "Framework installed", "Install a framework",
+    "Open the command palette (Ctrl-/) and run Path: Add framework.")
 
-  -- 3. At least one active Path
+  -- 3. Active Path
   local paths = query[[
-    from p = tags.page
-    where p.type == "path" and p.status == "active"
-    select p
+    from p = tags.page where p.type == "path" and p.status == "active" select p
   ]]
-  local path_links = {}
-  for _, p in ipairs(paths) do
-    table.insert(path_links, "[[" .. p.name .. "|" .. (p.title or p.slug or p.name) .. "]]")
+  local path_label = "Path active"
+  if #paths > 0 then
+    path_label = "Path active: " .. (paths[1].title or paths[1].slug or paths[1].name or "")
   end
-  add(#paths > 0,
-    "Path active: " .. (#paths > 0 and table.concat(path_links, ", ") or ""),
-    "**Create a Path** — use **Ctrl-Alt-c → Path**. A Path represents one portfolio goal (e.g. promotion, fellowship, revalidation). If you installed a framework bundle, a Path scaffold was created automatically — check [[paths/index]].")
+  add(#paths > 0, path_label, "Create a Path",
+    "Use Ctrl-Alt-c → Path. If you installed a framework bundle, a Path scaffold was created automatically.")
 
-  -- 4. At least one CPD activity
+  -- 4. CPD
   local cpds = query[[from p = tags.page where p.type == "cpd" select p]]
   add(#cpds > 0,
     #cpds .. " CPD " .. (#cpds == 1 and "activity" or "activities") .. " logged",
-    "**Log a CPD activity** — use **Ctrl-Alt-c → CPD activity**. CPD entries are the raw evidence for your portfolio: courses, conferences, presentations, projects, reading, writing.")
+    "Log a CPD activity",
+    "Use Ctrl-Alt-c → CPD activity to record a course, conference, project, reading session, or any other learning event.")
 
-  -- 5. At least one reflection
+  -- 5. Reflection
   local refs = query[[from p = tags.page where p.type == "reflection" select p]]
   add(#refs > 0,
     #refs .. " " .. (#refs == 1 and "reflection" or "reflections") .. " written",
-    "**Write a reflection** — use **Ctrl-Alt-c → Reflection**. Driscoll (What / So what / Now what) or ERA (Experience / Reflection / Action) are the shortest frameworks to start with.")
+    "Write a reflection",
+    "Use Ctrl-Alt-c → Reflection. Driscoll (What / So what / Now what) or ERA are the quickest frameworks to start.")
 
-  -- 6. At least one claim
+  -- 6. Claim
   local claims = query[[from p = tags.page where p.type == "cpd-claim" select p]]
   add(#claims > 0,
     #claims .. " " .. (#claims == 1 and "claim" or "claims") .. " written",
-    "**Write a claim** — use **Ctrl-Alt-c → Claim**. A claim argues that a criterion has been met, backed by your CPD and reflections. Start with a criterion where you already have strong evidence.")
+    "Write a claim",
+    "Use Ctrl-Alt-c → Claim. A claim argues that a standard has been met. Start with a criterion where you already have evidence.")
 
-  -- Build output
+  -- Count and build widget
   local done_count = 0
-  for _, r in ipairs(results) do if r.done then done_count = done_count + 1 end end
+  for _, s in ipairs(steps) do if s.done then done_count = done_count + 1 end end
+  local n = #steps
+  local pct = n > 0 and math.floor(done_count / n * 100) or 0
 
-  local summary
-  if done_count == #results then
-    summary = "_All steps complete — your portfolio is set up. Go to [[paths/index|your Paths]] to track coverage and prepare for export._"
-  else
-    summary = "_" .. done_count .. " of " .. #results .. " steps complete._"
+  -- Progress header
+  local summary_text = done_count == n
+    and "All steps complete"
+    or (done_count .. " of " .. n .. " steps complete")
+  local header = dom.div {
+    style = "margin-bottom:14px",
+    dom.div { style = "font-size:12px;opacity:0.5;margin-bottom:5px;font-family:inherit", summary_text },
+    dom.div {
+      style = "height:3px;background:rgba(99,102,241,0.18);border-radius:2px",
+      dom.div { style = "height:100%;width:" .. pct .. "%;background:#4f46e5;border-radius:2px" }
+    }
+  }
+
+  -- Step rows
+  local rows = {}
+  for i, s in ipairs(steps) do
+    local dot_style = s.done
+      and "flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#4f46e5;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:1px"
+      or  "flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(99,102,241,0.45);color:rgba(99,102,241,0.8);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:1px"
+    local dot = dom.div { style = dot_style, s.done and "✓" or tostring(i) }
+
+    local label_style = "font-size:14px;line-height:1.4;font-family:inherit;" .. (s.done and "opacity:0.4" or "font-weight:500")
+    local text_nodes = { dom.span { style = label_style, s.label } }
+    if s.hint then
+      table.insert(text_nodes, dom.span {
+        style = "display:block;font-size:12px;opacity:0.45;margin-top:3px;line-height:1.5;font-family:inherit",
+        s.hint
+      })
+    end
+
+    local border = i < n and "border-bottom:1px solid rgba(128,128,128,0.1);" or ""
+    table.insert(rows, dom.div {
+      style = "display:flex;align-items:flex-start;gap:10px;padding:8px 0;" .. border,
+      dot,
+      dom.div { style = "flex:1", table.unpack(text_nodes) }
+    })
   end
 
-  local lines = {}
-  for _, r in ipairs(results) do table.insert(lines, "- " .. r.text) end
-  return summary .. "\n\n" .. table.concat(lines, "\n")
+  return widget.html(dom.div { style = "padding:4px 0 2px", header, table.unpack(rows) })
 end
 ```
 
