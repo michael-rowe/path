@@ -16,6 +16,11 @@ space/personal-statements/
 space/evidence-inventory/
 space/Inbox/
 
+# Path scaffold files are installed at runtime via Path: Add framework.
+# Only the browse index ships with the repo.
+space/paths/*.md
+!space/paths/index.md
+
 # Framework install records (user state, created at runtime)
 space/_system/installed-frameworks.md
 

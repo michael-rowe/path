@@ -972,6 +972,27 @@ export async function toggleZenMode(): Promise<void> {
 
 export async function onPageLoaded(): Promise<void> {
   if (zenMode) return;
+
+  // First-run redirect: if profile is missing or still has placeholder values,
+  // send the user to Getting started before rendering panels.
+  const pageName = await editor.getCurrentPage();
+  if (pageName && pageName !== "Getting started") {
+    try {
+      const profileText = await space.readPage("profile");
+      const isPlaceholder =
+        !profileText ||
+        /full_name:\s*["']?Your Name["']?/.test(profileText) ||
+        !/full_name:\s*\S/.test(profileText);
+      if (isPlaceholder) {
+        await (editor as any).navigate("Getting started");
+        return;
+      }
+    } catch (_) {
+      await (editor as any).navigate("Getting started");
+      return;
+    }
+  }
+
   await Promise.all([
     showLeftPanel().catch((e) => console.error("showLeftPanel failed", e)),
     showAttributesPanel().catch((e) => console.error("showAttributesPanel failed", e)),

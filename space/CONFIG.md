@@ -92,35 +92,6 @@ event.listen {
 }
 ```
 
-# First-run redirect
-
-On every page load, check whether the profile still has placeholder values. If so,
-redirect to Getting started. Once the user fills in their name the check never fires again.
-
-```space-lua
-event.listen {
-  name = "editor:pageLoaded",
-  run = function()
-    local current = editor.getCurrentPage()
-    if not current then return end
-    if current == "Getting started" then return end
-    local profiles = query[[
-      from p = tags.page
-      where p.type == "profile"
-      select p
-    ]]
-    if #profiles == 0 then
-      editor.navigate("Getting started")
-      return
-    end
-    local name = profiles[1].full_name or ""
-    if name == "" or name == "Your Name" then
-      editor.navigate("Getting started")
-    end
-  end
-}
-```
-
 # Schemas — controlled values for status fields
 
 Constrains the `status` and other choice fields so users can only enter valid values. The editor will flag invalid values inline.
@@ -444,10 +415,12 @@ end
 Two action buttons, one for each direction — CSS in [[STYLE]] hides whichever does not match the current theme.
 
 ```space-lua
--- Restore saved theme on load
+-- Restore saved theme on load; fall back to system preference if no saved value
 do
   local saved = js.window.localStorage.getItem("path-theme")
   if saved == "dark" then
+    js.window.document.documentElement.setAttribute("data-theme", "dark")
+  elseif saved == nil and js.window.matchMedia("(prefers-color-scheme: dark)").matches then
     js.window.document.documentElement.setAttribute("data-theme", "dark")
   end
 end
@@ -530,7 +503,7 @@ function onboardingStatus()
   local function add(done, done_text, todo_text)
     table.insert(results, {
       done = done,
-      text = done and ("✅ " .. done_text) or ("⬜ " .. todo_text),
+      text = done and ("[x] " .. done_text) or ("[ ] " .. todo_text),
     })
   end
 
@@ -540,7 +513,11 @@ function onboardingStatus()
     where p.type == "profile" and p.full_name ~= nil and p.full_name ~= ""
     select p
   ]]
-  local profile_ok = #profiles > 0 and (profiles[1].job_title or "") ~= ""
+  local profile_ok = #profiles > 0
+    and (profiles[1].full_name or "") ~= ""
+    and profiles[1].full_name ~= "Your Name"
+    and (profiles[1].job_title or "") ~= ""
+    and profiles[1].job_title ~= "Your job title"
   add(profile_ok,
     "Profile filled",
     "**Fill in your profile** — open [[profile]] and add your name and job title. These appear on every document you export.")
