@@ -21,8 +21,8 @@ space/Inbox/
 space/paths/*.md
 !space/paths/index.md
 
-# Framework install records (user state, created at runtime)
-space/_system/installed-frameworks.md
+# _system/ files are user state created at runtime — only the .gitkeep ships
+space/_system/*.md
 
 # --- Secrets and auth ---
 space/.silverbullet.auth.json

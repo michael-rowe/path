@@ -8,6 +8,9 @@ import {
 // Session-level panel state. zenMode persists across navigations;
 // leftHidden/rightHidden track individual collapses (reset on navigation).
 let zenMode = false;
+// Set to true after the first onPageLoaded fires so the launch redirect
+// only runs once per session, leaving the user free to navigate afterwards.
+let onboardingChecked = false;
 
 // Keys hidden from the panel UI. They still round-trip in the file —
 // we just don't render or expose them. `title` is hidden because the H1 in
@@ -963,23 +966,24 @@ export async function toggleZenMode(): Promise<void> {
 export async function onPageLoaded(): Promise<void> {
   if (zenMode) return;
 
-  // First-run redirect: if profile is missing or still has placeholder values,
-  // send the user to Getting started before rendering panels.
-  const pageName = await editor.getCurrentPage();
-  if (pageName && pageName !== "Getting started") {
-    try {
-      const profileText = await space.readPage("profile");
-      const isPlaceholder =
-        !profileText ||
-        /full_name:\s*["']?Your Name["']?/.test(profileText) ||
-        !/full_name:\s*\S/.test(profileText);
-      if (isPlaceholder) {
+  // Launch redirect: once per session, send the user to Getting started
+  // unless they have dismissed it. Uses a session flag so subsequent
+  // navigations are never intercepted.
+  if (!onboardingChecked) {
+    onboardingChecked = true;
+    const pageName = await editor.getCurrentPage();
+    if (pageName && pageName !== "Getting started") {
+      let dismissed = false;
+      try {
+        const cfg = await space.readPage("_system/onboarding");
+        dismissed = cfg.includes("dismissed: true");
+      } catch (_) {
+        // File doesn't exist yet — treat as not dismissed
+      }
+      if (!dismissed) {
         await (editor as any).navigate("Getting started");
         return;
       }
-    } catch (_) {
-      await (editor as any).navigate("Getting started");
-      return;
     }
   }
 

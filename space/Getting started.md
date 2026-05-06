@@ -4,9 +4,13 @@ readonly: true
 
 # Getting started with Path
 
+> You can return to this page at any time using the **Getting started** link in the Navigator panel on the left.
+
 Work through these steps in order. Each one builds on the last — profile first, framework second, then evidence.
 
 ${onboardingStatus()}
+
+${onboardingLaunchToggle()}
 
 ---
 
@@ -25,7 +29,7 @@ To edit the long-form sections — Bio, Qualifications, Registrations — click 
 
 ## Step 2: Install a framework
 
-Open the command palette (**Ctrl-k** on Windows/Linux, **Cmd-k** on Mac) and run **Path: Add framework**. A list of available frameworks appears — choose the one that matches your goal:
+Open the command palette (**Ctrl-/** on Windows/Linux, **Cmd-/** on Mac) and run **Path: Add framework**. A list of available frameworks appears — choose the one that matches your goal:
 
 - **HCPC CPD** — for HCPC-regulated Allied Health Professionals (physiotherapists, OTs, speech and language therapists, etc.)
 - **AdvanceHE D4** — for Principal Fellowship (PFHEA) applicants

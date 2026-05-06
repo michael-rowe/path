@@ -980,3 +980,39 @@ command.define {
   end
 }
 ```
+
+# Launch redirect toggle
+
+Reads `_system/onboarding` to determine whether the user has dismissed the
+launch redirect, and renders the appropriate toggle link on Getting started.
+
+```space-lua
+function onboardingLaunchToggle()
+  local dismissed = false
+  pcall(function()
+    local content = space.readPage("_system/onboarding") or ""
+    dismissed = string.find(content, "dismissed: true") ~= nil
+  end)
+  if dismissed then
+    return "- [x] Don't show this on launch &nbsp; {[Path: Re-enable launch redirect]}"
+  else
+    return "- [ ] {[Path: Dismiss launch redirect]}"
+  end
+end
+
+command.define {
+  name = "Path: Dismiss launch redirect",
+  run = function()
+    space.writePage("_system/onboarding", "dismissed: true\n")
+    editor.reloadPage()
+  end
+}
+
+command.define {
+  name = "Path: Re-enable launch redirect",
+  run = function()
+    space.writePage("_system/onboarding", "dismissed: false\n")
+    editor.reloadPage()
+  end
+}
+```
