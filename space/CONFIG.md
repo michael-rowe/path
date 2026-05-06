@@ -1018,12 +1018,13 @@ launch redirect, and renders the appropriate toggle link on Getting started.
 
 ```space-lua
 function onboardingLaunchToggle()
-  local dismissed = false
+  local redirect = true
   pcall(function()
     local content = space.readPage("_system/onboarding") or ""
-    dismissed = string.find(content, "dismissed: true") ~= nil
+    -- File exists with redirect: false means the user has dismissed it
+    redirect = string.find(content, "redirect: false") == nil
   end)
-  if dismissed then
+  if not redirect then
     return "_This page will not open automatically on launch. Run **Path: Re-enable launch redirect** from the command palette to restore it._"
   else
     return "_This page opens automatically on launch. Run **Path: Dismiss launch redirect** from the command palette to stop it._"
@@ -1033,7 +1034,7 @@ end
 command.define {
   name = "Path: Dismiss launch redirect",
   run = function()
-    space.writePage("_system/onboarding", "dismissed: true\n")
+    space.writePage("_system/onboarding", "redirect: false\n")
     editor.reloadPage()
   end
 }
@@ -1041,7 +1042,7 @@ command.define {
 command.define {
   name = "Path: Re-enable launch redirect",
   run = function()
-    space.writePage("_system/onboarding", "dismissed: false\n")
+    space.writePage("_system/onboarding", "redirect: true\n")
     editor.reloadPage()
   end
 }

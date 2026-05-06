@@ -966,21 +966,26 @@ export async function toggleZenMode(): Promise<void> {
 export async function onPageLoaded(): Promise<void> {
   if (zenMode) return;
 
-  // Launch redirect: once per session, send the user to Getting started
-  // unless they have dismissed it. Uses a session flag so subsequent
-  // navigations are never intercepted.
+  // Launch redirect: on fresh install (no _system/onboarding file), redirect
+  // once to Getting started, then write redirect: false so subsequent
+  // sessions never redirect. The session flag prevents re-checking on every
+  // in-session navigation; the file prevents re-checking on browser refresh.
   if (!onboardingChecked) {
     onboardingChecked = true;
     const pageName = await editor.getCurrentPage();
     if (pageName && pageName !== "Getting started") {
-      let dismissed = false;
+      let shouldRedirect = false;
       try {
         const cfg = await space.readPage("_system/onboarding");
-        dismissed = cfg.includes("dismissed: true");
+        shouldRedirect = cfg.includes("redirect: true");
       } catch (_) {
-        // File doesn't exist yet — treat as not dismissed
+        // File doesn't exist = fresh install
+        shouldRedirect = true;
       }
-      if (!dismissed) {
+      if (shouldRedirect) {
+        try {
+          await space.writePage("_system/onboarding", "redirect: false\n");
+        } catch (_) {}
         await (editor as any).navigate("Getting started");
         return;
       }

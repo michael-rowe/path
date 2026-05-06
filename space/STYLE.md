@@ -195,7 +195,14 @@ html[data-theme="dark"] input[type="checkbox"] {
   accent-color: #818cf8;
 }
 
-/* ============ View-only badge — shown on readonly pages ============ */
+/* ============ View-only badge + editor lock — shown on readonly pages ============ */
+
+/* Prevent clicking into the CodeMirror editor, which would reveal ${...}
+   template source text. Scrolling still works via the outer page container. */
+html[data-path-readonly="true"] .cm-editor {
+  pointer-events: none;
+  user-select: none;
+}
 
 html[data-path-readonly="true"] #sb-top::after {
   content: "View only";
