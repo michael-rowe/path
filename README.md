@@ -43,7 +43,7 @@ docker compose up -d
 docker compose --profile export up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and log in with the credentials from your `.env` file.
+Open [http://localhost:3000](http://localhost:3000) and log in. The username and password are whatever you put in the `.env` file — if you set `SB_USER=admin:mypassword`, the username is `admin` and the password is `mypassword`.
 
 Path will open to the **Getting started** page on first run. Work through the six steps there: fill in your profile, install a framework, and start logging evidence.
 
@@ -81,7 +81,7 @@ Your content in `space/claims/`, `space/cpd/`, etc. is unaffected by updates —
 
 ## Frameworks
 
-Frameworks (HCPC CPD, AdvanceHE D4, etc.) are installed from inside Path, not from this repo. After first run, open the command palette (**Ctrl-k**) and run **Path: Add framework**.
+Frameworks (HCPC CPD, AdvanceHE D4, etc.) are installed from inside Path, not from this repo. After first run, open the command palette (**Ctrl-/** on Windows/Linux, **Cmd-/** on Mac) and run **Path: Add framework**.
 
 The framework registry lives at [github.com/michael-rowe/path-frameworks](https://github.com/michael-rowe/path-frameworks). To contribute a framework, open an issue or pull request there.
 
