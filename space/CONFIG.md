@@ -1046,3 +1046,156 @@ command.define {
   end
 }
 ```
+
+# CPD activity calendar
+
+GitHub-style contribution grid showing CPD activity over the last 52 weeks,
+shaded by hours. Call as `${cpdCalendar()}` for all entries, or
+`${cpdCalendar("path-slug")}` to filter by a specific Path.
+
+```space-lua
+-- Julian Day Number helpers for date arithmetic without os.date
+
+local function to_jdn(y, m, d)
+  local a = math.floor((14 - m) / 12)
+  local yy = y + 4800 - a
+  local mm = m + 12 * a - 3
+  return d + math.floor((153*mm+2)/5) + 365*yy
+         + math.floor(yy/4) - math.floor(yy/100) + math.floor(yy/400) - 32045
+end
+
+local function from_jdn(n)
+  local a  = n + 32044
+  local b  = math.floor((4*a+3)/146097)
+  local c  = a - math.floor(146097*b/4)
+  local dd = math.floor((4*c+3)/1461)
+  local e  = c - math.floor(1461*dd/4)
+  local mm = math.floor((5*e+2)/153)
+  return 100*b + dd - 4800 + math.floor(mm/10),
+         mm + 3 - 12*math.floor(mm/10),
+         e - math.floor((153*mm+2)/5) + 1
+end
+
+local function jdn_dow(jdn) return (jdn + 1) % 7 end  -- 0 = Mon, 6 = Sun
+
+function cpdCalendar(path_slug)
+  -- Query CPD entries
+  local entries
+  if path_slug then
+    entries = query[[ from p = tags.page where p.type == "cpd" and p.path == path_slug select p ]]
+  else
+    entries = query[[ from p = tags.page where p.type == "cpd" select p ]]
+  end
+
+  -- Build date → hours map
+  local hmap, total_h, n_days = {}, 0, 0
+  for _, e in ipairs(entries) do
+    if e.date then
+      local s = tostring(e.date):sub(1, 10)
+      local hrs = tonumber(e.hours) or 0
+      if not hmap[s] then hmap[s] = 0; n_days = n_days + 1 end
+      hmap[s]  = hmap[s] + hrs
+      total_h  = total_h + hrs
+    end
+  end
+
+  -- Today's date via date module
+  local today_str = nil
+  pcall(function() today_str = tostring(date.today()):sub(1, 10) end)
+  if not (today_str and #today_str == 10) then
+    return widget.html(dom.div {
+      style = "opacity:0.4;font-size:13px;font-family:inherit",
+      "Calendar unavailable."
+    })
+  end
+  local ty = tonumber(today_str:sub(1,4))
+  local tm = tonumber(today_str:sub(6,7))
+  local td = tonumber(today_str:sub(9,10))
+  local today_jdn  = to_jdn(ty, tm, td)
+  local start_jdn  = today_jdn - jdn_dow(today_jdn) - 51 * 7  -- Monday, 52 weeks back
+  local n_weeks    = 52
+
+  -- Month labels: stamp the first week a new month appears
+  local MONTHS = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"}
+  local month_lbl, prev_m = {}, nil
+  for w = 0, n_weeks - 1 do
+    local _, wm = from_jdn(start_jdn + w * 7)
+    if wm ~= prev_m then month_lbl[w] = MONTHS[wm]; prev_m = wm end
+  end
+
+  -- Cell style by hours
+  local CB = "width:11px;height:11px;border-radius:2px;"
+  local function cell_bg(h)
+    if     h <= 0 then return CB .. "background:transparent;border:1px dashed rgba(99,102,241,0.2)"
+    elseif h < 1  then return CB .. "background:#eef2ff"
+    elseif h < 2  then return CB .. "background:#c7d2fe"
+    elseif h < 4  then return CB .. "background:#a5b4fc"
+    elseif h < 6  then return CB .. "background:#818cf8"
+    else               return CB .. "background:#4f46e5"
+    end
+  end
+
+  -- Month header row
+  local hdr = { dom.td { style = "width:26px" } }
+  for w = 0, n_weeks - 1 do
+    table.insert(hdr, dom.td {
+      style = "font-size:10px;opacity:0.45;padding-bottom:3px;font-family:inherit;white-space:nowrap",
+      month_lbl[w] or ""
+    })
+  end
+
+  -- Seven day rows
+  local DAY_LBL = {"Mon","","Wed","","Fri","","Sun"}
+  local rows = { dom.tr(hdr) }
+  for d_idx = 0, 6 do
+    local cells = { dom.td {
+      style = "font-size:10px;opacity:0.4;padding-right:4px;vertical-align:middle;white-space:nowrap;font-family:inherit",
+      DAY_LBL[d_idx + 1]
+    }}
+    for w = 0, n_weeks - 1 do
+      local jdn = start_jdn + w * 7 + d_idx
+      if jdn <= today_jdn then
+        local cy, cm, cd = from_jdn(jdn)
+        local ds  = string.format("%04d-%02d-%02d", cy, cm, cd)
+        local hrs = hmap[ds] or 0
+        local tip = hrs > 0 and (ds .. ": " .. string.format("%.1f", hrs) .. "h") or ds
+        table.insert(cells, dom.td { style = cell_bg(hrs), title = tip })
+      else
+        table.insert(cells, dom.td { style = "width:11px;height:11px" })
+      end
+    end
+    table.insert(rows, dom.tr(cells))
+  end
+
+  -- Legend
+  local LEGEND = {
+    { bg = "background:transparent;border:1px dashed rgba(99,102,241,0.2)", lbl = "None" },
+    { bg = "background:#eef2ff", lbl = "<1h"  },
+    { bg = "background:#c7d2fe", lbl = "1–2h" },
+    { bg = "background:#a5b4fc", lbl = "2–4h" },
+    { bg = "background:#818cf8", lbl = "4–6h" },
+    { bg = "background:#4f46e5", lbl = "6h+"  },
+  }
+  local leg = { dom.span { style = "font-size:10px;opacity:0.4;margin-right:6px;font-family:inherit", "Hours:" } }
+  for _, le in ipairs(LEGEND) do
+    table.insert(leg, dom.span {
+      style = "display:inline-flex;align-items:center;gap:3px;margin-right:8px;font-size:10px;opacity:0.55;font-family:inherit",
+      dom.span { style = "display:inline-block;width:9px;height:9px;border-radius:2px;" .. le.bg },
+      le.lbl
+    })
+  end
+
+  -- Summary header
+  local summary = total_h > 0
+    and ("CPD activity — last 12 months · " .. string.format("%.1f", total_h)
+         .. "h across " .. n_days .. (n_days == 1 and " day" or " days"))
+    or  "CPD activity — last 12 months · no entries yet"
+
+  return widget.html(dom.div {
+    style = "padding:4px 0",
+    dom.div { style = "font-size:12px;opacity:0.5;margin-bottom:6px;font-family:inherit", summary },
+    dom.table { style = "border-collapse:separate;border-spacing:2px", table.unpack(rows) },
+    dom.div { style = "margin-top:6px;display:flex;align-items:center;flex-wrap:wrap", table.unpack(leg) }
+  })
+end
+```

@@ -39,6 +39,10 @@ ${some(query[[
   select pageItem(p)
 ]]) or "_No active Paths. Use **Capture → Path** to start one._"}
 
+# CPD activity
+
+${cpdCalendar()}
+
 # Claims by status
 
 | Draft | Ready | Published |
