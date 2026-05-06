@@ -197,13 +197,18 @@ html[data-theme="dark"] input[type="checkbox"] {
 
 /* ============ View-only badge + editor lock — shown on readonly pages ============ */
 
-/* Prevent clicking into the text layer, which would reveal ${...} template
-   source text. Targets .cm-content only so .cm-scroller keeps scroll events.
-   Cursor hidden because forcedROMode doesn't suppress it visually. */
+/* Prevent clicking into the text layer on readonly pages, which would reveal
+   ${...} template source text. Re-enable pointer events on wiki links so they
+   remain clickable. Cursor hidden because forcedROMode doesn't suppress it. */
 html[data-path-readonly="true"] .cm-content {
   pointer-events: none;
   user-select: none;
   cursor: default;
+}
+
+html[data-path-readonly="true"] .cm-content .sb-wiki-link {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 html[data-path-readonly="true"] .cm-cursor,
