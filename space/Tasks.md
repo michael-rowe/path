@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # All tasks
 
 Open tasks across the whole portfolio, then completed tasks.

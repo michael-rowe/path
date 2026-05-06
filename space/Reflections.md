@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # All reflections
 
 Every structured reflection you have written, across all frameworks and Paths.

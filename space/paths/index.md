@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # Paths
 
 A **Path** is a goal you are working towards: a promotion, a fellowship, a professional renewal. Each Path uses a framework with criteria. CPD entries can support multiple Paths; claims are scoped to one.

@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # All CPD entries
 
 Every activity you have logged. Most recent first.

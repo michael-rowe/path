@@ -81,6 +81,7 @@ event.listen {
     local name = editor.getCurrentPage()
     if not name then
       editor.setUiOption("forcedROMode", false)
+      js.window.document.documentElement.setAttribute("data-path-readonly", "false")
       return
     end
     local content = space.readPage(name) or ""
@@ -88,6 +89,7 @@ event.listen {
                         or string.find(content, "^readonly:%s*true") ~= nil
     editor.setUiOption("forcedROMode", is_readonly)
     editor.rebuildEditorState()
+    js.window.document.documentElement.setAttribute("data-path-readonly", is_readonly and "true" or "false")
   end
 }
 ```

@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # All captures
 
 Quick thoughts you have made, both processed and unprocessed.

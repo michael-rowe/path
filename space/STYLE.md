@@ -195,6 +195,25 @@ html[data-theme="dark"] input[type="checkbox"] {
   accent-color: #818cf8;
 }
 
+/* ============ View-only badge — shown on readonly pages ============ */
+
+html[data-path-readonly="true"] #sb-top::after {
+  content: "View only";
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 44px;
+  line-height: 44px;
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(99, 102, 241, 0.65);
+  z-index: 152;
+  pointer-events: none;
+}
+
 /* ============ Light/dark toggle — swap visible button ============ */
 
 button[title*="Toggle light mode" i],

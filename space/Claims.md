@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # All claims
 
 Every claim across every Path. Most recent first.

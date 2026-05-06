@@ -1,3 +1,7 @@
+---
+readonly: true
+---
+
 # Browse
 
 The complete list of pages by type. Click any link to see everything of that kind.
