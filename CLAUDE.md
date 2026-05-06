@@ -214,6 +214,10 @@ We're on **SilverBullet 2.6.1**. The 2.6 release replaced iframe-based panels wi
 
 To upgrade SB: `sudo docker compose pull silverbullet && sudo docker compose up -d silverbullet`.
 
+## CPD activity calendar
+
+`cpdCalendar(path_slug)` in CONFIG.md — GitHub-style 52-week contribution grid rendered via `widget.html`. Shaded by hours using a 5-level indigo scale; empty cells get a dashed border. Month labels along the top. Calls `${cpdCalendar()}` on `index.md` (all entries); individual Path pages can call `${cpdCalendar("slug")}` to filter. Uses Julian Day Number arithmetic (no `os.date`). `date.today()` is the reference point.
+
 ## Known deferred items
 
 - AI integration (planned: `silverbullet-ai` plug, blocked on having designed prompts to make it useful)
@@ -230,6 +234,14 @@ To upgrade SB: `sudo docker compose pull silverbullet && sudo docker compose up 
 - Web clipper (Phase 5)
 - Tailscale / remote access doc
 
+## Known UX issues on readonly pages
+
+Two SilverBullet editor behaviours that survive `forcedROMode` and are not yet fixed:
+
+1. **Template source flash** — clicking anywhere on a readonly page (e.g. `index.md`) places a CM cursor; if that cursor lands inside a `${...}` template expression widget, the widget dissolves and the raw Lua source is briefly visible in orange/red. `pointer-events: none` on `.cm-content` blocks this but also breaks all wikilink clicks (pointer-events is inherited and interferes with CM's event handling). No clean CSS fix found yet; may need to find the specific CM class for dissolved template widgets and hide it.
+
+2. **Heading `#` symbols on click** — clicking on a heading in a readonly page shows the `##` markdown prefix. Same root cause: CM places a cursor and switches the heading from rendered to source view. Cursor is hidden via `.cm-cursor { display: none }` but the source reveal still happens before the cursor suppression takes effect.
+
 ## Component names and focus mode
 
 **Canonical names:** Navigator (left panel), Inspector (right panel), Editor (centre), Toolbar (top bar), Focus mode (both panels hidden simultaneously).
@@ -240,7 +252,9 @@ Individual panel collapse was removed — it caused the collapse icon to vanish 
 
 ## Onboarding page
 
-`space/Getting started.md` — a readonly page that calls `onboardingStatus()` from CONFIG.md. Six live checks: profile filled (full_name + job_title), framework installed (`_system/installed-frameworks` has a `slug:` entry), active path exists, first CPD logged, first reflection written, first claim written. Shows ✅/⬜ for each. Linked from the Navigator Workspace section. The full interface reference is `manual/interface.md` (Navigator, Inspector, Editor, Toolbar, Focus mode; keyboard shortcuts).
+`space/Getting started.md` — a readonly page that calls `onboardingStatus()` from CONFIG.md. Six live checks: profile filled (full_name + job_title), framework installed (`_system/installed-frameworks` has a `slug:` entry), active path exists, first CPD logged, first reflection written, first claim written. Rendered as `widget.html` with a progress bar and step cards. Linked from the Navigator Workspace section. The full interface reference is `manual/interface.md` (Navigator, Inspector, Editor, Toolbar, Focus mode; keyboard shortcuts).
+
+**Launch redirect logic** (`onPageLoaded` in `path.ts`): on fresh install (`_system/onboarding` absent), redirects to Getting started once and immediately writes `redirect: false` to that file. Subsequent sessions read the file and skip. `onboardingChecked` session flag prevents re-checking on in-session navigations. `Path: Dismiss launch redirect` writes `redirect: false`; `Path: Re-enable launch redirect` writes `redirect: true`.
 
 ## Gap navigation
 
