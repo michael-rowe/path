@@ -832,6 +832,7 @@ function buildLeftPanel(): { html: string; script: string } {
     {
       title: "Workspace",
       items: [
+        { label: "Dashboard", icon: "layout-dashboard", navigate: "index" },
         { label: "Getting started", icon: "check-square", navigate: "Getting started" },
         { label: "History", icon: "clock", navigate: "History" },
         { label: "Manual", icon: "book-open", navigate: "manual/cheatsheet" },
