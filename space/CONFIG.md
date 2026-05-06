@@ -993,11 +993,19 @@ function onboardingLaunchToggle()
     local content = space.readPage("_system/onboarding") or ""
     dismissed = string.find(content, "dismissed: true") ~= nil
   end)
-  if dismissed then
-    return "- [x] Don't show this on launch"
-  else
-    return "- [ ] Don't show this on launch"
-  end
+  local cmd = dismissed and "Path: Re-enable launch redirect" or "Path: Dismiss launch redirect"
+  return widget.html(
+    dom.label {
+      style = "cursor:pointer;display:inline-flex;align-items:center;gap:0.5em;font-size:14.5px;color:inherit",
+      dom.input {
+        type = "checkbox",
+        checked = dismissed,
+        style = "accent-color:#4f46e5;width:1.05em;height:1.05em;cursor:pointer",
+        onchange = "syscall('system.invokeCommand', '" .. cmd .. "')"
+      },
+      "Don't show this on launch"
+    }
+  )
 end
 
 command.define {

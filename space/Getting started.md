@@ -10,7 +10,7 @@ Work through these steps in order. Each one builds on the last — profile first
 
 ${onboardingStatus()}
 
-${onboardingLaunchToggle()} — {[Path: Dismiss launch redirect]} · {[Path: Re-enable launch redirect]}
+${onboardingLaunchToggle()}
 
 ---
 
