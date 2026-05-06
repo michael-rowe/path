@@ -1,0 +1,39 @@
+services:
+
+  silverbullet:
+    image: ghcr.io/silverbulletmd/silverbullet
+    container_name: path-silverbullet
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./space:/space
+    environment:
+      - SB_USER=${SB_USER}
+    networks:
+      path-net:
+    restart: unless-stopped
+
+  # Pandoc + XeLaTeX + FastAPI sidecar.
+  # Optional — only needed for PDF and Word export.
+  # Start with: docker compose --profile export up -d
+  # Reachable from SB via its static IP inside the path-net network at
+  # http://172.28.0.10:8000. Not exposed to the host.
+  pandoc-svc:
+    build: ./pandoc
+    container_name: path-pandoc-svc
+    profiles:
+      - export
+    volumes:
+      - ./space:/space:ro
+      - ./exports:/exports
+    networks:
+      path-net:
+        ipv4_address: 172.28.0.10
+    restart: unless-stopped
+
+networks:
+  path-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

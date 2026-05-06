@@ -1,0 +1,153 @@
+% Portfolio default template
+% A clean, professional layout for a CPD or promotion submission PDF.
+% Power users: edit this file. The most common changes are at the top
+% (margins, font, accent colour). Anything below is more involved.
+
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Common customisations ----------
+\usepackage[margin=2.5cm]{geometry}                  % page margins
+\usepackage{xcolor}
+\definecolor{accent}{RGB}{74, 111, 196}              % link / accent colour
+
+% Fonts (XeLaTeX). Liberation Serif/Sans ship with the texlive image.
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\setsansfont{Liberation Sans}
+
+% ---------- Standard packages ----------
+\usepackage{titling}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{parskip}                                 % blank line between paragraphs
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}                    % \arraybackslash for table cells
+\usepackage{calc}                     % arithmetic in column widths
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+
+% Defensive: define the Shaded environment Pandoc may wrap fenced code
+% blocks in. Pandoc's --no-highlight should mean this is unused, but if a
+% template change re-enables highlighting later we want the env present.
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+% Identity definitions for any highlight token commands Pandoc may emit
+% under highlighting modes. They simply pass the text through.
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\KeywordTok}[1]{#1}
+\newcommand{\DataTypeTok}[1]{#1}
+\newcommand{\StringTok}[1]{#1}
+\newcommand{\AttributeTok}[1]{#1}
+\newcommand{\CommentTok}[1]{#1}
+\newcommand{\OtherTok}[1]{#1}
+\newcommand{\FunctionTok}[1]{#1}
+\newcommand{\VariableTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{#1}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\BaseNTok}[1]{#1}
+\newcommand{\DecValTok}[1]{#1}
+\newcommand{\FloatTok}[1]{#1}
+\newcommand{\CharTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{#1}
+\newcommand{\AlertTok}[1]{#1}
+\newcommand{\AnnotationTok}[1]{#1}
+\newcommand{\WarningTok}[1]{#1}
+\newcommand{\ErrorTok}[1]{#1}
+\newcommand{\DocumentationTok}[1]{#1}
+\newcommand{\InformationTok}[1]{#1}
+\newcommand{\ConstantTok}[1]{#1}
+\newcommand{\VerbatimStringTok}[1]{#1}
+\newcommand{\SpecialStringTok}[1]{#1}
+\newcommand{\ControlFlowTok}[1]{#1}
+\newcommand{\RegionMarkerTok}[1]{#1}
+
+% Pandoc-injected helpers commonly missing from custom templates.
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\passthrough}[1]{#1}
+\providecommand{\pandocbounded}[1]{#1}
+\providecommand{\real}[1]{#1}                 % column-width factor in Pandoc tables
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent,
+  urlcolor=accent,
+  citecolor=accent,
+  pdftitle={$title$},
+  pdfauthor={$if(profile.full_name)$$profile.full_name$$endif$}
+}
+
+% Section headings — sans, slightly larger
+\titleformat{\section}{\Large\bfseries\sffamily}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\sffamily}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily}{\thesubsubsection}{0.6em}{}
+
+% Page header on body pages (cover and TOC have no header)
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\sffamily\textcolor{gray}{$if(profile.full_name)$$profile.full_name$$endif$}}
+\fancyhead[R]{\footnotesize\sffamily\textcolor{gray}{$title$}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% ---------- Cover page ----------
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{4cm}
+
+{\Huge\bfseries\sffamily $title$\par}
+
+\vspace{2cm}
+
+$if(profile.full_name)$
+{\LARGE\sffamily $profile.full_name$$if(profile.post_nominals)$, $profile.post_nominals$$endif$\par}
+\vspace{0.4cm}
+$endif$
+
+$if(profile.job_title)$
+{\large $profile.job_title$$if(profile.employer)$\\$profile.employer$$endif$$if(profile.department)$\\$profile.department$$endif$\par}
+$endif$
+
+\vspace{2.5cm}
+
+$if(profile.bio)$
+\begin{minipage}{0.78\textwidth}
+\noindent\itshape $profile.bio$
+\end{minipage}
+\vspace{1.5cm}
+$endif$
+
+\vfill
+
+% Contact block — only show fields that are populated
+$if(profile.email)$\textsf{\small $profile.email$}\\$endif$
+$if(profile.phone)$\textsf{\small $profile.phone$}\\$endif$
+$if(profile.website)$\textsf{\small \url{$profile.website$}}\\$endif$
+$if(profile.orcid)$\textsf{\small ORCID: $profile.orcid$}\\$endif$
+
+\vspace{1cm}
+
+{\small Compiled \today}
+
+\end{titlepage}
+
+% ---------- Table of contents ----------
+$if(toc)$
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+$endif$
+
+% ---------- Body ----------
+$body$
+
+\end{document}

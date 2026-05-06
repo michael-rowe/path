@@ -1,0 +1,39 @@
+# =============================================================
+# Path — .gitignore
+#
+# Personal content stays on your machine. System files (plug,
+# templates, config, docker setup) are what gets committed.
+# =============================================================
+
+# --- Personal portfolio content (never commit user data) ---
+space/claims/
+space/cpd/
+space/reflections/
+space/captures/
+space/network/
+space/credentials/
+space/personal-statements/
+space/evidence-inventory/
+space/Inbox/
+
+# Framework install records (user state, created at runtime)
+space/_system/installed-frameworks.md
+
+# --- Secrets and auth ---
+space/.silverbullet.auth.json
+.env
+
+# --- Generated output ---
+exports/
+
+# --- Build artefacts ---
+path-plug/node_modules/
+path-plug/*.js.map
+
+# --- Nested repo ---
+# path-frameworks/ is a separate GitHub project (github.com/michael-rowe/path-frameworks).
+# Users install frameworks via Path: Add framework — they don't need this folder.
+path-frameworks/
+
+# --- Local reports ---
+reports/

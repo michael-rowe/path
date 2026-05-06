@@ -1,0 +1,203 @@
+framework:
+  name: "University of Lincoln Promotion to Professor (TSPP pathway)"
+  short: "UoL-TSPP-Professor"
+  pathway: "Teaching, Scholarship, Professional Practice"
+  version: "2024"
+  source: "Selection-Criteria-TSPP-Professor-1.pdf"
+  emphasis_period: "last 5 years"
+  notes: |
+    Applications must address all criteria, recognising that some areas are likely
+    to be stronger than others — judged in the round. The likely focus is
+    scholarship (disciplinary and/or teaching and learning) OR professional
+    practice; some applicants demonstrate both.
+
+    Citizenship (pillar 4) is explicitly weighted less heavily than the other
+    three pillars. Applicants must demonstrate scale and longevity, with a
+    profile of national and international standing. Dates and date-ranges should
+    be clear, with emphasis placed on achievements within the last 5 years.
+
+    "Industry" in this framework encompasses all aspects of professional
+    practice, including professions and the third sector.
+
+pillars:
+  - code: "1"
+    name: "Teaching Excellence"
+    scope: Internal
+    weight: standard
+
+  - code: "2"
+    name: "Excellent Scholarship and/or Professional Practice (Engagement and Recognition)"
+    scope: Internal/External
+    weight: standard
+
+  - code: "3"
+    name: "Successful Educational and/or Professional Practice Leadership"
+    scope: Internal
+    weight: standard
+
+  - code: "4"
+    name: "Citizenship"
+    scope: Internal/External
+    weight: lower
+
+criteria:
+  # ---------- Pillar 1: Teaching Excellence ----------
+
+  - code: "1.1"
+    pillar: "1"
+    title: "Demonstrably effective individual teaching excellence"
+    type: evidence
+    indicators:
+      - "Excellent (individual) sustained student feedback (e.g. module evaluations, other student feedback, NSS, nominations for an SU teaching award)"
+      - "Excellent sustained (individual) staff and peer feedback (e.g. external examiners, PRoP, nominations for VC teaching awards)"
+      - "Curriculum development (or other teaching/assessment practice) that delivers a sustained positive impact on students (e.g. attainment, attainment-gap reduction, graduate outcomes, continuation, completion)"
+
+  - code: "1.2"
+    pillar: "1"
+    title: "Reflective practice, continuous improvement and professional development"
+    type: evidence
+    indicators:
+      - "AdvHE Principal or Senior Fellowship, and/or other teaching qualification (EdD, PGCHE, APA, etc.)"
+      - "Sustained active engagement with the LALT community, including leadership of activities and mentoring (e.g. HEAR, APA mentor)"
+      - "Leading the development of initiatives based on student/colleague/practice feedback (e.g. Prof Practice advisory panels), with evidenced impact"
+      - "Leading the development and implementation of school/University-wide initiatives that influence the practice of colleagues"
+
+  - code: "1.3"
+    pillar: "1"
+    title: "Leading teaching innovation"
+    type: evidence
+    indicators:
+      - "Sustained record of leading the development and delivery of innovative and creative teaching/learning interventions with impact beyond the home discipline and ideally beyond the University"
+      - "Leading externally funded initiatives that have made a demonstrable and sustainable impact on student education"
+      - "Creation and dissemination of teaching and learning case studies with evidenced impact"
+      - "Leading innovative student entrepreneurship and enterprise activities"
+      - "Leadership of innovative examples of research/professional practice and teaching working synergistically to enhance either or both agendas"
+
+  - code: "1.4"
+    pillar: "1"
+    title: "Future contributions"
+    type: forward-looking
+    prompt: |
+      A short, evidence-based account of how past experience and current
+      skill-set will support the school's and university's ambitions for
+      teaching, learning, and the student experience.
+
+  # ---------- Pillar 2: Scholarship and/or Professional Practice ----------
+
+  - code: "2.1"
+    pillar: "2"
+    title: "Excellent and sustained external professional engagement"
+    type: evidence
+    indicators:
+      - "Leading consultancy and knowledge exchange activities, or spearheading industrial partnership working in relevant industries (including utilising clinical skills) to increase value to the University"
+      - "Sustained, substantial income generation through bids, tenders, and contracts (educational, charitable, corporate, third sector)"
+      - "Regular winning of funding for, and the organisation and delivery of, professionally-rated and external-facing conferences, colloquia, symposia, exhibitions, performances, films, etc."
+      - "Leading the development of new approaches to practice in a relevant industry, sector, or service, with significant outcomes"
+      - "Winning high-profile and influential advisory roles for industry by invitation, commission, or election, with significant demonstrable outcomes"
+      - "Winning and leading commissions for professional evaluation activities"
+      - "Winning and leading commissioned contributions to regional, national, or international policy"
+      - "Proactive creation of collaborations with T&R colleagues that generate funding, engage publics, and achieve research impact"
+      - "Sustained writing and editing of high-profile resources (online, books, etc.) used to support practice in the discipline"
+
+  - code: "2.2"
+    pillar: "2"
+    title: "Excellent scholarship of teaching and learning and/or discipline"
+    type: evidence
+    indicators:
+      - "Authorship of an influential textbook adopted in a course or area of practice external to the University"
+      - "Innovations in a relevant industry's practice or demonstrable transformation in industry/sector behaviour"
+      - "Creation and maintenance of influential peer-reviewable learning materials used widely beyond the University"
+      - "Keynotes/talks at international conferences and/or internationally leading institutions or professional groups/industry"
+      - "Multiple publications (journal articles, books, blogs, scholarly works, reports, other creative outputs) demonstrating significant impact and reach"
+      - "Recipient of innovation/scholarship/teaching and learning funding with demonstrable impact"
+
+  - code: "2.3"
+    pillar: "2"
+    title: "External profile / indicators of esteem / impact"
+    type: evidence
+    indicators:
+      - "Leadership of professional bodies or disciplinary organisations"
+      - "Leadership at local and regional level in HEI/industry/community link forums"
+      - "Demonstrable and quantifiable national/international professional presence"
+      - "Achievement of external, high-profile teaching, professional practice, or disciplinary awards"
+      - "Invitations to present at national and international conferences, workshops, and events; giving plenary lectures"
+      - "Acting as a high-profile industry advisor, member of an industry judging panel, journal/book series editor, or similar"
+
+  - code: "2.4"
+    pillar: "2"
+    title: "Future contributions"
+    type: forward-looking
+    prompt: |
+      A short, evidence-based account of how past experience and current
+      skill-set in scholarship and/or professional practice will support the
+      school's and university's ambitions in these areas. Should include
+      credible plans (commensurate with career stage and discipline) for
+      further generating impactful outputs and external income.
+
+  # ---------- Pillar 3: Educational/Professional Practice Leadership ----------
+
+  - code: "3.1"
+    pillar: "3"
+    title: "Demonstrably impactful educational/professional practice leadership"
+    type: evidence
+    indicators:
+      - "Significant and sustained contribution to management/leadership of School/College/University (resource management, policy development, etc.) with evidence of material benefits"
+      - "Successfully undertaking a significant College/University teaching, scholarship, or professional practice role with demonstrable impact (e.g. College Director of Education, leading educational contract/consultancy, employability initiatives, cross-university review)"
+      - "Leading and instigating a high-impact innovative course"
+      - "Sustained leadership of new and significant international educational links and/or improvements to international student education"
+      - "Leadership of national/international professional bodies or committees significantly enhancing links between industry/professions and HE"
+      - "Leadership of significant professional accreditation processes"
+      - "Wider engagement at College/University level"
+      - "Leading consultancies, knowledge exchange centres, or other initiatives that boost the profile and impact of professional practice"
+
+  - code: "3.2"
+    pillar: "3"
+    title: "Impact on the strategic vision for teaching and learning / scholarship / professional practice within the College / University"
+    type: evidence
+    indicators:
+      - "Sustained leadership of new and significant work contributing to the institutional teaching and learning agenda (e.g. TEF, WP/APP agenda, internationalisation, graduate outcomes, employability, completions, differential attainment, student satisfaction)"
+      - "Leading the national scholarship and/or professional practice agenda through disciplinary and industry links and KTPs"
+      - "Chairing of University committees and active membership of College/institutional/industry committees and working groups"
+      - "Mentoring and development of others with evidence of advancing the strategic vision of the University"
+
+  - code: "3.3"
+    pillar: "3"
+    title: "Quantifiable impact internally on the teaching and learning / professional practice agenda"
+    type: evidence
+    indicators:
+      - "Income generation: successful leadership of educational contracts and/or consultancy work"
+      - "Major contribution to the School or College strategic/annual plan (e.g. initiatives led)"
+      - "Leading ESLC/TSEGO standing group or other University education/professional practice working groups"
+      - "Leadership of educational contracts and/or consultancy work with major strategic industrial or community partners"
+
+  - code: "3.4"
+    pillar: "3"
+    title: "Future contributions"
+    type: forward-looking
+    prompt: |
+      A short account of leadership aspirations. Based on past experience and
+      current skill-set, what leadership can the applicant provide to the
+      delivery of school priorities and university strategy?
+
+  # ---------- Pillar 4: Citizenship ----------
+
+  - code: "4.1"
+    pillar: "4"
+    title: "University service"
+    type: evidence
+    indicators:
+      - "Leadership of activities contributing to general university life (open days, student activities, alumni events, mentoring schemes, professional services support, HEAR scheme, LALT contributions)"
+      - "Leadership/membership of committees/groups contributing to university life (health and safety, EDI, sustainability, working groups)"
+      - "Delivering outreach activities (school visits, local community activities)"
+      - "Personal tutoring and engagement with student support, link tutor work, and supporting international students"
+      - "Initiation and leadership of activities promoting the One Community ethos and values"
+
+  - code: "4.2"
+    pillar: "4"
+    title: "Leadership of the university's civic mission"
+    type: evidence
+    indicators:
+      - "Leadership of external partnerships contributing to the University's civic mission"
+      - "External activities such as volunteering, school governorship, employment committees, third-sector governance, cultural activities, other relevant community work"
+      - "Leadership and promotion of the university's civic mission through publications, talks, outreach"
+      - "Other activities that actively role-model the University's civic mission"

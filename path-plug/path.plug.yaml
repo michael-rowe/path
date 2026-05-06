@@ -1,0 +1,32 @@
+name: path
+functions:
+  hello:
+    path: path.ts:hello
+    command:
+      name: "Path: Hello from plug"
+
+  showAttributesPanel:
+    path: path.ts:showAttributesPanel
+    command:
+      name: "Path: Show attributes panel"
+
+  saveAttributes:
+    path: path.ts:saveAttributes
+
+  debugSave:
+    path: path.ts:debugSave
+    command:
+      name: "Path: Debug save (writes title=DEBUG_TEST)"
+
+  onPageLoaded:
+    path: path.ts:onPageLoaded
+    events:
+      - editor:pageLoaded
+
+  toggleZenMode:
+    path: path.ts:toggleZenMode
+    command:
+      name: "Path: Toggle focus mode"
+      key: "Ctrl-Alt-z"
+
+

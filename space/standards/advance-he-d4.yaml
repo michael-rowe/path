@@ -1,0 +1,117 @@
+framework:
+  name: "AdvanceHE Professional Standards Framework — Descriptor 4 (Principal Fellow)"
+  short: "AdvanceHE-PSF-D4"
+  pathway: "Principal Fellow (PFHEA)"
+  version: "PSF 2023"
+  source: "AdvanceHE PSF 2023 — verify wording against the official descriptor"
+  emphasis_period: "sustained record (3–5+ years) with strategic leadership in the last 3 years"
+  notes: |
+    Descriptor 4 (Principal Fellow) recognises sustained, effective, and
+    strategic leadership of academic and/or professional practice in HE.
+    Successful applications evidence four D4-specific criteria, underpinned by
+    coverage of all five Professional Values (V1–V5), all five Core Knowledge
+    areas (K1–K5), and all five Areas of Activity (A1–A5).
+
+    The dashboard heatmap tracks the four D4 criteria; the V/K/A dimensions
+    are tracked as a cross-cutting checklist on the Path page itself. Tag
+    claims/CPD/reflections with the relevant V/K/A codes via the
+    `dimensions:` list field if you want individual coverage queries.
+
+    A D4 application typically involves a reflective account, two case
+    studies of strategic impact, and two referee statements — one of which
+    must be a senior peer who can attest to your strategic leadership.
+
+pillars:
+  - code: "D4"
+    name: "Descriptor 4 — Principal Fellow Criteria"
+    weight: standard
+
+criteria:
+  - code: "D4.1"
+    pillar: "D4"
+    title: "Active commitment to and championing of all Professional Values"
+    type: evidence
+    indicators:
+      - "Sustained championing of V1 — Respect individual learners and diverse learning communities"
+      - "Sustained championing of V2 — Promote engagement in learning and equity of opportunity"
+      - "Sustained championing of V3 — Use scholarship, reflection, and professional learning to support practice"
+      - "Sustained championing of V4 — Respond to the wider context in which HE operates"
+      - "Sustained championing of V5 — Collaborate with others to enhance practice"
+      - "Championing through institutional policy work, mentoring, communities of practice, or public advocacy"
+      - "Evidence the values are *consistently adopted* across the practice you influence — not just present in your own"
+
+  - code: "D4.2"
+    pillar: "D4"
+    title: "Sustained, effective and strategic leadership in academic practice and academic development"
+    type: evidence
+    indicators:
+      - "Strategic leadership of teaching and learning at school, faculty, institutional, or sector level"
+      - "Sustained record of leading change in academic practice with measurable impact on learners and/or colleagues"
+      - "Leadership of significant academic development initiatives (CPD, induction, mentoring, faculty development)"
+      - "Evidence of impact on academic practice *beyond* your immediate role and remit"
+      - "Strategic leadership demonstrated through outcomes, not just position held"
+
+  - code: "D4.3"
+    pillar: "D4"
+    title: "Establishing effective organisational policies and/or strategies for supporting and promoting others"
+    type: evidence
+    indicators:
+      - "Authorship of, or significant contribution to, institutional or sector policies on teaching and learning"
+      - "Leadership of strategy development with measurable adoption (number of programmes affected, staff reached, decisions influenced)"
+      - "Influence on policy through committee chairing, advisory roles, or commissioned contributions"
+      - "Evidence the policy or strategy has demonstrably shaped subsequent practice — not just been published"
+      - "Acting as a change agent, opinion leader, mentor, or leader of a community of practice"
+
+  - code: "D4.4"
+    pillar: "D4"
+    title: "Championing and influencing the development of others, often through wider organisational and academic communities"
+    type: evidence
+    indicators:
+      - "Sustained leadership in professional bodies, learned societies, or sector organisations"
+      - "Leadership of national or international communities of practice"
+      - "Invited keynotes, plenaries, and advisory roles attesting to standing in the field"
+      - "External recognition through awards, fellowships, editorial roles, or commissioned external reviews"
+      - "Mentoring of others to fellowship status (SFHEA, PFHEA) with evidence of their successful applications"
+      - "Demonstrable influence on practice beyond your home institution"
+
+# ---------- Cross-cutting dimensions (PSF 2023) ----------
+# Not modelled as criterion pages because they are dimensions of evidence
+# that pervade all four D4 criteria. Track coverage informally via the
+# `dimensions:` field on claims/CPD/reflections, or formalise them as
+# criterion pages later if a referee requires explicit mapping.
+
+values:
+  - code: "V1"
+    name: "Respect individual learners and diverse learning communities"
+  - code: "V2"
+    name: "Promote engagement in learning and equity of opportunity for all to become part of the HE community"
+  - code: "V3"
+    name: "Use scholarship, reflection, and evidence-informed approaches to inform academic and professional practice"
+  - code: "V4"
+    name: "Respond to the wider context in which higher education operates, recognising implications for practice"
+  - code: "V5"
+    name: "Collaborate with others to enhance practice"
+
+core_knowledge:
+  - code: "K1"
+    name: "How learners learn, generally and within specific subjects"
+  - code: "K2"
+    name: "Approaches to teaching and/or supporting learning, appropriate for subjects and level of study"
+  - code: "K3"
+    name: "Critical evaluation as a basis for effective practice"
+  - code: "K4"
+    name: "Appropriate use of digital and/or other technologies, and resources for learning"
+  - code: "K5"
+    name: "Requirements for quality assurance and quality enhancement, and their implications for practice"
+
+areas_of_activity:
+  - code: "A1"
+    name: "Design and plan learning activities and/or programmes"
+  - code: "A2"
+    name: "Teach and/or support learning through appropriate approaches and environments"
+  - code: "A3"
+    name: "Assess and give feedback for learning"
+  - code: "A4"
+    name: "Support and guide learners"
+  - code: "A5"
+    name: "Enhance practice through own continuing professional development"

@@ -1,0 +1,13 @@
+{
+  "name": "path-plug",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SilverBullet plug for the Path CPD/portfolio system",
+  "scripts": {
+    "build": "npx plug-compile path.plug.yaml",
+    "deploy": "npm run build && mkdir -p ../space/Library/path && cp path.plug.js ../space/Library/path/path.plug.js && cp PLUG.md ../space/Library/path/PLUG.md"
+  },
+  "dependencies": {
+    "@silverbulletmd/silverbullet": ">=2.5.3"
+  }
+}

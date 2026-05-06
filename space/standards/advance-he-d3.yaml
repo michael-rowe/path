@@ -1,0 +1,111 @@
+framework:
+  name: "AdvanceHE Professional Standards Framework — Descriptor 3 (Senior Fellow)"
+  short: "AdvanceHE-PSF-D3"
+  pathway: "Senior Fellow (SFHEA)"
+  version: "PSF 2023"
+  source: "AdvanceHE PSF 2023 — verify wording against the official descriptor"
+  emphasis_period: "sustained record across a breadth of contexts and colleagues"
+  notes: |
+    Descriptor 3 (Senior Fellow) recognises co-ordination, support, supervision,
+    management, and/or mentoring of others in relation to teaching and learning,
+    with substantive influence on student learning and/or the learning environment.
+
+    D3 requires demonstrating three D3-specific criteria (D3.1–D3.3) grounded in
+    a thorough understanding of effective approaches to teaching and learning support
+    (D2 baseline), underpinned by sustained coverage of all five Professional Values
+    (V1–V5), all five Core Knowledge areas (K1–K5), and all five Areas of Activity
+    (A1–A5).
+
+    The key distinction from D4: D3 focuses on co-ordinating and influencing others
+    in teaching contexts; D4 requires strategic leadership at institutional or sector
+    level. D3 evidence should demonstrate breadth of engagement and depth of impact
+    on colleagues and student learning — not just individual excellent practice.
+
+    A typical SFHEA application involves a reflective account and two case studies
+    demonstrating how D3.I and D3.II activities have produced the outcomes described
+    in D3.III, with two referees able to attest to the breadth and impact of your
+    co-ordinating and developmental role.
+
+pillars:
+  - code: "D3"
+    name: "Descriptor 3 — Senior Fellow Criteria"
+    weight: standard
+
+criteria:
+  - code: "D3.1"
+    pillar: "D3"
+    title: "Co-ordination, support, supervision, management, and/or mentoring of others"
+    type: evidence
+    indicators:
+      - "Co-ordination or management of programmes, modules, or teaching teams"
+      - "Formal supervision or mentoring of colleagues in teaching practice (early-career staff, PGT students on teaching, etc.)"
+      - "Leadership of structured CPD or peer development activities for colleagues"
+      - "Leadership of communities of practice, learning sets, or peer review schemes"
+      - "Evidence that co-ordination or mentoring produced change — not just activity"
+      - "Breadth matters: evidence across multiple colleagues, cohorts, or contexts rather than one-to-one only"
+
+  - code: "D3.2"
+    pillar: "D3"
+    title: "Wider development through engagement in activities that support, enhance, and/or recognise practice"
+    type: evidence
+    indicators:
+      - "Scholarship of teaching and learning that informs or is adopted by others' practice"
+      - "Engagement with professional bodies, networks, or sector organisations to support others' development"
+      - "Peer review of teaching or curriculum — both giving and organising it"
+      - "Development of resources, frameworks, or tools that colleagues adopt"
+      - "Collaborative curriculum design or cross-institutional curriculum partnerships"
+      - "Recognition activities: awards, nominations, or formal acknowledgement of others' practice"
+      - "External recognition of your own development activity (invited speaker, external examiner, reviewer)"
+
+  - code: "D3.3"
+    pillar: "D3"
+    title: "Substantive influence on student learning and/or the student learning environment"
+    type: outcome
+    indicators:
+      - "Evidence of improved student outcomes attributable to D3.1/D3.2 activities"
+      - "Changes to curriculum, assessment design, or student support resulting from your influence"
+      - "Student feedback or outcome data (retention, satisfaction, attainment) showing impact"
+      - "Institutional or programme-level changes to the learning environment that you led or enabled"
+      - "Evidence the influence is sustained and extends beyond a single module or cohort"
+      - "D3.3 is the outcome criterion — D3.1 and D3.2 are the activities; the link must be explicit"
+
+# ---------- Cross-cutting dimensions (PSF 2023) ----------
+# Same 15 dimensions as D4, applied at D3 scale.
+# Track informally via a `dimensions:` list field on claims/CPD/reflections,
+# or make dimension coverage explicit in case study narratives.
+
+values:
+  - code: "V1"
+    name: "Respect individual learners and diverse learning communities"
+  - code: "V2"
+    name: "Promote engagement in learning and equity of opportunity for all to become part of the HE community"
+  - code: "V3"
+    name: "Use scholarship, reflection, and evidence-informed approaches to inform academic and professional practice"
+  - code: "V4"
+    name: "Respond to the wider context in which higher education operates, recognising implications for practice"
+  - code: "V5"
+    name: "Collaborate with others to enhance practice"
+
+core_knowledge:
+  - code: "K1"
+    name: "How learners learn, generally and within specific subjects"
+  - code: "K2"
+    name: "Approaches to teaching and/or supporting learning, appropriate for subjects and level of study"
+  - code: "K3"
+    name: "Critical evaluation as a basis for effective practice"
+  - code: "K4"
+    name: "Appropriate use of digital and/or other technologies, and resources for learning"
+  - code: "K5"
+    name: "Requirements for quality assurance and quality enhancement, and their implications for practice"
+
+areas_of_activity:
+  - code: "A1"
+    name: "Design and plan learning activities and/or programmes"
+  - code: "A2"
+    name: "Teach and/or support learning through appropriate approaches and environments"
+  - code: "A3"
+    name: "Assess and give feedback for learning"
+  - code: "A4"
+    name: "Support and guide learners"
+  - code: "A5"
+    name: "Enhance practice through own continuing professional development"
