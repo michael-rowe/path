@@ -11,7 +11,7 @@ date: ${date.today()}
 activity_type: conference
 hours: 0
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 standards:
   - ""
 evidence:
@@ -19,7 +19,7 @@ evidence:
 reflection_brief: ""
 ---
 
-# CPD activity: |^|
+# |^|Type CPD activity title here
 
 ## Context
 

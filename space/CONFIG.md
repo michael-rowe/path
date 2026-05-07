@@ -206,6 +206,61 @@ pages stay readable — one Lua call per visual block instead of dozens of
 inline queries.
 
 ```space-lua
+-- Used inside page templates to fill in the `path:` (or `paths:`) YAML
+-- field when a new CPD / claim / reflection is created. Behaviour:
+--   0 active paths → returns "" (user fills in later, or hasn't set
+--                    up Paths yet).
+--   1 active path  → returns its slug silently (the only sensible
+--                    choice — no need to ask).
+--   2+ active paths → prompts via filterBox; user's choice returned.
+--                    Cancel returns "" so the field is left blank
+--                    rather than guessing wrong.
+--
+-- Memoises the choice in a session-scoped global so a follow-up call
+-- to `selectedPathFramework()` in the same template can reuse it
+-- without re-prompting.
+function selectActivePath()
+  local paths = query[[from p = tags.page where p.type == "path" and p.status == "active" select p]]
+  if not paths or #paths == 0 then
+    _lastSelectedPath = nil
+    return ""
+  end
+  local function slug_of(p)
+    return string.match(p.name, "paths/(.+)") or p.name
+  end
+  if #paths == 1 then
+    _lastSelectedPath = paths[1]
+    return slug_of(paths[1])
+  end
+  local options = {}
+  for _, p in ipairs(paths) do
+    local s = slug_of(p)
+    table.insert(options, {
+      name        = s,
+      description = (p.title or s) .. " · " .. (p.framework or ""),
+    })
+  end
+  local choice = editor.filterBox("Path", options, "Which Path is this for?")
+  if not choice then
+    _lastSelectedPath = nil
+    return ""
+  end
+  for _, p in ipairs(paths) do
+    if slug_of(p) == choice.name then
+      _lastSelectedPath = p
+      return choice.name
+    end
+  end
+  return choice.name
+end
+
+-- Companion to selectActivePath(): returns the framework slug for the
+-- Path the user just picked. Designed for use in the same template
+-- evaluation, immediately after `${selectActivePath()}` ran.
+function selectedPathFramework()
+  return (_lastSelectedPath and _lastSelectedPath.framework) or ""
+end
+
 -- Derives a display title from the current page name for use inside
 -- page templates. `network/benita-olivier` → `Benita Olivier`. Used to
 -- pre-populate the H1 and identifying YAML fields when a template
@@ -228,6 +283,173 @@ function pageItem(p)
   return "- [[" .. p.name .. "|" .. label .. "]]"
 end
 
+-- Renders a transposed summary table of active Paths: each path is a
+-- column, each metric is a row. Designed for ≤3 active paths at once
+-- (a reasonable working constraint — most users pursue 1–2 recognition
+-- routes at a time). Three queries total: paths, criteria, claims.
+function activePathsOverview()
+  local paths = query[[from p = tags.page where p.type == "path" and p.status == "active" order by p.target_date select p]]
+  if not paths or #paths == 0 then
+    return "_No active Paths. Use **Capture → Path** to start one._"
+  end
+  local all_criteria = query[[from c = tags.page where c.type == "criterion" select c]] or {}
+  local all_claims = query[[from cl = tags.page where cl.type == "cpd-claim" select cl]] or {}
+
+  local cols = {}
+  for _, p in ipairs(paths) do
+    local slug = string.match(p.name, "paths/(.+)") or p.name
+    local fwk = p.framework or ""
+    local total_criteria = 0
+    local fwk_codes = {}
+    for _, c in ipairs(all_criteria) do
+      if c.framework == fwk then
+        total_criteria = total_criteria + 1
+        fwk_codes[c.code] = true
+      end
+    end
+    local ready_count = 0
+    local covered_codes = {}
+    for _, cl in ipairs(all_claims) do
+      if cl.path == slug then
+        if cl.status == "ready" then ready_count = ready_count + 1 end
+        if cl.standard and fwk_codes[cl.standard] then
+          covered_codes[cl.standard] = true
+        end
+      end
+    end
+    local covered = 0
+    for _ in pairs(covered_codes) do covered = covered + 1 end
+    table.insert(cols, {
+      title = p.title or slug,
+      slug = slug,
+      framework = fwk,
+      criteria = covered .. " / " .. total_criteria,
+      ready = tostring(ready_count),
+      target = (p.target_date and p.target_date ~= "") and p.target_date or "—",
+    })
+  end
+
+  -- Inline HTML — markdown tables choke on the empty leading cell
+  -- `| | a | b |` and on the `|` inside wikilinks. Styled inline with
+  -- a subtle indigo tint on the header row and label column to match
+  -- the rest of Path's accent palette. CSS classes (.path-overview-*)
+  -- carry the colour so theming stays in STYLE.md.
+  local hdr = { dom.th { class = "path-overview-corner", "" } }
+  for _, c in ipairs(cols) do
+    table.insert(hdr, dom.th {
+      class = "path-overview-head",
+      dom.a { href = "/paths/" .. c.slug, c.title }
+    })
+  end
+  local rows = { dom.tr(hdr) }
+
+  local function metric_row(label, getter)
+    local cells = { dom.td { class = "path-overview-label", label } }
+    for _, c in ipairs(cols) do
+      table.insert(cells, dom.td { class = "path-overview-value", getter(c) })
+    end
+    table.insert(rows, dom.tr(cells))
+  end
+
+  metric_row("Framework",        function(c) return c.framework end)
+  metric_row("Criteria covered", function(c) return c.criteria end)
+  metric_row("Claims ready",     function(c) return c.ready end)
+  metric_row("Target",           function(c) return c.target end)
+
+  return widget.html(dom.table {
+    class = "path-overview",
+    table.unpack(rows)
+  })
+end
+
+-- Tasks scoped by Path. Tasks live inside CPD / claim / reflection
+-- pages; a task "belongs to" a Path if its parent page has `path == slug`
+-- (single-Path fields like claim.path) or `paths` list contains the
+-- slug (multi-Path fields like cpd.paths). The join is done Lua-side
+-- because LIQ across nested array fields with cross-table filtering
+-- is fiddly. Returns a markdown list of `templates.taskItem(t)` lines
+-- so checkbox toggling stays wired to the original task position.
+function tasksForPath(slug, limit)
+  limit = limit or 20
+  local matching_pages = query[[
+    from p = tags.page
+    where p.path == slug or table.includes(p.paths or {}, slug)
+    select p
+  ]]
+  local in_path = {}
+  for _, p in ipairs(matching_pages or {}) do in_path[p.name] = true end
+
+  local tasks = query[[from t = tags.task where not t.done order by t.pageLastModified desc]]
+  local out = {}
+  for _, t in ipairs(tasks or {}) do
+    if in_path[t.page] then
+      table.insert(out, templates.taskItem(t))
+      if #out >= limit then break end
+    end
+  end
+  if #out == 0 then return "_No open tasks for this Path._" end
+  return table.concat(out, "")
+end
+
+-- Dashboard variant: every open task with a path chip showing which
+-- Path it contributes to. Tasks live in two places:
+--   1. Path landing pages (`paths/<slug>`) — added via the New task
+--      command; the page name itself indicates the Path.
+--   2. CPD / claim / reflection notes whose `path` or `paths` field
+--      ties them to a Path (legacy / power-user case).
+-- Tasks with no Path scope (e.g. tasks in the manual) are omitted.
+function allOpenTasksByPath(limit)
+  limit = limit or 30
+  local pages_with_path = query[[
+    from p = tags.page
+    where p.path or (p.paths and #p.paths > 0)
+    select p
+  ]]
+  local page_paths = {}
+  for _, p in ipairs(pages_with_path or {}) do
+    if p.path and p.path ~= "" then
+      page_paths[p.name] = { p.path }
+    elseif p.paths and #p.paths > 0 then
+      page_paths[p.name] = p.paths
+    end
+  end
+
+  local tasks = query[[from t = tags.task where not t.done order by t.pageLastModified desc]]
+  local out = {}
+  for _, t in ipairs(tasks or {}) do
+    local paths = page_paths[t.page]
+    -- A task on `paths/<slug>` (but not `paths/<slug>-coverage`) is
+    -- scoped to that Path by virtue of where it lives.
+    if not paths then
+      local m = string.match(t.page or "", "^paths/(.+)$")
+      if m and not string.find(m, "%-coverage$") then
+        paths = { m }
+      end
+    end
+    if paths and #paths > 0 then
+      if #out >= limit then break end
+      -- Render as: `- [ ] description ([[page@pos|source]]) · path-chip`
+      -- SB's Task renderer scans for the first WikiLink with positional
+      -- ref (page@pos) and wires the checkbox to it — order-independent.
+      local desc = t.name or ""
+      local ref = t.ref or ((t.page or "") .. "@" .. tostring(t.pos or 0))
+      local source_link = "[[" .. ref .. "|source]]"
+      local chips = {}
+      for _, ps in ipairs(paths) do
+        table.insert(chips, "[" .. ps .. "](paths/" .. ps .. ")")
+      end
+      table.insert(out,
+        "- [ ] " .. desc
+        .. " (" .. source_link .. ")"
+        .. " · " .. table.concat(chips, " · ")
+        .. "\n"
+      )
+    end
+  end
+  if #out == 0 then return "_No open tasks scoped to any Path. Use **+ Capture → Task** to add one._" end
+  return table.concat(out, "")
+end
+
 function pathCoverage(slug)
   local out = {}
 
@@ -239,7 +461,7 @@ function pathCoverage(slug)
   for _, c in ipairs(claims) do
     local s = c.standard or ""
     if s ~= "" then
-      out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0 }
+      out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0, evidence = 0 }
       out[s].claims = out[s].claims + 1
     end
   end
@@ -252,7 +474,7 @@ function pathCoverage(slug)
   for _, c in ipairs(cpds) do
     for _, s in ipairs(c.standards or {}) do
       if s ~= "" then
-        out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0 }
+        out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0, evidence = 0 }
         out[s].cpd = out[s].cpd + 1
       end
     end
@@ -266,8 +488,22 @@ function pathCoverage(slug)
   for _, c in ipairs(refs) do
     for _, s in ipairs(c.standards or {}) do
       if s ~= "" then
-        out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0 }
+        out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0, evidence = 0 }
         out[s].reflections = out[s].reflections + 1
+      end
+    end
+  end
+
+  local ev = query[[
+    from p = tags.page
+    where p.type == "evidence" and table.includes(p.paths or {}, slug)
+    select { standards = p.standards }
+  ]]
+  for _, c in ipairs(ev) do
+    for _, s in ipairs(c.standards or {}) do
+      if s ~= "" then
+        out[s] = out[s] or { claims = 0, cpd = 0, reflections = 0, evidence = 0 }
+        out[s].evidence = out[s].evidence + 1
       end
     end
   end
@@ -303,13 +539,14 @@ function pathHeatmap(slug, criteria)
       dom.th { class = "ph-num", "Claims" },
       dom.th { class = "ph-num", "CPD" },
       dom.th { class = "ph-num", "Reflections" },
+      dom.th { class = "ph-num", "Evidence" },
     }
   }
   for _, code in ipairs(criteria) do
-    local r = cov[code] or { claims = 0, cpd = 0, reflections = 0 }
+    local r = cov[code] or { claims = 0, cpd = 0, reflections = 0, evidence = 0 }
     table.insert(rows, dom.tr {
       dom.td { class = "ph-label", code },
-      cell(r.claims), cell(r.cpd), cell(r.reflections),
+      cell(r.claims), cell(r.cpd), cell(r.reflections), cell(r.evidence),
     })
   end
   return widget.html(dom.table {
@@ -348,7 +585,7 @@ function pathGaps(slug, criteria)
 
   local lines = {}
   for _, code in ipairs(criteria) do
-    local r = cov[code] or { claims = 0, cpd = 0, reflections = 0 }
+    local r = cov[code] or { claims = 0, cpd = 0, reflections = 0, evidence = 0 }
     local missing = {}
     if r.claims == 0 then table.insert(missing, "claim") end
     if r.cpd == 0 then table.insert(missing, "CPD") end
@@ -626,6 +863,8 @@ command.define {
         {name = "Reflection",       description = "Structured reflection — Gibbs, ERA, Driscoll, or Rolfe"},
         {name = "Claim",            description = "Argued statement that a criterion is met"},
         {name = "Future-claim",     description = "Forward-looking aspirations for a pillar (X.4 sections)"},
+        {name = "Evidence",         description = "An artefact (PDF, image, certificate) supporting a claim or CPD entry"},
+        {name = "Task",             description = "A to-do item — added to the current page"},
         {name = "Quick capture",    description = "An in-the-moment thought, not yet evidence"},
         {name = "Contact",          description = "A person in your professional network"},
         {name = "Credential",       description = "An award, badge, certification, or fellowship"},
@@ -643,8 +882,12 @@ command.define {
       editor.invokeCommand("Path: New claim")
     elseif choice.name == "Future-claim" then
       editor.invokeCommand("Path: New future-contributions claim")
+    elseif choice.name == "Evidence" then
+      editor.invokeCommand("Path: New evidence")
+    elseif choice.name == "Task" then
+      editor.invokeCommand("Path: New task")
     elseif choice.name == "Quick capture" then
-      editor.invokeCommand("Path: New capture")
+      editor.invokeCommand("Path: New quick capture")
     elseif choice.name == "Contact" then
       editor.invokeCommand("Path: New contact")
     elseif choice.name == "Credential" then
@@ -654,6 +897,187 @@ command.define {
     elseif choice.name == "Personal statement" then
       editor.invokeCommand("Path: New personal statement")
     end
+  end
+}
+
+-- Archive this Path — flips its `status` field on the path landing
+-- page from `active` to either `completed` (goal achieved) or
+-- `abandoned` (no longer pursuing). Content links remain intact:
+-- claims, CPD entries, reflections, captures, and credentials still
+-- reference the Path slug, providing a record of why they exist.
+-- The dashboard's Active Paths view filters by `status == "active"`,
+-- so archived Paths drop off automatically.
+command.define {
+  name = "Path: Archive this Path",
+  run = function()
+    local page = editor.getCurrentPage()
+    if not page or page == "" then
+      editor.flashNotification("Open a Path landing page first.", "error")
+      return
+    end
+    local slug = string.match(page, "^paths/(.+)$")
+    if not slug or string.find(slug, "%-coverage$") then
+      editor.flashNotification("Run this command on a Path landing page (paths/<slug>).", "error")
+      return
+    end
+    local content = space.readPage(page) or ""
+    if not string.find(content, "type:%s*path") then
+      editor.flashNotification("This page isn't typed as a Path.", "error")
+      return
+    end
+    local choice = editor.filterBox(
+      "Archive Path",
+      {
+        {name = "Completed",  description = "Goal achieved — submission successful, fellowship awarded, etc."},
+        {name = "Abandoned",  description = "No longer pursuing this Path"},
+        {name = "Cancel",     description = "Don't archive"},
+      },
+      "How would you describe this Path's outcome?"
+    )
+    if not choice or choice.name == "Cancel" then return end
+    local new_status = string.lower(choice.name)
+    -- Replace `status: <anything>` (mid-frontmatter) — Lua patterns
+    -- don't have multiline anchors, so we anchor on the leading newline.
+    local replaced
+    local new_content = string.gsub(
+      content,
+      "(\nstatus:%s*)[^\n]*",
+      "%1" .. new_status,
+      1
+    )
+    if new_content == content then
+      -- Try start-of-file (frontmatter starting with status:)
+      new_content = string.gsub(content, "^(status:%s*)[^\n]*", "%1" .. new_status, 1)
+    end
+    space.writePage(page, new_content)
+    editor.flashNotification(
+      "Archived as " .. new_status .. ". Content links to this Path remain intact."
+    )
+    editor.navigate("index")
+  end
+}
+
+-- Clean up done tasks — moves `- [x]` lines from every Path landing
+-- page to `_system/archived-tasks`, with a date stamp for each batch.
+-- Tasks aren't deleted (so a record is preserved); they accumulate in
+-- the archive page in run-order. Done tasks remain visible on the
+-- Path page (struck through) until the user runs this cleanup.
+local function ensure_archive_page()
+  local page = "_system/archived-tasks"
+  if not space.pageExists(page) then
+    space.writePage(page,
+      "---\nreadonly: true\n---\n\n"
+      .. "# Archived tasks\n\n"
+      .. "_Tasks moved here by **Path: Clean up done tasks**. Most recent batch at the bottom._\n"
+    )
+  end
+  return page
+end
+
+command.define {
+  name = "Path: Clean up done tasks",
+  run = function()
+    local paths = query[[from p = tags.page where p.type == "path" select p]]
+    if not paths or #paths == 0 then
+      editor.flashNotification("No Paths found.")
+      return
+    end
+    local archived_lines = {}
+    local total_pages = 0
+    for _, p in ipairs(paths) do
+      local content = space.readPage(p.name) or ""
+      local found = {}
+      -- Capture done-task lines mid-file (preceded by newline)
+      local cleaned = string.gsub(content, "\n([ \t]*%-%s*%[[xX]%][^\n]*)", function(line)
+        table.insert(found, line)
+        return ""
+      end)
+      -- Also handle a done task at the very start of the file
+      cleaned = string.gsub(cleaned, "^([ \t]*%-%s*%[[xX]%][^\n]*\n?)", function(line)
+        table.insert(found, (string.gsub(line, "\n$", "")))
+        return ""
+      end)
+      if #found > 0 then
+        total_pages = total_pages + 1
+        for _, line in ipairs(found) do
+          table.insert(archived_lines, line)
+        end
+        space.writePage(p.name, cleaned)
+      end
+    end
+    if #archived_lines == 0 then
+      editor.flashNotification("No done tasks to clean up.")
+      return
+    end
+    -- Append archived lines to the archive page with a dated batch header
+    local archive_page = ensure_archive_page()
+    local existing = space.readPage(archive_page) or ""
+    local trimmed = string.gsub(existing, "%s+$", "")
+    local today = ""
+    pcall(function() today = tostring(date.today()):sub(1, 10) end)
+    local batch = "\n\n## " .. (today ~= "" and today or "Archive batch") .. "\n\n"
+      .. table.concat(archived_lines, "\n") .. "\n"
+    space.writePage(archive_page, trimmed .. batch)
+    editor.flashNotification(
+      "Archived " .. #archived_lines .. " done task(s) from "
+      .. total_pages .. " Path page(s)."
+    )
+    if editor.getCurrentPage() and string.find(editor.getCurrentPage(), "^paths/") then
+      editor.reloadPage()
+    end
+  end
+}
+
+-- New task — tasks are scoped to a Path (not to a specific note),
+-- so they get appended to the Path's landing page under the
+-- "Open tasks for this Path" section. Run from anywhere; the
+-- selectActivePath helper handles pickling between active paths
+-- (silent if only one). Task description is prompted; the resulting
+-- `- [ ] description` lands on `paths/<slug>.md` and shows up on the
+-- Path landing page and the dashboard's task list.
+command.define {
+  name = "Path: New task",
+  run = function()
+    local description = editor.prompt("Task:", "")
+    if not description or description == "" then return end
+    local slug = selectActivePath()
+    if not slug or slug == "" then
+      editor.flashNotification(
+        "No active Path to attach this task to. Create a Path or set one to status: active first.",
+        "error"
+      )
+      return
+    end
+    local page = "paths/" .. slug
+    if not space.pageExists(page) then
+      editor.flashNotification("Path landing page " .. page .. " not found.", "error")
+      return
+    end
+    local content = space.readPage(page) or ""
+    -- Locate the "Open tasks for this Path" section; append the task
+    -- at the end of that section (just before the next ## heading,
+    -- or at the end of the file if no section exists).
+    local marker = "## Open tasks for this Path"
+    local s = string.find(content, marker, 1, true)
+    local new_content
+    if not s then
+      local trimmed = string.gsub(content, "%s+$", "")
+      new_content = trimmed
+        .. "\n\n## Open tasks for this Path\n\n- [ ] " .. description .. "\n"
+    else
+      local section_start = s + #marker
+      local next_h2 = string.find(content, "\n##%s", section_start)
+      local section_end = next_h2 or (#content + 1)
+      local before = string.sub(content, 1, section_start - 1)
+      local section = string.sub(content, section_start, section_end - 1)
+      local after = string.sub(content, section_end)
+      section = string.gsub(section, "%s+$", "")
+      local new_section = section .. "\n\n- [ ] " .. description .. "\n"
+      new_content = before .. new_section .. (after ~= "" and "\n" .. after or "")
+    end
+    space.writePage(page, new_content)
+    if editor.getCurrentPage() == page then editor.reloadPage() end
+    editor.flashNotification("Task added to " .. slug .. ".")
   end
 }
 
@@ -1197,6 +1621,110 @@ function cpdCalendar(path_slug)
     dom.div { style = "font-size:12px;opacity:0.5;margin-bottom:6px;font-family:inherit", summary },
     dom.table { style = "border-collapse:separate;border-spacing:2px", table.unpack(rows) },
     dom.div { style = "margin-top:6px;display:flex;align-items:center;flex-wrap:wrap", table.unpack(leg) }
+  })
+end
+
+-- Compact month-only variant of cpdCalendar — for the dashboard, where
+-- the full 12-month view is too wide. Renders a standard 7-column
+-- (Mon–Sun) grid for the current calendar month, with day numbers in
+-- each cell and the same indigo intensity scale for hours.
+function cpdCalendarMonth(path_slug)
+  local entries
+  if path_slug then
+    entries = query[[from p = tags.page where p.type == "cpd" and p.path == path_slug select p]]
+  else
+    entries = query[[from p = tags.page where p.type == "cpd" select p]]
+  end
+
+  local hmap = {}
+  for _, e in ipairs(entries) do
+    if e.date then
+      local s = tostring(e.date):sub(1, 10)
+      hmap[s] = (hmap[s] or 0) + (tonumber(e.hours) or 0)
+    end
+  end
+
+  local today_str
+  pcall(function() today_str = tostring(date.today()):sub(1, 10) end)
+  if not today_str or #today_str ~= 10 then
+    return widget.html(dom.div { style = "opacity:0.4;font-size:13px", "Calendar unavailable." })
+  end
+  local ty = tonumber(today_str:sub(1,4))
+  local tm = tonumber(today_str:sub(6,7))
+  local td = tonumber(today_str:sub(9,10))
+  local today_jdn = to_jdn(ty, tm, td)
+
+  local first_jdn = to_jdn(ty, tm, 1)
+  local first_dow = jdn_dow(first_jdn)
+  local nm_y, nm_m = ty, tm + 1
+  if nm_m > 12 then nm_m = 1; nm_y = nm_y + 1 end
+  local _, _, last_d = from_jdn(to_jdn(nm_y, nm_m, 1) - 1)
+
+  local month_h, month_days = 0, 0
+  local prefix = string.format("%04d-%02d", ty, tm)
+  for k, v in pairs(hmap) do
+    if k:sub(1, 7) == prefix then
+      month_h = month_h + v
+      month_days = month_days + 1
+    end
+  end
+
+  local CB = "width:22px;height:22px;border-radius:3px;text-align:center;font-size:11px;line-height:22px;font-family:inherit;"
+  local function cell_bg(h)
+    if     h <= 0 then return CB .. "background:transparent;border:1px dashed rgba(99,102,241,0.2);color:rgba(0,0,0,0.3)"
+    elseif h < 1  then return CB .. "background:#eef2ff;color:#312e81"
+    elseif h < 2  then return CB .. "background:#c7d2fe;color:#312e81"
+    elseif h < 4  then return CB .. "background:#a5b4fc;color:#1e1b4b"
+    elseif h < 6  then return CB .. "background:#818cf8;color:white"
+    else               return CB .. "background:#4f46e5;color:white"
+    end
+  end
+
+  local DAY_LBL = {"Mon","Tue","Wed","Thu","Fri","Sat","Sun"}
+  local hdr = {}
+  for _, lbl in ipairs(DAY_LBL) do
+    table.insert(hdr, dom.td {
+      style = "font-size:10px;opacity:0.45;padding-bottom:3px;text-align:center;font-family:inherit;width:22px",
+      lbl
+    })
+  end
+  local rows = { dom.tr(hdr) }
+
+  local row = {}
+  for i = 0, first_dow - 1 do
+    table.insert(row, dom.td { style = "width:22px;height:22px" })
+  end
+  for d = 1, last_d do
+    local jdn = to_jdn(ty, tm, d)
+    local ds = string.format("%04d-%02d-%02d", ty, tm, d)
+    local hrs = hmap[ds] or 0
+    if jdn > today_jdn then
+      table.insert(row, dom.td { style = "width:22px;height:22px;color:rgba(0,0,0,0.15);text-align:center;font-size:11px;line-height:22px;font-family:inherit", tostring(d) })
+    else
+      local tip = hrs > 0 and (ds .. ": " .. string.format("%.1f", hrs) .. "h") or ds
+      table.insert(row, dom.td { style = cell_bg(hrs), title = tip, tostring(d) })
+    end
+    if jdn_dow(jdn) == 6 then
+      table.insert(rows, dom.tr(row))
+      row = {}
+    end
+  end
+  if #row > 0 then
+    while #row < 7 do
+      table.insert(row, dom.td { style = "width:22px;height:22px" })
+    end
+    table.insert(rows, dom.tr(row))
+  end
+
+  local MONTHS = {"January","February","March","April","May","June","July","August","September","October","November","December"}
+  local summary = string.format("%s %d · %.1fh across %d %s",
+    MONTHS[tm], ty, month_h, month_days,
+    month_days == 1 and "day" or "days")
+
+  return widget.html(dom.div {
+    style = "padding:4px 0",
+    dom.div { style = "font-size:12px;opacity:0.5;margin-bottom:6px;font-family:inherit", summary },
+    dom.table { style = "border-collapse:separate;border-spacing:2px", table.unpack(rows) }
   })
 end
 ```

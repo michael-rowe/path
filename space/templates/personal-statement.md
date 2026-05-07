@@ -6,13 +6,13 @@ command: "Path: New personal statement"
 ---
 ---
 type: personal-statement
-path: uol-professor
+path: ${selectActivePath()}
 title: "Personal statement"
 status: draft
 last_updated: ${date.today()}
 ---
 
-# Personal statement: |^|
+# |^|Type personal statement title here
 
 > **tip** **What this is.** A short narrative — written in your voice, addressed to an assessor — that introduces your case before they read the claims. Two pages of focused argument is plenty. Signpost the strongest evidence rather than re-stating it.
 

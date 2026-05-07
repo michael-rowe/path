@@ -12,10 +12,10 @@ framework: rolfe
 related_cpd:
   - "[[cpd/]]"
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 ---
 
-# Rolfe reflection: |^|
+# |^|Type Rolfe reflection title here
 
 ## What? *(descriptive)*
 

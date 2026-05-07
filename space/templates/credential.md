@@ -15,14 +15,14 @@ badge_image: ""
 verification_url: ""
 expires: ""
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 standards:
   - ""
 evidence:
   - "[[]]"
 ---
 
-# Credential: |^|
+# |^|Type credential title here
 
 ## What this credential recognises
 

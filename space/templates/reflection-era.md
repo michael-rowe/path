@@ -12,10 +12,10 @@ framework: era
 related_cpd:
   - "[[cpd/]]"
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 ---
 
-# ERA reflection: |^|
+# |^|Type ERA reflection title here
 
 ## Experience
 

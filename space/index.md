@@ -4,12 +4,6 @@ readonly: true
 
 # Dashboard
 
-# Capture something
-
-*Click to record an activity, reflection, claim, or quick thought:*
-
-${widgets.commandButton "Path: Capture"}
-
 # Quick thoughts to process
 
 ${some(query[[
@@ -20,28 +14,17 @@ ${some(query[[
   select pageItem(p)
 ]]) or "_No quick thoughts to process. When you make a quick note, it will appear here until you turn it into a CPD entry, link it to a claim, or mark it `status: processed` in the page._"}
 
-# Recent incomplete tasks
+# Open tasks by Path
 
-${some(query[[
-  from t = tags.task
-  where not t.done
-  order by t.pageLastModified desc
-  limit 10
-  select templates.taskItem(t)
-]]) or "_All tasks done._"}
+${allOpenTasksByPath(20)}
 
 # Active Paths
 
-${some(query[[
-  from p = tags.page
-  where p.type == "path" and p.status == "active"
-  order by p.lastModified desc
-  select pageItem(p)
-]]) or "_No active Paths. Use **Capture → Path** to start one._"}
+${activePathsOverview()}
 
-# CPD activity
+# CPD this month
 
-${cpdCalendar()}
+${cpdCalendarMonth()}
 
 # Claims by status
 

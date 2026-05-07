@@ -24,11 +24,22 @@ ${some(query[[
   select pageItem(p)
 ]]) or "_No planned paths._"}
 
-## Other
+## Paused
 
 ${some(query[[
   from p = tags.page
-  where p.type == "path" and p.status != "active" and p.status != "planned"
+  where p.type == "path" and p.status == "paused"
   order by p.title
   select pageItem(p)
-]]) or "_None._"}
+]]) or "_No paused paths._"}
+
+## Archived
+
+_Paths you have completed (goal achieved) or abandoned. Content links from claims, CPD, reflections, and credentials remain intact — archived Paths are still browsable for record._
+
+${some(query[[
+  from p = tags.page
+  where p.type == "path" and (p.status == "completed" or p.status == "abandoned")
+  order by p.title
+  select pageItem(p)
+]]) or "_No archived paths yet._"}

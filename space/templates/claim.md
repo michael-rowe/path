@@ -7,8 +7,8 @@ command: "Path: New claim"
 ---
 type: cpd-claim
 title: ""
-path: uol-professor
-framework: UoL-TSPP-Professor
+path: ${selectActivePath()}
+framework: ${selectedPathFramework()}
 standard: ""
 claim_type: evidence
 status: draft
@@ -17,7 +17,7 @@ evidence:
 last_updated: ${date.today()}
 ---
 
-# Claim: |^|
+# |^|Type claim title here
 
 ## The claim
 

@@ -142,10 +142,15 @@ A small italic label remains where the YAML was, pointing users to the right-han
 CONFIG.md exposes these helpers as space-lua globals:
 
 - **`pageDisplayName()`** — turns `network/benita-olivier` into `Benita Olivier`. Used inside template bodies (`# ${pageDisplayName()}`, `full_name: "${pageDisplayName()}"`) so a new contact's H1 and identifying YAML field auto-populate from the slug. Calls `editor.getCurrentPage()` — works because the SB page-template engine navigates *before* evaluating the body template.
-- **`pathCoverage(slug)`** — returns counts of `{claims, cpd, reflections}` per criterion code for a Path. Three queries total. Powers the heatmap and gap helpers below; replaces what would otherwise be 40+ inline `${#query[[...]]}` cells.
-- **`pathHeatmap(slug, criteria)`** — `widget.html(dom.table {...})` emitting `<td class="ph-cell ph-N">`; styling lives in STYLE.md so the palette is themeable. Single-hue indigo scale: empty cells get a dashed border and `—` (absence ≠ score zero); filled cells scale 1 → 5+ in indigo intensity. Dark-mode variants in STYLE.md.
+- **`selectActivePath()`** — interactive helper used in `paths:` / `path:` template fields. Queries active Paths; silent default if 1, `editor.filterBox` picker if 2+, returns "" if cancelled / none. Memoises the chosen Path record into `_lastSelectedPath` so a follow-up `selectedPathFramework()` call in the same template evaluation reuses the choice without re-prompting. Used by every content template (cpd, claim, claim-future, capture, credential, evidence, personal-statement, reflection-{gibbs,era,driscoll,rolfe}).
+- **`selectedPathFramework()`** — companion to `selectActivePath()`; returns the framework slug for the just-picked Path. Used in `claim.md` and `claim-future.md` to auto-fill the `framework:` field consistent with the chosen Path.
+- **`pathCoverage(slug)`** — returns counts of `{claims, cpd, reflections, evidence}` per criterion code for a Path. Four queries total. Powers the heatmap and gap helpers; replaces what would otherwise be 40+ inline `${#query[[...]]}` cells.
+- **`pathHeatmap(slug, criteria)`** — `widget.html(dom.table {...})` emitting `<td class="ph-cell ph-N">`; styling lives in STYLE.md (`.ph-table` uses `table-layout: fixed; width: 100%` so columns are equal-width). Five columns: Criterion, Claims, CPD, Reflections, Evidence. Single-hue indigo scale: empty cells get a dashed border and `—`; filled cells scale 1 → 5+. Dark-mode variants in STYLE.md.
 - **`pathGaps(slug, criteria)`** — markdown bullet list of any criterion missing claim/CPD/reflection. Replaces the hand-curated gap section.
 - **`pathCriterionDetail(slug, code)`** — three-list block (claims, CPD, reflections) for one criterion. Used in the per-criterion sections of coverage dashboards.
+- **`activePathsOverview()`** — transposed dashboard widget: paths as columns, metrics as rows (Framework / Criteria covered / Claims ready / Target). Renders via `widget.html(dom.table {...})` with `.path-overview-*` classes (header row + label column tinted indigo). Adapts to 1, 2, or 3 active Paths.
+- **`cpdCalendarMonth(path_slug)`** — current-month CPD activity grid (7-column day-of-week layout). Used on `index.md`. The 52-week `cpdCalendar()` is still available for Path landing pages where the longer view fits.
+- **`tasksForPath(slug, limit)` / `allOpenTasksByPath(limit)`** — task queries scoped by Path. `tasksForPath` is currently unused on Path landing pages (tasks are now native markdown checkboxes inline) but kept for potential future use. `allOpenTasksByPath` powers the dashboard's "Open tasks by Path" section: iterates `tags.task` where `not done`, infers Path scope from `t.page == "paths/<slug>"` (path landing page) OR the parent page's `path` / `paths` field. Renders as `- [ ] description ([[page@pos|source]]) · path-chip` — SB's first-WikiLink-with-positional-ref convention keeps checkbox toggle wired regardless of where the source link sits in the line.
 
 Both Path coverage dashboards (`paths/uol-professor-coverage.md`, `paths/advance-he-d4-coverage.md`) use the same helper signatures — they're framework-agnostic.
 
@@ -243,6 +248,82 @@ Two SB editor behaviours that survive `forcedROMode` and we couldn't suppress wi
 2. **Template `${...}` source flash on click** — clicking inside a rendered Lua-directive widget dissolves it and shows the raw source. No targetable wrapper class in source mode (CM renders raw text + token spans inside a regular `cm-line`), so CSS can't hide it after the fact. Mitigation is to make readonly pages clearly non-interactive (View only badge, hidden cursor). Live with it.
 
 **Discovery references** (for any future attempt): grep the bundled client at `/.client/client.js` and `/.client/main.css` (public, served by the SB container without auth). Key names: `sb-header-inside` (line class CM adds when the cursor lands in a heading), `r1(state, [from, to])` (the cursor-in-range helper driving source-reveal), `LuaDirective` (no replace-decoration when `r1` is true), `sb-lua-wrapper` + `sb-lua-directive-inline/block` (widget DOM, distinct from the `sb-lua-directive` span used only in the markdown→HTML export pipeline).
+
+## Capture flow and templates
+
+`Path: Capture` (Ctrl-Alt-c) is the unified entry point — a `filterBox` picker routing to ten template-bound commands: CPD activity, Reflection (with sub-picker for Gibbs/ERA/Driscoll/Rolfe), Claim, Future-claim, Evidence, Task, Quick capture, Contact, Credential, Path, Personal statement.
+
+The Navigator's Create section was collapsed into a single indigo "Capture" button (`.section-capture .nav-capture`, ~50% panel width, left-aligned with the rest of the navigator) that runs the same picker.
+
+Templates use `${selectActivePath()}` for the `path:` / `paths:` field and `${selectedPathFramework()}` for the `framework:` field where applicable. H1 placeholders read `# |^|Type X title here` so users see they should overwrite, not extend.
+
+## Tasks model
+
+Tasks are scoped to **Paths**, not pages. `Path: New task` (in the Capture picker) appends `- [ ] description` to `paths/<slug>.md` under the "Open tasks for this Path" section, choosing the slug via `selectActivePath()`.
+
+Tasks live as native markdown checkboxes inline on Path landing pages; SB's `tags.task` indexes them automatically. Path landing pages no longer use a `${tasksForPath()}` query — tasks just render where they sit.
+
+The dashboard's "Open tasks by Path" section uses `allOpenTasksByPath()` to render a unified list with path-name chips. SB's task widget scans the task line for the FIRST WikiLink with positional ref (`page@pos`) and wires the checkbox to it — so the rendered task can have its source link mid-line (after the description, before the chip) and toggle still works.
+
+`Path: Clean up done tasks` archives `- [x]` lines from every Path landing page to `_system/archived-tasks` under a dated batch heading. Done tasks aren't deleted on check — they accumulate (struck through) until cleanup is explicitly run.
+
+## Path archiving
+
+`Path: Archive this Path` flips the `status:` field on a Path landing page from `active` to `completed` (achieved) or `abandoned`. The Path's enum (`STATUS_ENUMS["path"]` in `path.ts`) is `["active", "planned", "paused", "completed", "abandoned"]`.
+
+Content links remain intact — claims, CPD entries, reflections, captures, credentials, evidence still reference the slug. Queries elsewhere filter by `status == "active"` so archived Paths drop off automatically. `paths/index.md` has explicit Active / Planned / Paused / Archived sections.
+
+## Evidence pages
+
+`type: evidence` for artefact pages — PDFs, images, certificates, feedback letters, published articles. Companion to (not a replacement for) the CPD entry: most CPD doesn't need separate evidence; create an evidence page only when there's a tangible artefact distinct from the activity record.
+
+Schema: `title`, `date`, `file_type` (enum: pdf|image|email|video|web|other), `paths`, `standards`, `related_cpd`, `related_claims`. The actual file is dropped onto the page body (SB uploads to `space/evidence/` next to the page, not `_assets/`, when on a sub-folder page — this co-locates file + metadata as a unit).
+
+`Evidence.md` browse page has three views: Recent, By Path, By artefact type. Linked from Navigator → Browse with paperclip icon.
+
+`pathCoverage()` counts evidence per criterion alongside claims/CPD/reflections; `pathHeatmap()` displays a 4th data column "Evidence".
+
+## Inspector multi-select
+
+For list-typed fields driven by an enum, the Inspector renders a checkbox column instead of a comma-separated text input:
+
+- **`paths`** — checkbox list of all installed Paths (excluding `*-coverage`). Labelled by Path title (e.g. "UoL Promotion to Professor"); stores slugs on save.
+- **`standards`** — checkbox list of criteria from the relevant framework. Framework determined from explicit `framework:` field, or via the page's `path:` (singular) / first item of `paths:` (list) → looked up against the Paths list. Labelled `code — title` (e.g. "1.1 — Demonstrably effective individual teaching excellence"); stores codes.
+
+Hidden `<input>` of the same key holds the comma-joined value, kept in sync by a checkbox-change listener so the existing serialiseFields code works unchanged.
+
+Falls back to the plain comma-separated text input when no options data is available (e.g. fresh install with no Paths).
+
+CSS classes: `.multi-list`, `.multi-opt`, `.multi-opt-label`. Indigo accent color on checked checkboxes via `accent-color: #4f46e5`.
+
+## Site-wide indigo accent palette
+
+Centralised in `STYLE.md`:
+
+- **H1** gets a 4px indigo `::before` bar at the start of the line.
+- **H2** gets a thin indigo `border-bottom`.
+- **Blockquotes** have a 3px indigo left border (overriding SB's grey).
+- **Tip and note admonitions** use indigo border + light indigo wash.
+- **Inline code** has a faint indigo background tint.
+- **Active Paths overview table** (`.path-overview`) has indigo header row + label column.
+- **Path coverage heatmap** uses single-hue indigo scale (already in place).
+- **Capture button** (Navigator) is solid indigo with hover darkening.
+- **Multi-select checkboxes** use `accent-color` indigo.
+- **Delete button** (Inspector) is the only red element — danger-zone signal.
+
+All variants have dark-mode equivalents using `html[data-theme="dark"]`.
+
+## Page deletion
+
+The right-hand Inspector renders a `<button class="btn-danger" id="btn-delete">Delete this page</button>` at the bottom on non-readonly pages. Click → `window.prompt` asking for "DELETE" (case-insensitive, trimmed) → on match, `space.deletePage(PAGE)` then `editor.navigate("index")`.
+
+## Repo workflow
+
+`git update-index --assume-unchanged space/profile.md` is set on the working repo (`~/portfolio`) so the user's personal profile content can never accidentally commit. The committed `profile.md` has placeholder values; local edits stay invisible to git.
+
+`.gitignore` covers all personal content directories (claims, cpd, reflections, captures, network, credentials, personal-statements, evidence-inventory, Inbox), all `space/paths/*.md` except `index.md`, secrets, exports, and node_modules. Develop-on-working / push-from-working is therefore safe.
+
+`~/portfolio-test` is a clone whose origin points to `~/portfolio` (local). Pull from there to sync the test instance to the latest plumbing without copying personal content.
 
 ## Component names and focus mode
 

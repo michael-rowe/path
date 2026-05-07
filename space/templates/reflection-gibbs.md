@@ -12,10 +12,10 @@ framework: gibbs
 related_cpd:
   - "[[cpd/]]"
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 ---
 
-# Gibbs reflection: |^|
+# |^|Type Gibbs reflection title here
 
 ## Description
 

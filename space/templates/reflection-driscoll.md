@@ -12,10 +12,10 @@ framework: driscoll
 related_cpd:
   - "[[cpd/]]"
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 ---
 
-# Driscoll reflection: |^|
+# |^|Type Driscoll reflection title here
 
 ## What?
 

@@ -121,6 +121,160 @@ html[data-theme="dark"] .sb-wiki-link:hover {
   margin: 0.3em 0;
 }
 
+/* Task lines: drop the list bullet — the checkbox is the marker.
+   The editor view uses a span.cm-list-bullet; widget-rendered HTML
+   (e.g. dashboard task list) renders bullets via a `::before` pseudo
+   on each `<li>`. Override both. */
+.cm-line.sb-line-task .cm-list-bullet {
+  visibility: hidden;
+}
+#sb-main .cm-editor .sb-lua-directive-block ul li:has(input[type="checkbox"])::before,
+#sb-main .cm-editor .sb-lua-directive-inline ul li:has(input[type="checkbox"])::before,
+#sb-main .cm-editor .sb-lua-directive-block ul li:has(span[data-external-task-ref])::before,
+#sb-main .cm-editor .sb-lua-directive-inline ul li:has(span[data-external-task-ref])::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* ============ Active Paths overview table (dashboard) ============ */
+
+.path-overview {
+  border-collapse: collapse;
+  margin: 0.6em 0;
+  font-size: 0.95em;
+}
+.path-overview th,
+.path-overview td {
+  padding: 8px 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+/* Top-left corner cell — invisible but holds layout */
+.path-overview .path-overview-corner {
+  background: transparent;
+  border-bottom: 1px solid #e0e7ff;
+}
+/* Header row (path links) — light indigo wash + indigo bottom border */
+.path-overview .path-overview-head {
+  background: #eef2ff;
+  border-bottom: 2px solid #c7d2fe;
+  font-weight: 600;
+  font-size: 0.92em;
+}
+.path-overview .path-overview-head a {
+  color: #4338ca;
+  text-decoration: none;
+}
+.path-overview .path-overview-head a:hover {
+  color: #312e81;
+  text-decoration: underline;
+}
+/* Left column (metric labels) — same wash but vertical */
+.path-overview .path-overview-label {
+  background: #eef2ff;
+  font-weight: 500;
+  font-size: 0.88em;
+  color: #4338ca;
+  border-right: 2px solid #c7d2fe;
+  width: 1%;
+  white-space: nowrap;
+}
+.path-overview .path-overview-value {
+  font-size: 0.95em;
+  color: inherit;
+  border-bottom: 1px solid rgba(199, 210, 254, 0.4);
+}
+.path-overview tr:last-child .path-overview-value {
+  border-bottom: none;
+}
+
+/* Dark-mode variants */
+html[data-theme="dark"] .path-overview .path-overview-head {
+  background: rgba(79, 70, 229, 0.12);
+  border-bottom-color: rgba(165, 180, 252, 0.3);
+}
+html[data-theme="dark"] .path-overview .path-overview-head a {
+  color: #c7d2fe;
+}
+html[data-theme="dark"] .path-overview .path-overview-head a:hover {
+  color: #e0e7ff;
+}
+html[data-theme="dark"] .path-overview .path-overview-label {
+  background: rgba(79, 70, 229, 0.12);
+  color: #c7d2fe;
+  border-right-color: rgba(165, 180, 252, 0.3);
+}
+html[data-theme="dark"] .path-overview .path-overview-value {
+  border-bottom-color: rgba(99, 102, 241, 0.15);
+}
+html[data-theme="dark"] .path-overview .path-overview-corner {
+  border-bottom-color: rgba(99, 102, 241, 0.15);
+}
+
+/* ============ Subtle indigo accents across the site ============ */
+
+/* H1 gets a thin indigo accent bar — matches the path logo / heatmap */
+#sb-main .cm-editor .cm-line.sb-line-h1::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 0.85em;
+  background: #4f46e5;
+  border-radius: 2px;
+  margin-right: 0.55em;
+  vertical-align: -0.05em;
+  opacity: 0.85;
+}
+html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-h1::before {
+  background: #818cf8;
+}
+
+/* Blockquotes get a thicker indigo left border */
+#sb-main .cm-editor .cm-line.sb-line-blockquote {
+  border-left: 3px solid #c7d2fe !important;
+  padding-left: 0.6em !important;
+}
+html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-blockquote {
+  border-left-color: rgba(165, 180, 252, 0.4) !important;
+}
+
+/* H2 gets a thin indigo underline — gives manual pages and dashboards
+   visual rhythm between sections without dominating */
+#sb-main .cm-editor .cm-line.sb-line-h2 {
+  border-bottom: 1px solid rgba(199, 210, 254, 0.55);
+  padding-bottom: 0.18em !important;
+  margin-bottom: 0.25em !important;
+}
+html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-h2 {
+  border-bottom-color: rgba(99, 102, 241, 0.25);
+}
+
+/* Tip admonition uses indigo by default (other variants kept) */
+.sb-admonition[admonition="tip" i],
+.sb-admonition[admonition="note" i] {
+  --admonition-color: #4f46e5;
+  background: rgba(238, 242, 255, 0.5) !important;
+  border: 1px solid rgba(199, 210, 254, 0.7) !important;
+}
+html[data-theme="dark"] .sb-admonition[admonition="tip" i],
+html[data-theme="dark"] .sb-admonition[admonition="note" i] {
+  background: rgba(79, 70, 229, 0.08) !important;
+  border-color: rgba(165, 180, 252, 0.2) !important;
+}
+
+/* Inline code gets a faint indigo tint */
+#sb-main .cm-editor .sb-code {
+  background: rgba(238, 242, 255, 0.6);
+  color: #312e81;
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+html[data-theme="dark"] #sb-main .cm-editor .sb-code {
+  background: rgba(79, 70, 229, 0.12);
+  color: #c7d2fe;
+}
+
 /* ============ Coverage heatmap (path dashboards) ============ */
 
 .ph-table {
@@ -128,6 +282,8 @@ html[data-theme="dark"] .sb-wiki-link:hover {
   border-spacing: 4px;
   font-size: 0.95em;
   margin: 0.6em 0 0.3em;
+  table-layout: fixed;
+  width: 100%;
 }
 .ph-table th {
   text-align: left;

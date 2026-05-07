@@ -7,8 +7,8 @@ command: "Path: New future-contributions claim"
 ---
 type: cpd-claim
 title: ""
-path: uol-professor
-framework: UoL-TSPP-Professor
+path: ${selectActivePath()}
+framework: ${selectedPathFramework()}
 standard: ""
 claim_type: forward-looking
 status: draft
@@ -17,7 +17,7 @@ informed_by:
 last_updated: ${date.today()}
 ---
 
-# Future-claim: |^|
+# |^|Type future-claim title here
 
 ## Aspirations
 

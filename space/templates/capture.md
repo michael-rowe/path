@@ -2,7 +2,7 @@
 tags: meta/template/page
 description: Quick structured capture — an in-the-moment thought, not yet evidence
 suggestedName: "captures/${date.today()}-short-description"
-command: "Path: New capture"
+command: "Path: New quick capture"
 ---
 ---
 type: capture
@@ -11,11 +11,11 @@ status: unprocessed
 related_to:
   - "[[]]"
 paths:
-  - uol-professor
+  - ${selectActivePath()}
 tags: [capture]
 ---
 
-# Capture: |^|
+# |^|Type quick capture title here
 
 ## What landed
 

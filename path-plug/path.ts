@@ -45,6 +45,9 @@ const PRETTY_KEYS: Record<string, string> = {
   badge_image: "Badge image",
   verification_url: "Verification URL",
   award_date: "Award date",
+  file_type: "File type",
+  related_cpd: "Related CPD",
+  related_claims: "Related claims",
 };
 
 const FIELD_HINTS: Record<string, string> = {
@@ -53,9 +56,12 @@ const FIELD_HINTS: Record<string, string> = {
   date: "YYYY-MM-DD",
   last_updated: "YYYY-MM-DD",
   path: "slug of a Path page (e.g. uol-professor)",
+  paths: "Path slugs this contributes to (e.g. uol-professor, advance-he-d4)",
   standard: "code from the framework (e.g. 1.1)",
   evidence: "[[wikilinks]] to evidence pages",
-  standards: "list of standard codes (e.g. 1.1, 2.3)",
+  standards: "criterion codes from the Path's framework that this addresses (e.g. 1.1, 2.3)",
+  related_cpd: "[[wikilinks]] to CPD entries this evidence supports",
+  related_claims: "[[wikilinks]] to claims this evidence supports",
   orcid: "URL or 0000-0000-0000-0000",
   scholar: "Google Scholar profile URL",
   linkedin: "LinkedIn profile URL",
@@ -73,7 +79,7 @@ const STATUS_ENUMS: Record<string, string[]> = {
   "cpd-claim": ["draft", "ready", "published"],
   "cpd": ["draft", "complete"],
   "capture": ["unprocessed", "processed"],
-  "path": ["active", "planned", "paused", "completed"],
+  "path": ["active", "planned", "paused", "completed", "abandoned"],
   "personal-statement": ["draft", "ready"],
   "contact": ["active", "occasional", "dormant", "former"],
 };
@@ -83,6 +89,7 @@ const FIELD_ENUMS: Record<string, string[]> = {
   activity_type: ["conference", "course", "workshop", "project", "teaching", "supervision", "reading", "writing", "other"],
   relationship_type: ["collaborator", "mentor", "mentee", "peer", "senior-colleague", "conference-contact", "professional-body", "student", "other"],
   credential_type: ["open-badge", "certification", "degree", "fellowship", "membership", "other"],
+  file_type: ["pdf", "image", "email", "video", "web", "other"],
 };
 
 function getEnumOptions(key: string, pageType: string): string[] | null {
@@ -276,7 +283,78 @@ function serializeFields(
 interface Mention {
   ref: string;
   pageName: string;
-  snippet: string;
+}
+
+// Strip a path prefix and any leading YYYY-MM-DD- date stamp, then
+// title-case word separators. `manual/interface` -> "Interface";
+// `cpd/2026-05-07-prs-conference` -> "Prs Conference".
+function mentionDisplayName(pageName: string): string {
+  const last = pageName.split("/").pop() || pageName;
+  const stripped = last.replace(/^\d{4}-\d{2}-\d{2}-?/, "") || last;
+  return stripped
+    .replace(/[-_]/g, " ")
+    .replace(/\b(\p{L})/gu, (c) => c.toUpperCase());
+}
+
+// Lookup all installed Paths (excluding the `*-coverage` dashboard
+// pages). Used to populate the multi-select for `paths` fields.
+async function fetchAllPaths(): Promise<
+  { slug: string; title: string; framework: string }[]
+> {
+  try {
+    const where = await lua.parseExpression('p.type == "path"');
+    // deno-lint-ignore no-explicit-any
+    const rows = (await indexApi.queryLuaObjects<any>("page", {
+      objectVariable: "p",
+      where,
+    })) ?? [];
+    const out: { slug: string; title: string; framework: string }[] = [];
+    for (const r of rows) {
+      const name = (r?.name as string) ?? "";
+      const slug = name.replace(/^paths\//, "");
+      if (!slug || slug.endsWith("-coverage")) continue;
+      out.push({
+        slug,
+        title: (r?.title as string) || slug,
+        framework: (r?.framework as string) || "",
+      });
+    }
+    out.sort((a, b) => a.title.localeCompare(b.title));
+    return out;
+  } catch (e) {
+    console.error("fetchAllPaths failed", e);
+    return [];
+  }
+}
+
+// Criteria of a given framework, used to populate the multi-select for
+// `standards` fields. Sorted by code so 1.1, 1.2, ..., 4.2 stay in order.
+async function fetchCriteriaForFramework(
+  framework: string,
+): Promise<{ code: string; title: string }[]> {
+  if (!framework) return [];
+  try {
+    const where = await lua.parseExpression(
+      'c.type == "criterion" and c.framework == framework',
+    );
+    // deno-lint-ignore no-explicit-any
+    const rows = (await indexApi.queryLuaObjects<any>(
+      "page",
+      { objectVariable: "c", where },
+      { framework },
+    )) ?? [];
+    const out: { code: string; title: string }[] = [];
+    for (const r of rows) {
+      const code = (r?.code as string) || "";
+      if (!code) continue;
+      out.push({ code, title: (r?.title as string) || "" });
+    }
+    out.sort((a, b) => a.code.localeCompare(b.code));
+    return out;
+  } catch (e) {
+    console.error("fetchCriteriaForFramework failed", e);
+    return [];
+  }
 }
 
 async function fetchLinkedMentions(pageName: string): Promise<Mention[]> {
@@ -305,7 +383,6 @@ async function fetchLinkedMentions(pageName: string): Promise<Mention[]> {
       out.push({
         ref: r?.ref ?? p,
         pageName: p,
-        snippet: typeof r?.snippet === "string" ? r.snippet : "",
       });
     }
     return out;
@@ -315,12 +392,18 @@ async function fetchLinkedMentions(pageName: string): Promise<Mention[]> {
   }
 }
 
+interface MultiSelectData {
+  allPaths: { slug: string; title: string; framework: string }[];
+  criteria: { code: string; title: string }[];
+}
+
 function buildPanelContent(
   pageName: string,
   fields: Field[],
   toc: TocItem[] = [],
   mentions: Mention[] = [],
   isReadonly: boolean = false,
+  multiSelect: MultiSelectData = { allPaths: [], criteria: [] },
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
   const editableDescs: { key: string; list: boolean }[] = [];
@@ -347,6 +430,44 @@ function buildPanelContent(
     const valStr = f.isList
       ? (f.value as string[]).join(", ")
       : (f.value as string);
+
+    // Multi-select for list fields driven by an enum:
+    //   `paths`     — checkbox list of all installed Path titles.
+    //   `standards` — checkbox list of criteria from the relevant
+    //                  framework (looked up via the page's path).
+    // Falls back to plain comma-separated input if no options data is
+    // available (e.g. no Paths installed yet). Stores the comma-joined
+    // value in a hidden input so the existing save flow works unchanged.
+    if (f.isList && (f.key === "paths" || f.key === "standards")) {
+      const opts: { value: string; label: string }[] =
+        f.key === "paths"
+          ? multiSelect.allPaths.map((p) => ({ value: p.slug, label: p.title }))
+          : multiSelect.criteria.map((c) => ({
+            value: c.code,
+            label: c.title ? `${c.code} — ${c.title}` : c.code,
+          }));
+      if (opts.length > 0) {
+        const label = escapeHtml(prettyKey(f.key));
+        const valList = (f.value as string[]).filter((v) => v && v.trim());
+        const valSet = new Set(valList);
+        const hiddenVal = valList.join(",");
+        const optsHtml = opts.map((opt) =>
+          `<label class="multi-opt">
+            <input type="checkbox" data-multi-key="${escapeHtml(f.key)}" value="${escapeHtml(opt.value)}"${
+            valSet.has(opt.value) ? " checked" : ""
+          }>
+            <span class="multi-opt-label">${escapeHtml(opt.label)}</span>
+          </label>`
+        ).join("");
+        rowsHtml.push(
+          `<div class="row"><div class="k">${label}</div>` +
+            `<input type="hidden" id="f-${f.key}" data-key="${f.key}" value="${escapeHtml(hiddenVal)}">` +
+            `<div class="multi-list">${optsHtml}</div></div>`,
+        );
+        editableDescs.push({ key: f.key, list: f.isList });
+        continue;
+      }
+    }
 
     const enumOpts = getEnumOptions(f.key, pageType);
 
@@ -408,14 +529,13 @@ function buildPanelContent(
       </summary>
       <div class="section-body">
         <ul class="mentions">${
-      mentions.map((m) => {
-        const snip = m.snippet
-          ? `<div class="mention-snip">${escapeHtml(m.snippet)}</div>`
-          : "";
-        return `<li class="mention" data-page="${
+      mentions.map((m) =>
+        `<li class="mention" data-page="${
           escapeHtml(m.pageName)
-        }"><div class="mention-ref">${escapeHtml(m.pageName)}</div>${snip}</li>`;
-      }).join("")
+        }"><div class="mention-ref">${
+          escapeHtml(mentionDisplayName(m.pageName))
+        }</div></li>`
+      ).join("")
     }</ul>
       </div>
     </details>`;
@@ -465,6 +585,14 @@ function buildPanelContent(
   .field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.15); }
   select.field { cursor: pointer; }
   .field-hint { font-size: 0.74em; color: #6b7280; margin-top: 0.22em; font-style: italic; }
+  .multi-list { display: flex; flex-direction: column; gap: 0.32em; padding: 0.5em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; max-height: 220px; overflow-y: auto; background: white; }
+  .multi-opt { display: flex; align-items: center; gap: 0.5em; cursor: pointer; line-height: 1.3; padding: 0.15em 0.1em; border-radius: 3px; }
+  .multi-opt:hover { background: #eef2ff; }
+  .multi-opt input[type="checkbox"] { cursor: pointer; flex-shrink: 0; accent-color: #4f46e5; }
+  .multi-opt-label { font-size: 0.9em; color: #1f2937; word-break: break-word; }
+  html[data-theme="dark"] .multi-list { background: #1e293b; border-color: #475569; }
+  html[data-theme="dark"] .multi-opt:hover { background: rgba(79, 70, 229, 0.18); }
+  html[data-theme="dark"] .multi-opt-label { color: #f1f5f9; }
   .badge { display: inline-block; background: #eef2ff; color: #4338ca; padding: 0.2em 0.65em; border-radius: 5px; font-size: 0.82em; font-weight: 500; text-transform: capitalize; letter-spacing: 0.02em; }
   .empty { color: #6b7280; font-size: 0.9em; font-style: italic; }
   .toc { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.3em; }
@@ -524,6 +652,21 @@ function buildPanelContent(
     new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {}
 
+  // Multi-select checkboxes: keep the hidden input's comma-joined
+  // value in sync with which boxes are ticked. The save handler reads
+  // f-<key> the same way for plain inputs, dropdowns, and these.
+  document.querySelectorAll('input[type="checkbox"][data-multi-key]').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var key = cb.getAttribute('data-multi-key');
+      var hidden = document.getElementById('f-' + key);
+      if (!hidden) return;
+      var checked = Array.prototype.slice.call(
+        document.querySelectorAll('input[type="checkbox"][data-multi-key="' + key + '"]:checked')
+      ).map(function(c) { return c.value; });
+      hidden.value = checked.join(',');
+    });
+  });
+
   var saveBtn = document.getElementById('btn-save');
   if (saveBtn) {
     saveBtn.addEventListener('click', async function() {
@@ -558,18 +701,19 @@ function buildPanelContent(
     });
   });
 
-  // Delete button: confirm by typing the page name, then delete via syscall
-  // and navigate home. SB's space.deletePage removes the file from disk;
-  // there's no trash bin, so the confirmation has to be deliberate.
+  // Delete button: confirm by typing DELETE (case-insensitive), then
+  // delete via syscall and navigate home. SB's space.deletePage removes
+  // the file from disk; there's no trash bin, so the confirmation has
+  // to be deliberate but doesn't need to be onerous.
   var deleteBtn = document.getElementById('btn-delete');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async function() {
       var typed = window.prompt(
-        "Delete this page?\\n\\nType the page name to confirm:\\n  " + PAGE
+        'Delete "' + PAGE + '"?\\n\\nType DELETE to confirm.'
       );
       if (typed === null) return;
-      if (typed.trim() !== PAGE) {
-        try { await syscall('editor.flashNotification', 'Name did not match — page not deleted.', 'error'); } catch (_) {}
+      if (typed.trim().toUpperCase() !== 'DELETE') {
+        try { await syscall('editor.flashNotification', 'Confirmation did not match — page not deleted.', 'error'); } catch (_) {}
         return;
       }
       try {
@@ -688,8 +832,7 @@ export async function showAttributesPanel(): Promise<void> {
   }
   // Read from the editor buffer first — this avoids a race when a
   // brand-new page (created from a template) hasn't been written to
-  // disk yet by the time pageLoaded fires. Fall back to disk read if
-  // the buffer is somehow empty.
+  // disk yet by the time pageLoaded fires. Fall back to disk read.
   let text = "";
   try {
     text = await editor.getText();
@@ -700,14 +843,59 @@ export async function showAttributesPanel(): Promise<void> {
     try {
       text = await space.readPage(pageName);
     } catch {
-      await editor.hidePanel("rhs");
-      return;
+      text = "";
     }
+  }
+  // Race condition on fresh template instantiation: pageLoaded can
+  // fire before the template body lands in the buffer or on disk.
+  // Schedule a retry so the panel populates once content settles,
+  // rather than rendering an empty state with just the Delete button.
+  if (!text) {
+    (globalThis as { setTimeout?: typeof setTimeout }).setTimeout?.(() => {
+      showAttributesPanel().catch((e) =>
+        console.error("showAttributesPanel retry", e)
+      );
+    }, 250);
+    await editor.hidePanel("rhs");
+    return;
   }
   const parsed = parseFrontmatter(text);
   const toc = extractToc(text);
   const mentions = await fetchLinkedMentions(pageName);
   const isReadonly = /^readonly:\s*true\s*$/m.test(text);
+
+  // Multi-select data: only fetch if the page actually has fields that
+  // can use it. The framework for `standards` is determined from the
+  // page's `framework` field, or from the (singular `path` / first
+  // `paths` entry) → looked up against the Paths list.
+  let multiSelect: MultiSelectData = { allPaths: [], criteria: [] };
+  const hasMultiSelectField = (parsed?.fields ?? []).some(
+    (f) => f.isList && (f.key === "paths" || f.key === "standards"),
+  );
+  if (hasMultiSelectField) {
+    const allPaths = await fetchAllPaths();
+    let framework =
+      (parsed?.fields.find((f) => f.key === "framework")?.value as string) ||
+      "";
+    if (!framework) {
+      const pathField = parsed?.fields.find((f) => f.key === "path");
+      const pathsField = parsed?.fields.find((f) => f.key === "paths");
+      let candidate = "";
+      if (pathField && !pathField.isList) candidate = pathField.value as string;
+      else if (pathsField && pathsField.isList) {
+        const list = pathsField.value as string[];
+        candidate = list.find((s) => s && s.trim()) ?? "";
+      }
+      if (candidate) {
+        const match = allPaths.find((p) => p.slug === candidate);
+        if (match) framework = match.framework;
+      }
+    }
+    const criteria = framework
+      ? await fetchCriteriaForFramework(framework)
+      : [];
+    multiSelect = { allPaths, criteria };
+  }
 
   // Always render the panel for editable pages so the Delete button is
   // reachable even on a page that has no attributes, ToC, or mentions.
@@ -728,6 +916,7 @@ export async function showAttributesPanel(): Promise<void> {
     toc,
     mentions,
     isReadonly,
+    multiSelect,
   );
   // Second arg = flex grow. Editor is flex:1, so 0.7 puts the panel
   // at roughly 40% of the available space.
@@ -758,6 +947,10 @@ export async function saveAttributes(
 // Tiny inline SVG icon library (Lucide-derived). Each value is the inner
 // SVG markup; we wrap it with consistent attributes at render time.
 const ICONS: Record<string, string> = {
+  "plus":
+    '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  "paperclip":
+    '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
   "plus-circle":
     '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
   "edit-3":
@@ -823,43 +1016,16 @@ function buildLeftPanel(): { html: string; script: string } {
       command?: string;
     }[];
   }[] = [
+    // Single capture button replaces the long Create list — picker
+    // (`Path: Capture`) shows all entry types including New task,
+    // Quick capture, Contact, Credential, Personal statement, etc.
     {
-      title: "Create",
+      title: "",
       items: [
         {
-          label: "New CPD activity",
-          icon: "plus-circle",
-          command: "Path: New CPD activity",
-        },
-        {
-          label: "New claim",
-          icon: "edit-3",
-          command: "Path: New claim",
-        },
-        {
-          label: "New future-claim",
-          icon: "trending-up",
-          command: "Path: New future-contributions claim",
-        },
-        {
-          label: "New reflection",
-          icon: "pen-tool",
-          command: "Path: New reflection",
-        },
-        {
-          label: "New contact",
-          icon: "users",
-          command: "Path: New contact",
-        },
-        {
-          label: "New credential",
-          icon: "award",
-          command: "Path: New credential",
-        },
-        {
-          label: "Quick capture",
-          icon: "zap",
-          command: "Path: New capture",
+          label: "Capture",
+          icon: "plus",
+          command: "Path: Capture",
         },
       ],
     },
@@ -870,6 +1036,7 @@ function buildLeftPanel(): { html: string; script: string } {
         { label: "Claims", icon: "feather", navigate: "Claims" },
         { label: "CPD activities", icon: "calendar", navigate: "CPD" },
         { label: "Reflections", icon: "repeat", navigate: "Reflections" },
+        { label: "Evidence", icon: "paperclip", navigate: "Evidence" },
         { label: "Network", icon: "users", navigate: "Network" },
         { label: "Credentials", icon: "award", navigate: "Credentials" },
         { label: "Captures", icon: "bookmark", navigate: "Captures" },
@@ -898,17 +1065,24 @@ function buildLeftPanel(): { html: string; script: string } {
   ];
 
   const sectionsHtml = sections.map((sec) => {
+    // The "Capture" section uses a single button-styled item; the
+    // empty title flag tells the CSS to render it as a CTA, no header.
+    const isCapture = sec.title === "" && sec.items.length === 1 &&
+      sec.items[0].command === "Path: Capture";
+    const itemClass = isCapture ? "nav-item nav-capture" : "nav-item";
+    const sectionClass = isCapture ? "section section-capture" : "section";
     const itemsHtml = sec.items.map((it) => {
       const dataAttr = it.navigate
         ? `data-navigate="${escapeHtml(it.navigate)}"`
         : `data-command="${escapeHtml(it.command ?? "")}"`;
-      return `<li class="nav-item" ${dataAttr}>${
+      return `<li class="${itemClass}" ${dataAttr}>${
         svgIcon(it.icon)
       }<span>${escapeHtml(it.label)}</span></li>`;
     }).join("");
-    return `<div class="section"><h2>${
-      escapeHtml(sec.title)
-    }</h2><ul class="nav">${itemsHtml}</ul></div>`;
+    const heading = sec.title
+      ? `<h2>${escapeHtml(sec.title)}</h2>`
+      : "";
+    return `<div class="${sectionClass}">${heading}<ul class="nav">${itemsHtml}</ul></div>`;
   }).join("");
 
   const html = `
@@ -929,6 +1103,13 @@ function buildLeftPanel(): { html: string; script: string } {
   .nav-item:hover { background: #eef2ff; color: #3730a3; }
   .icon { flex-shrink: 0; opacity: 0.75; }
   .nav-item:hover .icon { opacity: 1; }
+  /* Capture CTA — primary action, distinct from regular nav. Sits at
+     ~50% panel width, left-aligned with the rest of the navigator. */
+  .section-capture { margin-bottom: 1.6em; }
+  .section-capture .nav { width: 50%; min-width: 90px; }
+  .nav-capture { background: #4f46e5; color: white; justify-content: center; padding: 0.55em 0.9em; font-weight: 500; gap: 0.45em; border-radius: 6px; box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2); transition: background 0.12s, box-shadow 0.12s; }
+  .nav-capture:hover { background: #4338ca; color: white; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3); }
+  .nav-capture .icon { opacity: 1; color: white; }
   html[data-theme="dark"] { background: #0f172a; }
   html[data-theme="dark"] body { background: #0f172a; }
   html[data-theme="dark"] .panel { color: #e2e8f0; }
@@ -938,6 +1119,8 @@ function buildLeftPanel(): { html: string; script: string } {
   html[data-theme="dark"] .section h2 { color: #94a3b8; }
   html[data-theme="dark"] .nav-item { color: #e2e8f0; }
   html[data-theme="dark"] .nav-item:hover { background: #1e293b; color: #c7d2fe; }
+  html[data-theme="dark"] .nav-capture { background: #4f46e5; color: white; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+  html[data-theme="dark"] .nav-capture:hover { background: #6366f1; color: white; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); }
 </style>
 <div id="panel" class="panel">
   <div class="brand-row">
