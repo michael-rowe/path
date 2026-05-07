@@ -23,7 +23,7 @@ Log CPD activities as structured records — date, type, hours, standards addres
 Write structured reflections using established frameworks: Driscoll, ERA, Gibbs, or Rolfe. Reflections link back to the CPD entry they came from, building a coherent evidence chain.
 
 ### Claim writing
-Write claims that argue, criterion by criterion, that a standard has been met. A claim is not a list of activities — it is a reasoned argument for an assessor, supported by your CPD and reflections.
+Write claims that argue, criterion by criterion, that a standard has been met. A claim is not a list of activities — it is a reasoned argument for an assessor, supported by your CPD and reflections. Each claim includes a structured **Quantified Impact** table (measure / before / after / source) so impact is concrete, not vague.
 
 ### Framework support
 Install professional frameworks from the built-in registry. Frameworks install criteria pages, templates, and a coverage dashboard automatically. Currently available:
@@ -32,8 +32,18 @@ Install professional frameworks from the built-in registry. Frameworks install c
 - **AdvanceHE D4** — for Principal Fellowship (PFHEA) applicants
 - More via the framework registry at [github.com/michael-rowe/path-frameworks](https://github.com/michael-rowe/path-frameworks)
 
-### Coverage dashboards
-Visual heatmaps show which criteria have claims, CPD, and reflections — and which are gaps. Clicking any gap takes you directly to that criterion's page.
+### Coverage dashboards and gap analysis
+Visual heatmaps show which criteria have claims, CPD, and reflections — and which are gaps. Clicking any gap takes you directly to that criterion's page. A 52-week activity calendar on the dashboard shows your CPD cadence at a glance.
+
+### Network and credentials
+Contacts (collaborators, mentors, peers) and credentials (Open Badges, fellowships, awards) are first-class pages. Wikilink to a person from any claim or reflection and they'll surface that link automatically on the contact's page — your network grows with your work, without separate CRM data entry.
+
+### A focused writing surface
+- **One Capture command** (Ctrl-Alt-c) routes you to the right template — CPD, reflection, claim, contact, credential, or quick capture.
+- **Inspector panel** holds page metadata as form fields, so structured fields (status, claim type, framework) are dropdowns, not freeform text. Linked mentions surface backlinks live.
+- **Focus mode** (Ctrl-Alt-z) hides both side panels for distraction-free reading.
+- **System pages are view-only** — the dashboard, browse pages, and manual carry a "View only" badge so they can't be edited by accident.
+- **Light and dark themes** persist across sessions.
 
 ### Export
 Compile your portfolio to a submission-ready PDF or Word document with a single command. The export includes a cover page, your claims, and supporting evidence — formatted for assessors.

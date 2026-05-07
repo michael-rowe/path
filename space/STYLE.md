@@ -204,6 +204,26 @@ html[data-path-readonly="true"] .cm-cursorLayer {
   display: none !important;
 }
 
+/* Hide the markdown `#` prefix when a click puts a heading line into
+   source mode (CM adds .sb-header-inside; the `#` chars get class
+   .sb-meta inside that line). The line itself may shift slightly
+   because SB's compensating text-indent assumes the prefix is visible
+   — that's a known cosmetic limitation we've accepted. */
+html[data-path-readonly="true"] .sb-header-inside .sb-meta {
+  display: none !important;
+}
+
+/* Hide widget hover-action buttons (refresh / copy / edit icons SB
+   overlays on rendered query result items via .button-bar with
+   <button data-button="reload|copy|edit">). View-only pages don't
+   need edit affordances, and the edit button reveals source. */
+html[data-path-readonly="true"] .cm-content .button-bar,
+html[data-path-readonly="true"] .cm-content button[data-button],
+html[data-path-readonly="true"] .cm-content button[data-onclick],
+html[data-path-readonly="true"] .cm-content .sb-code-copy-button {
+  display: none !important;
+}
+
 html[data-path-readonly="true"] #sb-top::after {
   content: "View only";
   position: fixed;

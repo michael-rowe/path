@@ -320,6 +320,7 @@ function buildPanelContent(
   fields: Field[],
   toc: TocItem[] = [],
   mentions: Mention[] = [],
+  isReadonly: boolean = false,
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
   const editableDescs: { key: string; list: boolean }[] = [];
@@ -419,6 +420,16 @@ function buildPanelContent(
       </div>
     </details>`;
 
+  // "Delete this page" lives at the bottom. Hidden on readonly pages —
+  // a user editing a manual page should remove `readonly: true` first,
+  // which is a deliberate choice to prevent accidents.
+  const dangerBody = isReadonly
+    ? ""
+    : `
+    <div class="section section-danger">
+      <button class="btn-danger" id="btn-delete" type="button">Delete this page</button>
+    </div>`;
+
   const html = `
 <style>
   html, body { margin: 0; padding: 0; }
@@ -477,11 +488,18 @@ function buildPanelContent(
   html[data-theme="dark"] .mention-ref { color: #60a5fa; }
   html[data-theme="dark"] .mention:hover .mention-ref { color: #93c5fd; }
   html[data-theme="dark"] .mention-snip { color: #94a3b8; }
+  .section-danger { margin-top: 2.5em; padding-top: 1.2em; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; }
+  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: background 0.12s, color 0.12s; }
+  .btn-danger:hover { background: #fee2e2; color: #991b1b; }
+  html[data-theme="dark"] .section-danger { border-top-color: #1e293b; }
+  html[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #7f1d1d; }
+  html[data-theme="dark"] .btn-danger:hover { background: #450a0a; color: #fecaca; }
 </style>
 <div id="panel" class="panel">
   ${tocBody}
   ${attrsBody}
   ${mentionsBody}
+  ${dangerBody}
 </div>
 `;
 
@@ -539,6 +557,31 @@ function buildPanelContent(
       }
     });
   });
+
+  // Delete button: confirm by typing the page name, then delete via syscall
+  // and navigate home. SB's space.deletePage removes the file from disk;
+  // there's no trash bin, so the confirmation has to be deliberate.
+  var deleteBtn = document.getElementById('btn-delete');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async function() {
+      var typed = window.prompt(
+        "Delete this page?\\n\\nType the page name to confirm:\\n  " + PAGE
+      );
+      if (typed === null) return;
+      if (typed.trim() !== PAGE) {
+        try { await syscall('editor.flashNotification', 'Name did not match — page not deleted.', 'error'); } catch (_) {}
+        return;
+      }
+      try {
+        await syscall('space.deletePage', PAGE);
+        try { await syscall('editor.flashNotification', 'Page deleted.'); } catch (_) {}
+        try { await syscall('editor.navigate', 'index'); } catch (_) {}
+      } catch (e) {
+        var msg = (e && e.message) ? e.message : String(e);
+        try { await syscall('editor.flashNotification', 'Delete failed: ' + msg, 'error'); } catch (_) {}
+      }
+    });
+  }
 
   // Linked-mention clicks: navigate to the mentioning page.
   document.querySelectorAll('.mention').forEach(function(el) {
@@ -664,9 +707,13 @@ export async function showAttributesPanel(): Promise<void> {
   const parsed = parseFrontmatter(text);
   const toc = extractToc(text);
   const mentions = await fetchLinkedMentions(pageName);
+  const isReadonly = /^readonly:\s*true\s*$/m.test(text);
 
-  // If page has nothing to show in any section, hide the panel.
+  // Always render the panel for editable pages so the Delete button is
+  // reachable even on a page that has no attributes, ToC, or mentions.
+  // Readonly pages with nothing to show still hide.
   if (
+    isReadonly &&
     (!parsed || parsed.fields.length === 0) &&
     toc.length === 0 &&
     mentions.length === 0
@@ -680,6 +727,7 @@ export async function showAttributesPanel(): Promise<void> {
     parsed?.fields ?? [],
     toc,
     mentions,
+    isReadonly,
   );
   // Second arg = flex grow. Editor is flex:1, so 0.7 puts the panel
   // at roughly 40% of the available space.

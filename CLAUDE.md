@@ -236,11 +236,13 @@ To upgrade SB: `sudo docker compose pull silverbullet && sudo docker compose up 
 
 ## Known UX issues on readonly pages
 
-Two SilverBullet editor behaviours that survive `forcedROMode` and are not yet fixed:
+Two SB editor behaviours that survive `forcedROMode` and we couldn't suppress without breaking other things:
 
-1. **Template source flash** — clicking anywhere on a readonly page (e.g. `index.md`) places a CM cursor; if that cursor lands inside a `${...}` template expression widget, the widget dissolves and the raw Lua source is briefly visible in orange/red. `pointer-events: none` on `.cm-content` blocks this but also breaks all wikilink clicks (pointer-events is inherited and interferes with CM's event handling). No clean CSS fix found yet; may need to find the specific CM class for dissolved template widgets and hide it.
+1. **Heading source flash on click** — clicking a heading on a readonly page reveals the raw `## ` markdown prefix and shifts the heading slightly. We have one CSS rule (`html[data-path-readonly="true"] .sb-header-inside .sb-meta { display: none }`) that hides the `#` chars when the line goes into source mode. The shift remains because SB's compensating `text-indent` assumes the prefix is visible. We tried CSS gymnastics (`pointer-events`, padding/font-weight forcing, `width: 0`, `text-indent` overrides per heading level), JS (`mousedown` capture, `MutationObserver` stripping `sb-header-inside`) — none cleanly fixed the shift without introducing new offsets. Accepted as a cosmetic limitation.
 
-2. **Heading `#` symbols on click** — clicking on a heading in a readonly page shows the `##` markdown prefix. Same root cause: CM places a cursor and switches the heading from rendered to source view. Cursor is hidden via `.cm-cursor { display: none }` but the source reveal still happens before the cursor suppression takes effect.
+2. **Template `${...}` source flash on click** — clicking inside a rendered Lua-directive widget dissolves it and shows the raw source. No targetable wrapper class in source mode (CM renders raw text + token spans inside a regular `cm-line`), so CSS can't hide it after the fact. Mitigation is to make readonly pages clearly non-interactive (View only badge, hidden cursor). Live with it.
+
+**Discovery references** (for any future attempt): grep the bundled client at `/.client/client.js` and `/.client/main.css` (public, served by the SB container without auth). Key names: `sb-header-inside` (line class CM adds when the cursor lands in a heading), `r1(state, [from, to])` (the cursor-in-range helper driving source-reveal), `LuaDirective` (no replace-decoration when `r1` is true), `sb-lua-wrapper` + `sb-lua-directive-inline/block` (widget DOM, distinct from the `sb-lua-directive` span used only in the markdown→HTML export pipeline).
 
 ## Component names and focus mode
 
