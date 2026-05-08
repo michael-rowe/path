@@ -335,9 +335,9 @@ Individual panel collapse was removed — it caused the collapse icon to vanish 
 
 ## Onboarding page
 
-`space/Getting started.md` — a readonly page that calls `onboardingStatus()` from CONFIG.md. Six live checks: profile filled (full_name + job_title), framework installed (`_system/installed-frameworks` has a `slug:` entry), active path exists, first CPD logged, first reflection written, first claim written. Rendered as `widget.html` with a progress bar and step cards. Linked from the Navigator Workspace section. The full interface reference is `manual/interface.md` (Navigator, Inspector, Editor, Toolbar, Focus mode; keyboard shortcuts).
+`space/Setup.md` — a readonly page that calls `onboardingStatus()` from CONFIG.md. Six live checks: profile filled (full_name + job_title), framework installed (`_system/installed-frameworks` has a `slug:` entry), active path exists, first CPD logged, first reflection written, first claim written. Rendered as `widget.html` with a progress bar and step cards. Linked from the Navigator Workspace section. The full interface reference is `manual/interface.md` (Navigator, Inspector, Editor, Toolbar, Focus mode; keyboard shortcuts).
 
-**Launch redirect logic** (`onPageLoaded` in `path.ts`): on fresh install (`_system/onboarding` absent), redirects to Getting started once and immediately writes `redirect: false` to that file. Subsequent sessions read the file and skip. `onboardingChecked` session flag prevents re-checking on in-session navigations. `Path: Dismiss launch redirect` writes `redirect: false`; `Path: Re-enable launch redirect` writes `redirect: true`.
+**Launch redirect logic** (`onPageLoaded` in `path.ts`): on fresh install (`_system/onboarding` absent), redirects to Setup once and immediately writes `redirect: false` to that file. Subsequent sessions read the file and skip. `onboardingChecked` session flag prevents re-checking on in-session navigations. `Path: Dismiss launch redirect` writes `redirect: false`; `Path: Re-enable launch redirect` writes `redirect: true`.
 
 ## Gap navigation
 

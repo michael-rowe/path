@@ -2,9 +2,9 @@
 readonly: true
 ---
 
-# Getting started with Path
+# Setup
 
-> **tip** You can return to this page at any time using the **Getting started** link in the Navigator panel on the left.
+> **tip** You can return to this page at any time using the **Setup** link in the Navigator panel on the left.
 
 Work through these steps in order. Each one builds on the last — profile first, framework second, then evidence.
 

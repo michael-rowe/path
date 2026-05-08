@@ -1047,7 +1047,7 @@ function buildLeftPanel(): { html: string; script: string } {
     {
       title: "Workspace",
       items: [
-        { label: "Getting started", icon: "check-square", navigate: "Getting started" },
+        { label: "Setup", icon: "check-square", navigate: "Setup" },
         { label: "History", icon: "clock", navigate: "History" },
         { label: "Manual", icon: "book-open", navigate: "manual/cheatsheet" },
         {
@@ -1198,13 +1198,13 @@ export async function onPageLoaded(): Promise<void> {
   if (zenMode) return;
 
   // Launch redirect: on fresh install (no _system/onboarding file), redirect
-  // once to Getting started, then write redirect: false so subsequent
-  // sessions never redirect. The session flag prevents re-checking on every
-  // in-session navigation; the file prevents re-checking on browser refresh.
+  // once to Setup, then write redirect: false so subsequent sessions never
+  // redirect. The session flag prevents re-checking on every in-session
+  // navigation; the file prevents re-checking on browser refresh.
   if (!onboardingChecked) {
     onboardingChecked = true;
     const pageName = await editor.getCurrentPage();
-    if (pageName && pageName !== "Getting started") {
+    if (pageName && pageName !== "Setup") {
       let shouldRedirect = false;
       try {
         const cfg = await space.readPage("_system/onboarding");
@@ -1217,7 +1217,7 @@ export async function onPageLoaded(): Promise<void> {
         try {
           await space.writePage("_system/onboarding", "redirect: false\n");
         } catch (_) {}
-        await (editor as any).navigate("Getting started");
+        await (editor as any).navigate("Setup");
         return;
       }
     }

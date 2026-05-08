@@ -8,16 +8,21 @@ The hardest question in any portfolio system is *"is this worth recording, and i
 
 ## The Capture menu
 
-Click **Capture something** on the home page (or press `Ctrl-Alt-c`). You will see six options:
+Click the **+ Capture** button in the Navigator (or press `Ctrl-Alt-c`). You'll see eleven options:
 
 | Option | Use it when |
 |---|---|
-| **CPD activity** | You did something — a course, conference, piece of teaching, project meeting, supervision session — and want to log it |
-| **Reflection** | You want to think structurally about an experience, separately from the activity record |
-| **Claim** | You are ready to argue, in writing, that you meet a particular standard |
-| **Future-claim** | You are writing about your aspirations and forward-looking plans |
-| **Quick capture** | A thought has landed; you want to keep it without committing to anything bigger |
-| **Path** | You are setting up a new goal (promotion, fellowship, registration) |
+| CPD activity | You did something — a course, conference, piece of teaching, project meeting, supervision session — and want to log it |
+| Reflection | You want to think structurally about an experience, separately from the activity record |
+| Claim | You are ready to argue, in writing, that you meet a particular standard |
+| Future-claim | You're writing about your aspirations and forward-looking plans |
+| Evidence | You have a tangible artefact (PDF, certificate, feedback letter) supporting an activity or claim |
+| Task | A to-do item to attach to an active Path — appears on the Path landing page and on the dashboard |
+| Quick capture | A thought has landed; you want to keep it without committing to anything bigger |
+| Contact | A person in your professional network |
+| Credential | An award, badge, certification, or fellowship |
+| Path | You're setting up a new goal (promotion, fellowship, registration) |
+| Personal statement | A narrative introduction for a specific Path, included at the start of an export |
 
 ## Decision guide
 
@@ -31,10 +36,25 @@ Did something happen that I want to think structurally about?
   └─ Yes → Reflection (separate from the CPD entry, linked to it)
 
 Am I ready to write the argument that I meet a particular standard?
-  └─ Yes → Claim
+  └─ Yes → Claim (or Future-claim, if forward-looking)
 
 Have I had a thought I want to come back to, but cannot process now?
   └─ Yes → Quick capture
+
+Do I have a tangible artefact (PDF, certificate, photo)?
+  └─ Yes → Evidence (only if it materially strengthens a claim)
+
+Did I just notice work to do later, on a specific Path?
+  └─ Yes → Task
+
+Have I met someone worth keeping a record of?
+  └─ Yes → Contact
+
+Did I receive an award, badge, or fellowship?
+  └─ Yes → Credential
+
+Am I starting a new goal (promotion, fellowship, registration)?
+  └─ Yes → Path (and, when ready, a Personal statement for that Path)
 ```
 
 ## What goes in a CPD entry

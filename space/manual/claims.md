@@ -12,9 +12,9 @@ A **claim** is the moment your portfolio stops being a record and becomes an arg
 
 A claim is ready to write when you can answer **yes** to all three:
 
-- [ ] I can name the standard or criterion code (e.g. *"1.1 Demonstrably effective individual teaching excellence"*)
-- [ ] I have at least three CPD entries that, taken together, support the claim
-- [ ] I can summarise in one sentence what these entries demonstrate *collectively* — something no single activity does on its own
+- I can name the standard or criterion code (e.g. *"1.1 Demonstrably effective individual teaching excellence"*)
+- I have at least three CPD entries that, taken together, support the claim
+- I can summarise in one sentence what these entries demonstrate *collectively* — something no single activity does on its own
 
 If any of these is missing, the claim is not yet ready. Continue building CPD entries.
 

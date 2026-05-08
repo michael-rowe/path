@@ -8,17 +8,13 @@ Path supports a set of formatting features that make your records easier to read
 
 ## Admonitions — for flagging tips, warnings, and notes
 
-Type a blockquote (`>`) followed by `**type**` and the keyword:
+Type a blockquote (`>`) followed by `**type**` and your text on the same line:
 
 ```
 > **note** Think of this as something to keep in mind, but not urgent.
-
 > **tip** A small piece of practical advice.
-
 > **warning** Something to be careful about.
-
 > **danger** A serious caution. Use sparingly.
-
 > **success** Something done right, worth noting.
 ```
 
@@ -72,7 +68,7 @@ Renders as:
 
 Renders with clickable checkboxes. Open tasks across your portfolio appear on the home page automatically.
 
-> **tip** When you write a task with `#uol-professor` (or whichever Path slug applies), it also appears on that Path's landing page.
+> **tip** Tasks live on Path landing pages. Use **+ Capture → Task** and pick the Path; the task is appended to that Path's page and rolls up to the dashboard automatically.
 
 ## Wikilinks — to connect records
 

@@ -262,6 +262,61 @@ html[data-theme="dark"] .sb-admonition[admonition="note" i] {
   border-color: rgba(165, 180, 252, 0.2) !important;
 }
 
+/* Admonition content inline with the type label — no line break
+   between "**tip** Title" and the body text. The .sb-admonition-title
+   element wraps the type tag; making it inline-flex with
+   align-items: baseline collapses the visual break. */
+.sb-admonition .sb-admonition-title {
+  display: inline !important;
+  margin-right: 0.4em !important;
+}
+.sb-admonition .sb-admonition-title + p,
+.sb-admonition p:first-of-type {
+  display: inline !important;
+}
+
+/* Tables: light-purple header row only, wrap long content rather than overflowing.
+   Selectors include `#sb-main .cm-editor` to beat SB core's white-space: nowrap rule
+   (`#sb-main .cm-editor th, #sb-main .cm-editor td { white-space: nowrap }`).
+   `.sb-table-widget` is the SB wrapper that defaults to overflow: auto — flatten it
+   so long cells wrap instead of producing a horizontal scrollbar. */
+:root {
+  --editor-table-head-background-color: #ddd6fe;
+  --editor-table-head-color: #312e81;
+}
+html[data-theme="dark"] {
+  --editor-table-head-background-color: #3730a3;
+  --editor-table-head-color: #ffffff;
+}
+#sb-main .cm-editor .sb-table-widget,
+.sb-lua-wrapper .sb-table-widget {
+  overflow: visible !important;
+}
+#sb-main .cm-editor table,
+.sb-lua-wrapper table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+#sb-main .cm-editor table thead tr,
+.sb-lua-wrapper table thead tr {
+  background-color: var(--editor-table-head-background-color) !important;
+  color: var(--editor-table-head-color) !important;
+}
+#sb-main .cm-editor table thead th,
+.sb-lua-wrapper table thead th {
+  color: var(--editor-table-head-color) !important;
+}
+#sb-main .cm-editor table td,
+#sb-main .cm-editor table th,
+.sb-lua-wrapper table td,
+.sb-lua-wrapper table th {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  vertical-align: top;
+}
+
 /* Inline code gets a faint indigo tint */
 #sb-main .cm-editor .sb-code {
   background: rgba(238, 242, 255, 0.6);

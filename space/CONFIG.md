@@ -732,7 +732,7 @@ actionButton.define {
 
 # Onboarding checklist helper
 
-Generates a live markdown checklist for the Getting started page. Each check
+Generates a live markdown checklist for the Setup page. Each check
 queries the space so the status updates as the user populates their portfolio.
 
 ```space-lua
@@ -1438,7 +1438,7 @@ command.define {
 # Launch redirect toggle
 
 Reads `_system/onboarding` to determine whether the user has dismissed the
-launch redirect, and renders the appropriate toggle link on Getting started.
+launch redirect, and renders the appropriate toggle link on Setup.
 
 ```space-lua
 function onboardingLaunchToggle()
