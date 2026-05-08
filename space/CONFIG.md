@@ -283,6 +283,31 @@ function pageItem(p)
   return "- [[" .. p.name .. "|" .. label .. "]]"
 end
 
+-- Like pageItem but appends inline metadata: activity_type, path or
+-- paths, and the activity date — rendered as ` · sep · separated`
+-- after the title link. Used for the Recent CPD activity list on the
+-- dashboard so users can scan without opening each page.
+function cpdItem(p)
+  local label = p.title or p.name
+  local meta = {}
+  if p.activity_type and p.activity_type ~= "" then
+    table.insert(meta, tostring(p.activity_type))
+  end
+  if p.path and p.path ~= "" then
+    table.insert(meta, tostring(p.path))
+  end
+  if type(p.paths) == "table" then
+    for _, s in ipairs(p.paths) do
+      if s and s ~= "" then table.insert(meta, tostring(s)) end
+    end
+  end
+  if p.date then
+    table.insert(meta, tostring(p.date):sub(1, 10))
+  end
+  local meta_str = #meta > 0 and ("  · _" .. table.concat(meta, " · ") .. "_") or ""
+  return "- [[" .. p.name .. "|" .. label .. "]]" .. meta_str
+end
+
 -- Renders a transposed summary table of active Paths: each path is a
 -- column, each metric is a row. Designed for ≤3 active paths at once
 -- (a reasonable working constraint — most users pursue 1–2 recognition
@@ -1435,6 +1460,199 @@ command.define {
 }
 ```
 
+# Announcements
+
+Fetches a news feed from the framework registry (`news.json` at the registry
+root) and renders it as a feed of admonitions on **Announcements.md**. The
+plug auto-refreshes once per session via the silent command below; users can
+also run **Path: Check announcements** by hand.
+
+Storage:
+- `_system/announcements-cache` — last fetched JSON (so the page renders offline)
+- `_system/announcements-read` — list of dismissed announcement IDs
+
+```space-lua
+local DEFAULT_NEWS_URL = "https://raw.githubusercontent.com/michael-rowe/path-frameworks/master/news.json"
+local CACHE_PAGE = "_system/announcements-cache"
+local READ_PAGE  = "_system/announcements-read"
+
+local function news_url()
+  return config.get("path.news_url", DEFAULT_NEWS_URL)
+end
+
+-- Fetch the news.json feed. Returns the raw body string on success so we
+-- can write it verbatim into the cache page (and re-parse on render).
+local function fetch_news_raw()
+  local r = net.proxyFetch(news_url(), { method = "GET" })
+  if not r then return nil, "no response" end
+  if not r.ok then return nil, "HTTP " .. tostring(r.status or "?") end
+  if type(r.body) ~= "string" then
+    -- proxyFetch may have parsed JSON when the server returned application/json;
+    -- re-stringify so we cache the canonical text form. r.body is already a JS
+    -- value at this point so JSON.stringify accepts it directly.
+    local ok, s = pcall(function() return js.window.JSON.stringify(r.body) end)
+    if ok and s then return s end
+    return nil, "unexpected body type"
+  end
+  -- Validate parses as JSON before caching, so a HTML 404 page never poisons the cache.
+  local ok = pcall(function() return js.window.JSON.parse(r.body) end)
+  if not ok then return nil, "invalid JSON" end
+  return r.body, nil
+end
+
+local function load_cached_announcements()
+  if not space.pageExists(CACHE_PAGE) then return {} end
+  local content = space.readPage(CACHE_PAGE) or ""
+  local json_str = content:match("```json%s*(.-)%s*```")
+  if not json_str then return {} end
+  local ok, parsed = pcall(function() return js.tolua(js.window.JSON.parse(json_str)) end)
+  if not ok or not parsed or not parsed.announcements then return {} end
+  return parsed.announcements
+end
+
+local function load_read_set()
+  if not space.pageExists(READ_PAGE) then return {} end
+  local content = space.readPage(READ_PAGE) or ""
+  local set = {}
+  for id in content:gmatch("%-%s+([%w%-_%.]+)") do set[id] = true end
+  return set
+end
+
+-- Public: count of unread announcements. Used by the Navigator badge.
+function announcementsUnread()
+  local items = load_cached_announcements()
+  local read = load_read_set()
+  local n = 0
+  for _, a in ipairs(items) do if a.id and not read[a.id] then n = n + 1 end end
+  return n
+end
+
+local SEVERITY_ADMON = {
+  info     = "note",
+  update   = "tip",
+  warning  = "warning",
+  critical = "danger",
+}
+
+-- Public: render the feed as markdown for Announcements.md.
+function announcementsList()
+  local items = load_cached_announcements()
+  if #items == 0 then
+    return "_No announcements yet. The feed refreshes automatically each session — or run **Path: Check announcements** now._"
+  end
+  local read = load_read_set()
+  -- Newest first
+  table.sort(items, function(a, b) return (a.date or "") > (b.date or "") end)
+  local out = ""
+  for _, a in ipairs(items) do
+    local sev = SEVERITY_ADMON[a.severity or "info"] or "note"
+    local marker = read[a.id] and " · _read_" or " · **unread**"
+    out = out .. "> **" .. sev .. "** **" .. (a.title or "") .. "**  \n"
+    out = out .. "> " .. (a.date or "") .. marker .. "\n>\n"
+    for line in (a.body or ""):gmatch("[^\n]+") do
+      out = out .. "> " .. line .. "  \n"
+    end
+    if a.action then
+      if a.action.type == "command" and a.action.command then
+        out = out .. ">\n> _Action:_ run **" .. a.action.command .. "**"
+        if a.action.label then out = out .. " — " .. a.action.label end
+        out = out .. "  \n"
+      elseif a.action.type == "page" and a.action.target then
+        out = out .. ">\n> _See:_ [[" .. a.action.target .. "]]  \n"
+      elseif a.action.type == "url" and a.action.url then
+        out = out .. ">\n> _Link:_ [" .. (a.action.label or a.action.url) .. "](" .. a.action.url .. ")  \n"
+      end
+    end
+    out = out .. "\n\n"
+  end
+  out = out .. "---\n\n_Run **Path: Mark all announcements as read** to clear the badge in the Navigator._\n"
+  return out
+end
+
+-- Refresh the cache, returning whether the network call succeeded.
+local function refresh_cache()
+  local raw, err = fetch_news_raw()
+  if not raw then return false, err end
+  local content = "---\ntype: announcements-cache\n---\n\n```json\n" .. raw .. "\n```\n"
+  local ok = pcall(function() space.writePage(CACHE_PAGE, content) end)
+  return ok, ok and nil or "write failed"
+end
+
+-- User-facing: refresh + flash the count delta.
+command.define {
+  name = "Path: Check announcements",
+  run = function()
+    local before = announcementsUnread()
+    local ok, err = refresh_cache()
+    if not ok then
+      editor.flashNotification("Could not reach announcements feed: " .. (err or ""), "error")
+      return
+    end
+    local after = announcementsUnread()
+    local diff = after - before
+    if diff > 0 then
+      editor.flashNotification(diff .. " new announcement(s)")
+    else
+      editor.flashNotification("Announcements up to date")
+    end
+    pcall(function() editor.invokeCommand("Path: Refresh navigator") end)
+    if editor.getCurrentPage() == "Announcements" then editor.reloadPage() end
+  end
+}
+
+-- Silent variant for the plug's session-start auto-refresh. No notifications,
+-- no page reload — just updates the cache so the next render is current.
+command.define {
+  name = "Path: Refresh announcements (silent)",
+  run = function() refresh_cache() end
+}
+
+command.define {
+  name = "Path: Mark all announcements as read",
+  run = function()
+    local items = load_cached_announcements()
+    local lines = "---\ntype: announcements-read\n---\n\n"
+    for _, a in ipairs(items) do
+      if a.id then lines = lines .. "- " .. a.id .. "\n" end
+    end
+    space.writePage(READ_PAGE, lines)
+    editor.flashNotification("All announcements marked as read")
+    -- Force the Navigator to re-render so the badge picks up the new
+    -- read-state without waiting for the next page navigation.
+    pcall(function() editor.invokeCommand("Path: Refresh navigator") end)
+    if editor.getCurrentPage() == "Announcements" then editor.reloadPage() end
+  end
+}
+
+command.define {
+  name = "Path: Mark announcement as read",
+  run = function()
+    local items = load_cached_announcements()
+    if #items == 0 then editor.flashNotification("No announcements"); return end
+    local read = load_read_set()
+    local options = {}
+    for _, a in ipairs(items) do
+      if a.id and not read[a.id] then
+        table.insert(options, {
+          name = a.id,
+          description = (a.title or "") .. " · " .. (a.date or ""),
+        })
+      end
+    end
+    if #options == 0 then editor.flashNotification("Nothing unread"); return end
+    local choice = editor.filterBox("Mark as read", options, "Pick an announcement")
+    if not choice then return end
+    local existing = ""
+    if space.pageExists(READ_PAGE) then existing = space.readPage(READ_PAGE) or "" end
+    if existing == "" then existing = "---\ntype: announcements-read\n---\n\n" end
+    existing = existing .. "- " .. choice.name .. "\n"
+    space.writePage(READ_PAGE, existing)
+    pcall(function() editor.invokeCommand("Path: Refresh navigator") end)
+    if editor.getCurrentPage() == "Announcements" then editor.reloadPage() end
+  end
+}
+```
+
 # Launch redirect toggle
 
 Reads `_system/onboarding` to determine whether the user has dismissed the
@@ -1501,7 +1719,11 @@ local function from_jdn(n)
          e - math.floor((153*mm+2)/5) + 1
 end
 
-local function jdn_dow(jdn) return (jdn + 1) % 7 end  -- 0 = Mon, 6 = Sun
+-- Day of week from a JDN. Convention: JDN 0 fell on a Monday (per the
+-- canonical Julian Day definition), so `jdn % 7` directly maps to
+-- 0 = Mon, 6 = Sun. The previous `(jdn + 1) % 7` was off by one and
+-- placed Fridays into the Saturday column.
+local function jdn_dow(jdn) return jdn % 7 end
 
 function cpdCalendar(path_slug)
   -- Query CPD entries
@@ -1720,6 +1942,157 @@ function cpdCalendarMonth(path_slug)
   local summary = string.format("%s %d · %.1fh across %d %s",
     MONTHS[tm], ty, month_h, month_days,
     month_days == 1 and "day" or "days")
+
+  return widget.html(dom.div {
+    style = "padding:4px 0",
+    dom.div { style = "font-size:12px;opacity:0.5;margin-bottom:6px;font-family:inherit", summary },
+    dom.table { style = "border-collapse:separate;border-spacing:2px", table.unpack(rows) }
+  })
+end
+
+-- Activity calendar: counts every record the user touched (cpd,
+-- reflection, credential, claim, capture) on each day of the current
+-- month, GitHub-contributions style. Uses `lastModified` (when the file
+-- was last edited) rather than the YAML `date` field, so logging an old
+-- activity today shows up today, not on the activity's actual date.
+-- Intensity scales by record count.
+function activityCalendarMonth(path_slug)
+  local cmap = {}  -- YYYY-MM-DD -> count of records touched that day
+  -- Path-slug filtering happens in Lua: SB's query language doesn't
+  -- expose a "list contains" predicate against the multi-valued `paths` field.
+  local function in_path(p)
+    if not path_slug then return true end
+    if p.path == path_slug then return true end
+    if type(p.paths) == "table" then
+      for _, s in ipairs(p.paths) do if s == path_slug then return true end end
+    end
+    return false
+  end
+  -- SB's index stores `lastModified` as a number-or-string depending on
+  -- code path; the JS Date constructor handles both. We go via the JS
+  -- bridge because space-lua doesn't expose os.date or a date.fromTs.
+  local function ts_to_date_str(value)
+    if value == nil or value == "" then return nil end
+    local s
+    pcall(function()
+      s = tostring(js.new(js.window.Date, value):toISOString()):sub(1, 10)
+    end)
+    if s and #s == 10 then return s end
+    -- Fallback: numeric ms via JDN math
+    local n = tonumber(value)
+    if n then
+      if n < 10000000000 then n = n * 1000 end  -- seconds → ms
+      local jdn = math.floor(n / 86400000) + 2440588
+      local y, m, d = from_jdn(jdn)
+      return string.format("%04d-%02d-%02d", y, m, d)
+    end
+    -- Final fallback: ISO string prefix
+    if type(value) == "string" then return value:sub(1, 10) end
+    return nil
+  end
+  -- The query language returns YAML-frontmatter fields cleanly but
+  -- doesn't always surface the system-side `lastModified` on iteration.
+  -- We get reliable timestamps from `space.listPages()`, then filter to
+  -- only the page names that came back from the typed queries.
+  local typed = {}
+  local function note_typed(list)
+    for _, e in ipairs(list or {}) do
+      if in_path(e) and e.name then typed[e.name] = true end
+    end
+  end
+  note_typed(query[[from p = tags.page where p.type == "cpd" select p]])
+  note_typed(query[[from p = tags.page where p.type == "reflection" select p]])
+  note_typed(query[[from p = tags.page where p.type == "credential" select p]])
+  note_typed(query[[from p = tags.page where p.type == "cpd-claim" select p]])
+  note_typed(query[[from p = tags.page where p.type == "capture" select p]])
+
+  local all_meta = {}
+  pcall(function() all_meta = space.listPages() or {} end)
+  for _, meta in ipairs(all_meta) do
+    if typed[meta.name] then
+      local s = ts_to_date_str(meta.lastModified)
+      if s then cmap[s] = (cmap[s] or 0) + 1 end
+    end
+  end
+
+  local today_str
+  pcall(function() today_str = tostring(date.today()):sub(1, 10) end)
+  if not today_str or #today_str ~= 10 then
+    return widget.html(dom.div { style = "opacity:0.4;font-size:13px", "Calendar unavailable." })
+  end
+  local ty = tonumber(today_str:sub(1,4))
+  local tm = tonumber(today_str:sub(6,7))
+  local td = tonumber(today_str:sub(9,10))
+  local today_jdn = to_jdn(ty, tm, td)
+
+  local first_jdn = to_jdn(ty, tm, 1)
+  local first_dow = jdn_dow(first_jdn)
+  local nm_y, nm_m = ty, tm + 1
+  if nm_m > 12 then nm_m = 1; nm_y = nm_y + 1 end
+  local _, _, last_d = from_jdn(to_jdn(nm_y, nm_m, 1) - 1)
+
+  local month_total, month_days = 0, 0
+  local prefix = string.format("%04d-%02d", ty, tm)
+  for k, v in pairs(cmap) do
+    if k:sub(1, 7) == prefix then
+      month_total = month_total + v
+      month_days = month_days + 1
+    end
+  end
+
+  local CB = "width:22px;height:22px;border-radius:3px;text-align:center;font-size:11px;line-height:22px;font-family:inherit;"
+  local function cell_bg(c)
+    if     c <= 0 then return CB .. "background:transparent;border:1px dashed rgba(99,102,241,0.2);color:rgba(0,0,0,0.3)"
+    elseif c == 1 then return CB .. "background:#eef2ff;color:#312e81"
+    elseif c == 2 then return CB .. "background:#c7d2fe;color:#312e81"
+    elseif c <= 4 then return CB .. "background:#a5b4fc;color:#1e1b4b"
+    elseif c <= 6 then return CB .. "background:#818cf8;color:white"
+    else               return CB .. "background:#4f46e5;color:white"
+    end
+  end
+
+  local DAY_LBL = {"Mon","Tue","Wed","Thu","Fri","Sat","Sun"}
+  local hdr = {}
+  for _, lbl in ipairs(DAY_LBL) do
+    table.insert(hdr, dom.td {
+      style = "font-size:10px;opacity:0.45;padding-bottom:3px;text-align:center;font-family:inherit;width:22px",
+      lbl
+    })
+  end
+  local rows = { dom.tr(hdr) }
+
+  local row = {}
+  for i = 0, first_dow - 1 do
+    table.insert(row, dom.td { style = "width:22px;height:22px" })
+  end
+  for d = 1, last_d do
+    local jdn = to_jdn(ty, tm, d)
+    local ds = string.format("%04d-%02d-%02d", ty, tm, d)
+    local count = cmap[ds] or 0
+    if jdn > today_jdn then
+      table.insert(row, dom.td { style = "width:22px;height:22px;color:rgba(0,0,0,0.15);text-align:center;font-size:11px;line-height:22px;font-family:inherit", tostring(d) })
+    else
+      local label = count == 1 and "1 record touched" or (count .. " records touched")
+      local tip = count > 0 and (ds .. ": " .. label) or ds
+      table.insert(row, dom.td { style = cell_bg(count), title = tip, tostring(d) })
+    end
+    if jdn_dow(jdn) == 6 then
+      table.insert(rows, dom.tr(row))
+      row = {}
+    end
+  end
+  if #row > 0 then
+    while #row < 7 do
+      table.insert(row, dom.td { style = "width:22px;height:22px" })
+    end
+    table.insert(rows, dom.tr(row))
+  end
+
+  local MONTHS = {"January","February","March","April","May","June","July","August","September","October","November","December"}
+  local summary = string.format("%s %d · %d %s across %d %s",
+    MONTHS[tm], ty, month_total,
+    month_total == 1 and "record" or "records",
+    month_days, month_days == 1 and "day" or "days")
 
   return widget.html(dom.div {
     style = "padding:4px 0",

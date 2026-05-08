@@ -10,6 +10,11 @@ functions:
     command:
       name: "Path: Show attributes panel"
 
+  showLeftPanel:
+    path: path.ts:showLeftPanel
+    command:
+      name: "Path: Refresh navigator"
+
   saveAttributes:
     path: path.ts:saveAttributes
 

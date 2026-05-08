@@ -22,9 +22,9 @@ ${allOpenTasksByPath(20)}
 
 ${activePathsOverview()}
 
-# CPD this month
+# Path activity this month
 
-${cpdCalendarMonth()}
+${activityCalendarMonth()}
 
 # Claims by status
 
@@ -47,9 +47,9 @@ ${some(query[[
 ${some(query[[
   from p = tags.page
   where p.type == "cpd"
-  order by p.date desc, p.lastModified desc
+  order by p.lastModified desc
   limit 10
-  select pageItem(p)
+  select cpdItem(p)
 ]]) or "_No CPD logged yet._"}
 
 # Recent reflections

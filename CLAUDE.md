@@ -154,6 +154,19 @@ CONFIG.md exposes these helpers as space-lua globals:
 
 Both Path coverage dashboards (`paths/uol-professor-coverage.md`, `paths/advance-he-d4-coverage.md`) use the same helper signatures — they're framework-agnostic.
 
+## Announcements feed
+
+Path fetches `news.json` from the framework registry once per session and renders it on **Announcements.md**. Storage:
+
+- `_system/announcements-cache` — markdown page wrapping the last successful fetch as a `\`\`\`json` code block (so it survives offline). Written by `Path: Refresh announcements (silent)`.
+- `_system/announcements-read` — newline-delimited list of dismissed announcement IDs.
+
+Lua helpers in CONFIG.md (Announcements section): `announcementsList()` (rendered on the page), `announcementsUnread()` (count). TypeScript mirror `announcementsUnreadCount()` in `path.ts` reads the same files to drive the Navigator badge — keep the two in sync if the cache shape changes.
+
+`onPageLoaded` fires `Path: Refresh announcements (silent)` once per session via the `announcementsRefreshed` flag, then re-renders the left panel so the badge picks up the new count without needing another navigation. Failure is non-fatal (offline keeps showing cached content).
+
+`news.json` schema: `{ version, announcements: [{ id, date, severity: "info"|"update"|"warning"|"critical", title, body, action: { type: "command"|"page"|"url", ... } | null }] }`. When a framework update ships, add an "update" announcement instructing users to run **Path: Check framework updates**.
+
 ## Framework registry (in CONFIG.md)
 
 `Path: Add framework` and `Path: Check framework updates` install/update Path bundles from a remote registry. Default registry: `https://raw.githubusercontent.com/michael-rowe/path-frameworks/master`. Override via `config.set("path.framework_registry", "...")`.

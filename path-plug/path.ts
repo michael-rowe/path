@@ -3,6 +3,7 @@ import {
   index as indexApi,
   lua,
   space,
+  system,
 } from "@silverbulletmd/silverbullet/syscalls";
 
 // Session-level panel state. zenMode persists across navigations;
@@ -11,6 +12,9 @@ let zenMode = false;
 // Set to true after the first onPageLoaded fires so the launch redirect
 // only runs once per session, leaving the user free to navigate afterwards.
 let onboardingChecked = false;
+// Set to true after the first onPageLoaded fetches the announcements feed,
+// so we don't hammer the registry on every in-session navigation.
+let announcementsRefreshed = false;
 
 // Keys hidden from the panel UI. They still round-trip in the file —
 // we just don't render or expose them. `title` is hidden because the H1 in
@@ -999,6 +1003,10 @@ const ICONS: Record<string, string> = {
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/>',
   "sidebar-expand":
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/>',
+  "bell":
+    '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  "info":
+    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
 };
 
 function svgIcon(name: string): string {
@@ -1006,7 +1014,34 @@ function svgIcon(name: string): string {
   return `<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 }
 
-function buildLeftPanel(): { html: string; script: string } {
+async function announcementsUnreadCount(): Promise<number> {
+  // Mirrors the Lua `announcementsUnread()` helper. Read here so the
+  // Navigator can render a badge synchronously alongside the rest of the
+  // nav HTML — the Lua helper is the source of truth on Announcements.md.
+  try {
+    const cache = await space.readPage("_system/announcements-cache").catch(
+      () => "",
+    );
+    if (!cache) return 0;
+    const m = cache.match(/```json\s*([\s\S]*?)\s*```/);
+    if (!m) return 0;
+    const items: { id?: string }[] =
+      (JSON.parse(m[1]).announcements as any[]) ?? [];
+    let readSet = new Set<string>();
+    try {
+      const read = await space.readPage("_system/announcements-read");
+      readSet = new Set(
+        Array.from(read.matchAll(/^- ([\w\-_.]+)$/gm)).map((x) => x[1]),
+      );
+    } catch (_) {}
+    return items.filter((a) => a.id && !readSet.has(a.id)).length;
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function buildLeftPanel(): Promise<{ html: string; script: string }> {
+  const unreadCount = await announcementsUnreadCount();
   const sections: {
     title: string;
     items: {
@@ -1014,6 +1049,7 @@ function buildLeftPanel(): { html: string; script: string } {
       icon: string;
       navigate?: string;
       command?: string;
+      badge?: number;
     }[];
   }[] = [
     // Single capture button replaces the long Create list — picker
@@ -1048,6 +1084,12 @@ function buildLeftPanel(): { html: string; script: string } {
       title: "Workspace",
       items: [
         { label: "Setup", icon: "check-square", navigate: "Setup" },
+        {
+          label: "Announcements",
+          icon: "bell",
+          navigate: "Announcements",
+          badge: unreadCount,
+        },
         { label: "History", icon: "clock", navigate: "History" },
         { label: "Manual", icon: "book-open", navigate: "manual/cheatsheet" },
         {
@@ -1055,11 +1097,7 @@ function buildLeftPanel(): { html: string; script: string } {
           icon: "download",
           command: "Path: Add framework",
         },
-        {
-          label: "Check updates",
-          icon: "refresh-cw",
-          command: "Path: Check framework updates",
-        },
+        { label: "About", icon: "info", navigate: "About" },
       ],
     },
   ];
@@ -1075,9 +1113,12 @@ function buildLeftPanel(): { html: string; script: string } {
       const dataAttr = it.navigate
         ? `data-navigate="${escapeHtml(it.navigate)}"`
         : `data-command="${escapeHtml(it.command ?? "")}"`;
+      const badge = it.badge && it.badge > 0
+        ? `<span class="nav-badge">${it.badge}</span>`
+        : "";
       return `<li class="${itemClass}" ${dataAttr}>${
         svgIcon(it.icon)
-      }<span>${escapeHtml(it.label)}</span></li>`;
+      }<span class="nav-label">${escapeHtml(it.label)}</span>${badge}</li>`;
     }).join("");
     const heading = sec.title
       ? `<h2>${escapeHtml(sec.title)}</h2>`
@@ -1101,6 +1142,9 @@ function buildLeftPanel(): { html: string; script: string } {
   .nav { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.1em; }
   .nav-item { display: flex; align-items: center; gap: 0.6em; font-size: 0.92em; color: #1f2937; cursor: pointer; padding: 0.45em 0.55em; border-radius: 4px; line-height: 1.3; white-space: nowrap; }
   .nav-item:hover { background: #eef2ff; color: #3730a3; }
+  .nav-label { flex: 1; }
+  .nav-badge { flex-shrink: 0; min-width: 1.4em; padding: 0 0.45em; height: 1.4em; line-height: 1.4em; text-align: center; font-size: 0.72em; font-weight: 600; color: white; background: #4f46e5; border-radius: 999px; }
+  html[data-theme="dark"] .nav-badge { background: #818cf8; color: #0f172a; }
   .icon { flex-shrink: 0; opacity: 0.75; }
   .nav-item:hover .icon { opacity: 1; }
   /* Capture CTA — primary action, distinct from regular nav. Sits at
@@ -1170,7 +1214,7 @@ function buildLeftPanel(): { html: string; script: string } {
 }
 
 export async function showLeftPanel(): Promise<void> {
-  const { html, script } = buildLeftPanel();
+  const { html, script } = await buildLeftPanel();
   // Wide enough that the longest item ("New future-claim") fits on one line.
   await editor.showPanel("lhs", 0.5, html, script);
 }
@@ -1222,6 +1266,40 @@ export async function onPageLoaded(): Promise<void> {
       }
     }
   }
+
+  // Fire-and-forget announcement refresh on the first onPageLoaded of a
+  // session. The silent variant swallows network errors and never reloads
+  // the page; the badge will update next time showLeftPanel renders.
+  if (!announcementsRefreshed) {
+    announcementsRefreshed = true;
+    (async () => {
+      try {
+        await system.invokeCommand("Path: Refresh announcements (silent)");
+        // Re-render the left panel now that the cache has changed, so the
+        // unread badge reflects today's feed without needing another nav.
+        await showLeftPanel().catch(() => {});
+      } catch (_) {
+        // Offline or registry unreachable — the cached feed (if any) still renders.
+      }
+    })();
+  }
+
+  // Auto-mark on visit: when the user lands on Announcements, mark
+  // everything currently in the cache as read. The render of the page
+  // body uses the read-state at render time, so existing unread markers
+  // still display on this visit; subsequent renders show them as read.
+  // The mark command itself triggers a Navigator refresh to clear the badge.
+  try {
+    if ((await editor.getCurrentPage()) === "Announcements") {
+      // Defer slightly so the page body renders against the pre-mark
+      // read-state — the user sees what was new before it disappears.
+      (globalThis as { setTimeout?: typeof setTimeout }).setTimeout?.(() => {
+        system.invokeCommand("Path: Mark all announcements as read").catch(
+          () => {},
+        );
+      }, 600);
+    }
+  } catch (_) {}
 
   await Promise.all([
     showLeftPanel().catch((e) => console.error("showLeftPanel failed", e)),

@@ -38,7 +38,7 @@ It has three sections:
 
 **Browse** — links to the main browse pages: All Paths, Claims, CPD activities, Reflections, Evidence, Network, Credentials, Captures, Tasks, All pages.
 
-**Workspace** — system pages: Setup, History, Manual, Add framework, Check updates, Export to PDF, Export to Word.
+**Workspace** — system pages: Setup, Announcements (with an unread badge when there's news), History, Manual, Add framework. Framework updates are now surfaced as announcements when a new version ships.
 
 ## Inspector
 
