@@ -64,6 +64,8 @@ Every piece of content is a structured markdown page with YAML frontmatter:
 
 <img width="1308" height="504" alt="path_task_dashboard" src="https://github.com/user-attachments/assets/206a8cff-a39e-49ff-8ed1-87087d8aca99" /><br />
 
+<img width="2843" height="1461" alt="path_dark_mode" src="https://github.com/user-attachments/assets/7487ced9-20ed-433e-ae70-0f4db6b7cd4f" /><br />
+
 
 ---
 
