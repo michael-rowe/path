@@ -52,6 +52,21 @@ Every piece of content is a structured markdown page with YAML frontmatter:
 - **Task** — a checkbox item scoped to a Path, surfaced on the dashboard and the Path landing page.
 - **Personal statement** — narrative introduction for a Path; embedded into the export.
 
+---
+
+### Screenshots
+
+<img width="2836" height="1433" alt="path_interface" src="https://github.com/user-attachments/assets/1833f012-1978-49d6-948a-8514b7758e7c" /><br />
+
+<img width="1309" height="1163" alt="path_heatmap" src="https://github.com/user-attachments/assets/f8d9b3ce-1bfc-4175-bb03-3b5486ee05c8" /><br />
+
+<img width="1431" height="739" alt="path_frameworks" src="https://github.com/user-attachments/assets/b1ff2ba0-b652-4b5d-9a4b-4af0df52e9ef" /><br />
+
+<img width="1308" height="504" alt="path_task_dashboard" src="https://github.com/user-attachments/assets/206a8cff-a39e-49ff-8ed1-87087d8aca99" /><br />
+
+
+---
+
 ### Workflow
 
 A single **Capture** button opens a picker that routes to the right template. Active Path is detected automatically; with two or more, you're asked which Path the new entry is for. Frameworks then drive the rest — for example, a new claim's `framework` field auto-fills based on the chosen Path, and the Inspector's `standards` field becomes a checkbox list of that framework's criteria rather than free-text.
