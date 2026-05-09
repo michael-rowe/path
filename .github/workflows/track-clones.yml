@@ -20,7 +20,7 @@ jobs:
             --jq "{date: \"$(date -u +%Y-%m-%d)\", uniques: .uniques, count: .count}" \
             >> stats/clones.jsonl
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.STATS_TOKEN }}
 
       - name: Commit stats
         run: |
