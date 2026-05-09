@@ -1076,6 +1076,7 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
         { label: "Network", icon: "users", navigate: "Network" },
         { label: "Credentials", icon: "award", navigate: "Credentials" },
         { label: "Captures", icon: "bookmark", navigate: "Captures" },
+        { label: "Inbox", icon: "inbox", navigate: "Inbox" },
         { label: "Tasks", icon: "check-square", navigate: "Tasks" },
         { label: "All pages", icon: "layers", navigate: "Browse" },
       ],
@@ -1091,6 +1092,8 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
           badge: unreadCount,
         },
         { label: "History", icon: "clock", navigate: "History" },
+        { label: "Export to Word", icon: "file-text", command: "Path: Export to Word" },
+        { label: "AI context", icon: "cpu", navigate: "_system/mcp-context" },
         { label: "Manual", icon: "book-open", navigate: "manual/cheatsheet" },
         {
           label: "Add framework",
