@@ -1,32 +1,20 @@
-# Path PDF/Word compile sidecar
+# Path Word export sidecar
 #
-# Rebased on pandoc/latex (Ubuntu + TinyTeX) rather than python:slim + apt texlive.
-# TinyTeX is a minimal TeX distribution (~200 MB vs ~1.5 GB for full texlive).
-# We add Python for the FastAPI layer and Liberation fonts for the default template.
+# Uses pandoc/core (pandoc only, no TeX) — Word (docx) export only.
+# PDF export is not supported; use browser print (Ctrl-P) for PDF.
+# Image size: ~100 MB vs ~350 MB for the previous pandoc/latex base.
 
-FROM pandoc/latex:latest
+FROM pandoc/core:latest
 
-# Add Python runtime and Liberation Serif/Sans (used by portfolio-default.tex).
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    fonts-liberation \
- && rm -rf /var/lib/apt/lists/*
-
-# Ensure the LaTeX packages used by the default template are available in TinyTeX.
-# tlmgr may already have these; the || true makes the step non-fatal if it can't reach CTAN.
-RUN tlmgr install titling titlesec 2>/dev/null || true
+RUN apk add --no-cache python3 py3-pip
 
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 COPY main.py .
-COPY templates ./templates
-COPY lua-filters ./lua-filters
 
-# space/ is mounted read-only at runtime; exports/ is mounted read-write
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

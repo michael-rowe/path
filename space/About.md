@@ -18,8 +18,7 @@ Path v0.1 (pre-release). The version number ticks forward when bundled framework
 Path stands on three open-source projects without which it wouldn't exist:
 
 - **[SilverBullet](https://silverbullet.md)** — the markdown-first knowledge management editor that provides Path's core editor, indexing, query language, plug system, and panel API. SilverBullet is licensed under the MIT licence.
-- **[Pandoc](https://pandoc.org)** — the universal document converter that turns your portfolio pages into a single PDF or Word file when you run an export. Pandoc is licensed under the GPL v2+.
-- **[TeX Live](https://tug.org/texlive/)** — the TeX distribution that compiles the LaTeX cover page and PDF body produced by Pandoc. TeX Live is distributed under the LaTeX Project Public Licence.
+- **[Pandoc](https://pandoc.org)** — the universal document converter that turns your portfolio pages into a Word file when you run **Path: Export to Word**. For PDF, use your browser's print function (Ctrl-P). Pandoc is licensed under the GPL v2+.
 
 The dashboard also uses **[Inter](https://rsms.me/inter/)** for UI typography (SIL Open Font Licence), and a small set of icons derived from **[Feather Icons](https://feathericons.com)** (MIT).
 

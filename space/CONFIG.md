@@ -1227,11 +1227,6 @@ local function path_export(output_format)
 end
 
 command.define {
-  name = "Path: Export to PDF",
-  run = function() path_export("pdf") end
-}
-
-command.define {
   name = "Path: Export to Word",
   run = function() path_export("docx") end
 }
