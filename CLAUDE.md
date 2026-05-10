@@ -18,6 +18,9 @@ A self-contained CPD / portfolio system for regulated professionals. Two Docker 
 │   ├── STYLE.md               Custom CSS (font, frontmatter hidden, toolbar fixed/centred, theme toggle, heatmap palette)
 │   ├── profile.md             User identity (YAML scalars + body sections)
 │   ├── index.md               Dashboard (queries, no longer a landing/welcome page)
+│   ├── Setup.md               Onboarding checklist (was "Getting started"; renamed 2026-05-08)
+│   ├── Announcements.md       News feed fetched from registry; ${announcementsList()}
+│   ├── About.md               Version, attribution, licence, source links
 │   ├── History.md             Recently modified pages (top 100)
 │   ├── Network.md             Browse: contacts, with Due-for-contact + relationship-type views
 │   ├── Credentials.md         Browse: awards / Open Badges / fellowships / certifications
@@ -165,6 +168,10 @@ Lua helpers in CONFIG.md (Announcements section): `announcementsList()` (rendere
 
 `onPageLoaded` fires `Path: Refresh announcements (silent)` once per session via the `announcementsRefreshed` flag, then re-renders the left panel so the badge picks up the new count without needing another navigation. Failure is non-fatal (offline keeps showing cached content).
 
+**Auto-mark on visit**: when `onPageLoaded` sees `currentPage == "Announcements"`, it schedules `Path: Mark all announcements as read` 600ms later. The deferral lets the page body render against the pre-mark read state (so unread markers are briefly visible) before everything is marked read and the badge clears. Markdown `command:` URLs in `[label](command:...)` links don't work in this SB build — auto-mark replaces them.
+
+**Badge refresh**: the navigator badge is computed at panel render time and doesn't watch the read-state file. After any mark/unmark, the Lua command invokes `Path: Refresh navigator` (a plug command exposing `showLeftPanel`) so the badge updates immediately.
+
 `news.json` schema: `{ version, announcements: [{ id, date, severity: "info"|"update"|"warning"|"critical", title, body, action: { type: "command"|"page"|"url", ... } | null }] }`. When a framework update ships, add an "update" announcement instructing users to run **Path: Check framework updates**.
 
 ## Framework registry (in CONFIG.md)
@@ -234,7 +241,16 @@ To upgrade SB: `sudo docker compose pull silverbullet && sudo docker compose up 
 
 ## CPD activity calendar
 
-`cpdCalendar(path_slug)` in CONFIG.md — GitHub-style 52-week contribution grid rendered via `widget.html`. Shaded by hours using a 5-level indigo scale; empty cells get a dashed border. Month labels along the top. Calls `${cpdCalendar()}` on `index.md` (all entries); individual Path pages can call `${cpdCalendar("slug")}` to filter. Uses Julian Day Number arithmetic (no `os.date`). `date.today()` is the reference point.
+Two related helpers, both in CONFIG.md, both rendering via `widget.html` with Julian Day Number arithmetic (no `os.date`).
+
+- **`cpdCalendar(path_slug)`** — 52-week GitHub-style grid shaded by CPD `hours`. Used on Path landing pages where hour totals matter for revalidation reporting. Empty cells get a dashed border; a 5-level indigo scale shades the rest.
+- **`activityCalendarMonth(path_slug)`** — current-month grid powering the dashboard's *Path activity this month*. Counts every dated record type the user can capture (`cpd`, `reflection`, `credential`, `cpd-claim`, `capture`) and shades cells by **`lastModified`** rather than the YAML `date` field — i.e. it records *when the user worked on the portfolio*, not when the activity occurred. Timestamps come from `space.listPages()` because SB's query language doesn't reliably surface system fields like `lastModified` on iterated results; the typed queries are used only to build the name-set for filtering.
+
+Both share `to_jdn` / `from_jdn` / `jdn_dow` helpers. **`jdn_dow(jdn) = jdn % 7`** (0 = Mon, 6 = Sun) — a previous `(jdn + 1) % 7` was off by one and placed Fridays under the Saturday column. The fix is in the calendar's space-lua block.
+
+## About page
+
+`space/About.md` — Workspace nav entry covering version, attribution (SilverBullet, Pandoc, TeX Live, Inter, Feather Icons), framework provenance, data/privacy posture (no telemetry, opt-out config keys for both the news feed and the framework registry), source links, MIT licence.
 
 ## Known deferred items
 

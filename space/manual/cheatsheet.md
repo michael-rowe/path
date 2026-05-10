@@ -10,20 +10,21 @@ The most useful commands and shortcuts. Bookmark this page or click the **?** ic
 
 ### Read in order
 
-- [[manual/getting-started]] — your first ten minutes
-- [[manual/interface]] — the **Navigator**, **Inspector**, **Editor**, and **Toolbar**
-- [[manual/capturing]] — what to record, what kind of record
-- [[manual/reflecting]] — choosing a reflection framework
-- [[manual/claims]] — turning evidence into an argument
-- [[manual/paths]] — working towards more than one goal
-- [[manual/naming]] — keeping records findable
+- [[manual/getting-started|Getting started]] — your first ten minutes
+- [[manual/interface|Interface]] — the **Navigator**, **Inspector**, **Editor**, and **Toolbar**
+- [[manual/capturing|Capturing]] — what to record, what kind of record
+- [[manual/reflecting|Reflecting]] — choosing a reflection framework
+- [[manual/claims|Claims]] — turning evidence into an argument
+- [[manual/paths|Paths]] — working towards more than one goal
+- [[manual/naming|Naming]] — keeping records findable
 
 ### Look up when needed
 
-- [[manual/formatting]] — admonitions, tables, tasks, wikilinks
-- [[manual/files-and-evidence]] — adding PDFs, certificates, photos
-- [[manual/glossary]] — plain-language definitions
-- [[manual/cheatsheet]] — this page
+- [[manual/formatting|Formatting]] — admonitions, tables, tasks, wikilinks
+- [[manual/files-and-evidence|Files and evidence]] — adding PDFs, certificates, photos
+- [[manual/glossary|Glossary]] — plain-language definitions
+- [[manual/ai-features|AI features]] — connecting an AI assistant to your portfolio
+- [[manual/cheatsheet|Cheatsheet]] — this page
 
 ## Most useful commands
 

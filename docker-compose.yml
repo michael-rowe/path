@@ -31,6 +31,22 @@ services:
         ipv4_address: 172.28.0.10
     restart: unless-stopped
 
+  # Path MCP server — exposes portfolio data to AI clients via SSE.
+  # Start with: docker compose --profile ai up -d
+  # Configure your AI client to connect at http://localhost:3001/sse
+  path-mcp:
+    build: ./path-mcp
+    container_name: path-mcp
+    profiles:
+      - ai
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./space:/space
+    networks:
+      path-net:
+    restart: unless-stopped
+
 networks:
   path-net:
     driver: bridge

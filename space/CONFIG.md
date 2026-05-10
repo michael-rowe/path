@@ -55,6 +55,14 @@ local function first_h1(text)
   return nil
 end
 
+-- Explicit title overrides. Full page path takes priority over H1.
+-- Needed for pages whose slug or H1 shouldn't be the tab title verbatim.
+local PAGE_TITLES = {
+  ["index"]       = "Home",
+  ["paths/index"] = "All Paths",
+  ["profile"]     = "Profile",
+}
+
 event.listen {
   name = "editor:pageLoaded",
   run = function()
@@ -62,8 +70,32 @@ event.listen {
     local name = editor.getCurrentPage()
     if not name then return end
     local content = space.readPage(name) or ""
-    local heading = first_h1(content) or name
-    js.window.document.title = "Path | " .. heading
+    local h = first_h1(content)
+    local short = name:match("([^/]+)$") or name
+    -- Full path wins, then last segment, then H1, then raw slug.
+    local heading = PAGE_TITLES[name] or PAGE_TITLES[short] or h or name
+    local target = "Path | " .. heading
+
+    js.window.document.title = target
+
+    -- SilverBullet overwrites document.title from the page slug after rendering.
+    -- A MutationObserver on <title> catches each overwrite and corrects it
+    -- immediately, eliminating the flicker that a fixed-delay setTimeout produces.
+    -- We disconnect after 5 s when the page is guaranteed settled.
+    local title_el = js.window.document.querySelector("title")
+    if title_el then
+      local obs = js.window.MutationObserver.new(function()
+        if js.window.document.title ~= target then
+          js.window.document.title = target
+        end
+      end)
+      obs.observe(title_el, js.tojs({
+        childList = true,
+        characterData = true,
+        subtree = true,
+      }))
+      js.window.setTimeout(function() obs.disconnect() end, 5000)
+    end
   end
 }
 ```
