@@ -13,13 +13,13 @@ services:
       path-net:
     restart: unless-stopped
 
-  # Pandoc + XeLaTeX + FastAPI sidecar.
-  # Optional — only needed for PDF and Word export.
+  # Pandoc + FastAPI sidecar — Word (.docx) export only.
+  # Optional — only needed for Word export.
   # Start with: docker compose --profile export up -d
   # Reachable from SB via its static IP inside the path-net network at
   # http://172.28.0.10:8000. Not exposed to the host.
   pandoc-svc:
-    build: ./pandoc
+    image: ghcr.io/michael-rowe/path-pandoc-svc:latest
     container_name: path-pandoc-svc
     profiles:
       - export
