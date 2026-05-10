@@ -102,7 +102,62 @@ Queries use SilverBullet's Lua-based query language and re-evaluate live as you 
 
 ### Export
 
-Optional Pandoc + XeLaTeX sidecar runs as a separate Docker container. Compiles a chosen subset of pages — personal statement, claims, supporting evidence — into a PDF or Word document with a cover page populated from your profile. Excluded by default to keep the install small (~150 MB without, ~500 MB with).
+Optional Pandoc sidecar runs as a separate Docker container. Compiles a chosen subset of pages — personal statement, claims, supporting evidence — into a Word document ready for editing and submission. For PDF, use your browser's print function. Excluded by default to keep the install small (~150 MB without, ~250 MB with).
+
+---
+
+### AI assistant (MCP server)
+
+Optional MCP server runs as a third Docker container and connects your portfolio to an AI client (Claude, Cursor, or any MCP-compatible tool). Once connected, the AI can read your portfolio structure and help you work with it directly.
+
+**What it exposes (read):**
+
+| Tool | What it does |
+|---|---|
+| `get_portfolio_summary` | Overview of all active Paths, total claims/CPD/reflections |
+| `list_active_paths` | Active Paths with framework, status, target date |
+| `get_path_coverage` | Criterion-by-criterion coverage — claims, CPD, reflections per standard |
+| `get_framework` / `get_criterion` | Framework structure and individual criterion detail |
+| `list_claims` / `get_claim` | All claims or a single claim with full narrative |
+| `list_cpd` / `get_cpd_entry` | CPD activity log |
+| `list_reflections` / `get_reflection` | Reflections with full text |
+| `list_evidence` | Evidence pages linked to criteria |
+| `get_profile` | Your identity and professional context |
+| `get_user_context` | Writing voice and style preferences for drafting |
+| `search_portfolio` | Full-text search across all portfolio pages |
+| `scan_inbox` | Unprocessed captures waiting for review |
+
+**What it enables (write — all writes go to Inbox for review before saving):**
+
+| Tool | What it does |
+|---|---|
+| `create_capture` | Draft a quick capture from a document or pasted text |
+| `create_cpd_entry` | Draft a CPD activity record |
+| `update_claim_status` | Move a claim from draft to ready |
+
+**What this makes possible:**
+
+- Ask "what's the biggest gap in my portfolio?" and get a criterion-by-criterion answer
+- Paste in a conference programme or meeting notes and ask "does anything here count as CPD?"
+- Ask the AI to draft a reflection or claim narrative in your own voice, grounded in your existing records
+- Get a gap analysis before a submission deadline without opening the portfolio at all
+
+**Starting the MCP server:**
+
+```bash
+docker compose --profile ai up -d
+```
+
+The server runs on `http://localhost:3001/sse`. Configure your AI client to connect there. For Claude Code, add to `~/.claude.json`:
+
+```json
+"path": {
+  "type": "sse",
+  "url": "http://localhost:3001/sse"
+}
+```
+
+The server is read-only by default for browsing. Write tools create drafts in your Inbox — nothing is committed to your portfolio without your review.
 
 ---
 
