@@ -86,6 +86,7 @@ const STATUS_ENUMS: Record<string, string[]> = {
   "path": ["active", "planned", "paused", "completed", "abandoned"],
   "personal-statement": ["draft", "ready"],
   "contact": ["active", "occasional", "dormant", "former"],
+  "milestone": ["planned", "reached", "missed"],
 };
 
 const FIELD_ENUMS: Record<string, string[]> = {

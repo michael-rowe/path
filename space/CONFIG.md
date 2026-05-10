@@ -226,6 +226,18 @@ tag.define {
     },
   },
 }
+
+tag.define {
+  name = "milestone",
+  schema = {
+    type = "object",
+    properties = {
+      status      = { type = "string", enum = {"planned", "reached", "missed"} },
+      target_date = { type = "string" },
+      path        = { type = "string" },
+    },
+  },
+}
 ```
 
 # Coverage helpers — used by Path dashboard pages
@@ -926,6 +938,7 @@ command.define {
         {name = "Contact",          description = "A person in your professional network"},
         {name = "Credential",       description = "An award, badge, certification, or fellowship"},
         {name = "Path",             description = "A new goal you are working towards"},
+        {name = "Milestone",          description = "A target date or checkpoint on a Path — planned, reached, or missed"},
         {name = "Personal statement", description = "A narrative introduction for a specific Path"},
       },
       "What do you want to capture?"
@@ -951,6 +964,8 @@ command.define {
       editor.invokeCommand("Path: New credential")
     elseif choice.name == "Path" then
       editor.invokeCommand("Path: New Path")
+    elseif choice.name == "Milestone" then
+      editor.invokeCommand("Path: New milestone")
     elseif choice.name == "Personal statement" then
       editor.invokeCommand("Path: New personal statement")
     end

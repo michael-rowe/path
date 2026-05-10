@@ -22,6 +22,16 @@ ${allOpenTasksByPath(20)}
 
 ${activePathsOverview()}
 
+# Upcoming milestones
+
+${some(query[[
+  from p = tags.page
+  where p.type == "milestone" and p.status == "planned"
+  order by p.target_date asc
+  limit 10
+  select pageItem(p)
+]]) or "_No planned milestones. Add one via Capture → Milestone._"}
+
 # Path activity this month
 
 ${activityCalendarMonth()}
