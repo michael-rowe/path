@@ -44,3 +44,4 @@ path-frameworks/
 
 # --- Local reports ---
 reports/
+rclone_config/

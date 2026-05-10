@@ -132,7 +132,10 @@ function stripQuotes(s: string): string {
   return t;
 }
 
-// Parse the YAML frontmatter into block-shaped fields.
+// Parse the YAML frontmatter into block-shaped fields. Each block has a
+// top-level `key:` line and optionally indented continuation lines.
+// Continuation that's purely `- "value"` items is treated as a simple list;
+// anything richer (nested keys) is marked `complex` and round-tripped raw.
 function parseFrontmatter(text: string): ParsedPage | null {
   if (!text.startsWith("---\n") && !text.startsWith("---\r\n")) return null;
   const fmStart = text.indexOf("\n") + 1;
@@ -152,10 +155,13 @@ function parseFrontmatter(text: string): ParsedPage | null {
 
   for (const rawLine of fmText.split("\n")) {
     const trimmed = rawLine.trim();
+    // Comments and blank lines: keep them inside the current block as
+    // raw continuation. Outside any block they're simply dropped.
     if (trimmed === "" || trimmed.startsWith("#")) {
       if (cur) cur.cont.push(rawLine);
       continue;
     }
+    // A new top-level key starts only at column 0.
     if (!rawLine.startsWith(" ") && !rawLine.startsWith("\t")) {
       const m = rawLine.match(/^([\w-]+):\s*(.*)$/);
       if (m) {
@@ -178,6 +184,7 @@ function parseFrontmatter(text: string): ParsedPage | null {
       });
       continue;
     }
+    // No header value → potentially a list block.
     const realLines = b.cont.filter(
       (l) => l.trim() !== "" && !l.trim().startsWith("#"),
     );
@@ -185,10 +192,12 @@ function parseFrontmatter(text: string): ParsedPage | null {
       fields.push({ key: b.key, value: [], isList: true });
       continue;
     }
+    // Simple list: every real line matches `<indent>- <scalar>`.
     const simpleListRe = /^(\s+)-\s+(.*)$/;
     const allSimple = realLines.every((l) => {
       const m = l.match(simpleListRe);
       if (!m) return false;
+      // The scalar must not contain a colon followed by space (object key).
       return !/:\s/.test(m[2]);
     });
     if (allSimple) {
@@ -236,6 +245,9 @@ function serializeFields(
 ): string {
   const lines: string[] = [];
   for (const f of originalFields) {
+    // Complex blocks: emit the raw text we captured at parse time. This
+    // round-trips qualifications, registrations, and any other nested-
+    // object YAML byte-for-byte without us needing to understand them.
     if (f.complex) {
       lines.push(`${f.key}:`);
       if (f.raw) lines.push(f.raw);
@@ -278,6 +290,9 @@ interface Mention {
   pageName: string;
 }
 
+// Strip a path prefix and any leading YYYY-MM-DD- date stamp, then
+// title-case word separators. `manual/interface` -> "Interface";
+// `cpd/2026-05-07-prs-conference` -> "Prs Conference".
 function mentionDisplayName(pageName: string): string {
   const last = pageName.split("/").pop() || pageName;
   const stripped = last.replace(/^\d{4}-\d{2}-\d{2}-?/, "") || last;
@@ -286,6 +301,8 @@ function mentionDisplayName(pageName: string): string {
     .replace(/\b(\p{L})/gu, (c) => c.toUpperCase());
 }
 
+// Lookup all installed Paths (excluding the `*-coverage` dashboard
+// pages). Used to populate the multi-select for `paths` fields.
 async function fetchAllPaths(): Promise<
   { slug: string; title: string; framework: string }[]
 > {
@@ -315,6 +332,8 @@ async function fetchAllPaths(): Promise<
   }
 }
 
+// Criteria of a given framework, used to populate the multi-select for
+// `standards` fields. Sorted by code so 1.1, 1.2, ..., 4.2 stay in order.
 async function fetchCriteriaForFramework(
   framework: string,
 ): Promise<{ code: string; title: string }[]> {
@@ -490,19 +509,19 @@ function buildPanelContent(
     editableDescs.push({ key: f.key, list: f.isList });
   }
 
+  const searchBody = `
+    <div class="search-container">
+      <input type="text" id="search-input" class="field" placeholder="Search portfolio..." autocomplete="off">
+      <div id="search-results" class="search-results"></div>
+    </div>`;
+
   const attrsBody = fields.length === 0 || rowsHtml.length === 0
     ? ""
     : `
-    <details class="section" data-section="attrs" open>
-      <summary class="section-summary">
-        <h2>Page attributes</h2>
-        <span class="chev" aria-hidden="true">▾</span>
-      </summary>
-      <div class="section-body">
-        <div class="section-actions"><button class="btn" id="btn-save">Save</button></div>
-        <div class="attrs">${rowsHtml.join("")}</div>
-      </div>
-    </details>`;
+    <div class="section" data-section="attrs">
+      <div class="section-actions"><button class="btn" id="btn-save">Save changes</button></div>
+      <div class="attrs">${rowsHtml.join("")}</div>
+    </div>`;
 
   const tocBody = buildTocHtml(toc);
 
@@ -527,12 +546,37 @@ function buildPanelContent(
       </div>
     </details>`;
 
-  const dangerBody = isReadonly
-    ? ""
-    : `
-    <div class="section section-danger">
+  const toolsBody = `
+    <div class="tool-section">
+      <h3>Writing Quality</h3>
+      <button class="btn-tool" id="btn-grammar">Check grammar & style</button>
+    </div>
+    <div class="tool-section">
+      <h3>Link Checker</h3>
+      <button class="btn-tool" id="btn-links">Check broken links</button>
+    </div>
+    <div class="tool-section">
+      <h3>Cloud Backup</h3>
+      <button class="btn-tool" id="btn-sync">Sync to cloud</button>
+      <div id="backup-status" class="status-area">
+        <div>Last run: <span id="last-run">...</span></div>
+        <div>Status: <span id="status-text">...</span></div>
+      </div>
+    </div>
+    ${isReadonly ? "" : `
+    <div class="section-danger" style="margin-top: 3em;">
       <button class="btn-danger" id="btn-delete" type="button">Delete this page</button>
-    </div>`;
+    </div>`}
+  `;
+
+  const historyBody = `
+    <div class="tool-section">
+      <h3>Time Machine</h3>
+      <div id="history-list" class="history-list">
+        <div class="empty">Loading snapshots...</div>
+      </div>
+    </div>
+  `;
 
   const html = `
 <style>
@@ -540,223 +584,121 @@ function buildPanelContent(
   html { background: #f8fafc; }
   body { font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 15px; background: #f8fafc; margin: 0; padding: 0; }
   * { box-sizing: border-box; }
-  .panel { height: 100vh; display: flex; flex-direction: column; color: #1f2937; }
+  .panel { padding: 0 1.1em 1.3em 1.1em; color: #1f2937; }
   
-  /* Sticky Search */
-  .search-container { padding: 2.2em 1.1em 0.8em 1.1em; background: #f8fafc; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
-  .search-input-wrapper { position: relative; }
-  .search-field { width: 100%; padding: 0.6em 0.8em; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.92em; font-family: inherit; background: white; color: inherit; }
-  .search-field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.1); }
-  .search-results-overlay { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; display: none; z-index: 20; }
-  .search-results-overlay.active { display: block; }
-
-  /* Tabs */
-  .tabs { display: flex; border-bottom: 1px solid #e5e7eb; background: #f1f5f9; padding: 0 0.5em; flex-shrink: 0; }
-  .tab { padding: 0.75em 1.1em; font-size: 0.82em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
-  .tab:hover { color: #4f46e5; }
-  .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; background: #f8fafc; }
-
-  /* Content Area */
-  .tab-content { flex: 1; overflow-y: auto; padding: 1.3em 1.1em; display: none; }
+  /* Pinned search with 4.5em top spacing */
+  .search-container { margin-top: 4.5em; margin-bottom: 1.5em; }
+  
+  .tabs { display: flex; border-bottom: 1px solid #e5e7eb; margin-bottom: 1.4em; gap: 0.5em; position: sticky; top: 0; background: #f8fafc; z-index: 10; padding-top: 1em; }
+  .tab-btn { background: none; border: none; padding: 0.6em 0.8em; cursor: pointer; font-size: 0.85em; font-weight: 500; color: #6b7280; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab-btn:hover { color: #4f46e5; }
+  .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+  .tab-content { display: none; }
   .tab-content.active { display: block; }
 
   .section { margin-bottom: 1.4em; }
-  .section:last-child { margin-bottom: 0; }
   .section > summary { list-style: none; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 0.6em; padding: 0.25em 0; }
-  .section > summary::-webkit-details-marker { display: none; }
   .section h2 { font-size: 0.74em; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 0.5em; }
-  .section .count { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 0.05em 0.55em; font-size: 0.85em; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .section .count { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 0.05em 0.55em; font-size: 0.85em; font-weight: 500; }
   .chev { color: #9ca3af; font-size: 0.9em; transition: transform 0.15s ease; }
   .section[open] > summary .chev { transform: rotate(180deg); }
   .section-body { padding-top: 0.85em; }
   .section-actions { display: flex; justify-content: flex-end; margin-bottom: 0.7em; }
-  .mentions { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5em; }
-  .mention { padding: 0.45em 0.55em; border-radius: 4px; cursor: pointer; line-height: 1.4; }
-  .mention:hover { background: #eef2ff; }
-  .mention-ref { font-size: 0.92em; color: #2563eb; font-weight: 500; word-break: break-word; }
-  .mention:hover .mention-ref { color: #1d4ed8; }
-  .mention-snip { font-size: 0.82em; color: #6b7280; margin-top: 0.2em; line-height: 1.45; }
+  
+  .tool-section { margin-bottom: 1.8em; }
+  .tool-section h3 { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.7em 0; font-weight: 600; }
+  .btn-tool { background: white; border: 1px solid #d1d5db; color: #111827; padding: 0.55em 0.9em; border-radius: 4px; cursor: pointer; font-size: 0.88em; font-family: inherit; transition: all 0.12s; width: fit-content; text-align: left; }
+  .btn-tool:hover { background: #f9fafb; border-color: #9ca3af; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  
+  .status-area { margin-top: 0.8em; font-size: 0.82em; color: #6b7280; line-height: 1.5; padding: 0.6em 0.8em; background: #f1f5f9; border-radius: 4px; }
+  .status-area span { color: #1f2937; font-weight: 500; }
+
+  .history-list { display: flex; flex-direction: column; gap: 0.2em; }
+  .history-item { display: flex; align-items: center; justify-content: space-between; padding: 0.6em 0.7em; border-radius: 4px; border-bottom: 1px solid #f1f5f9; }
+  .history-item:hover { background: #f8fafc; }
+  .history-info { flex: 1; min-width: 0; }
+  .history-date { font-size: 0.85em; font-weight: 600; color: #111827; margin-bottom: 0.1em; }
+  .history-msg { font-size: 0.78em; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-actions { display: flex; gap: 0.2em; }
+  .btn-icon { background: none; border: none; padding: 0.4em; cursor: pointer; color: #9ca3af; border-radius: 4px; transition: all 0.12s; display: flex; align-items: center; justify-content: center; }
+  .btn-icon:hover { color: #4f46e5; background: #eef2ff; }
+
   .btn { background: #4f46e5; color: white; border: none; padding: 0.4em 0.95em; border-radius: 4px; cursor: pointer; font-size: 0.82em; font-weight: 500; font-family: inherit; }
   .btn:hover { background: #4338ca; }
-  .btn:disabled { opacity: 0.5; cursor: wait; }
   .attrs { display: flex; flex-direction: column; gap: 0.95em; }
   .row { display: flex; flex-direction: column; gap: 0.3em; }
   .k { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 500; }
-  .hint { text-transform: none; letter-spacing: 0; font-style: italic; opacity: 0.7; font-weight: 400; }
-  .v { font-size: 0.95em; color: #111827; word-break: break-word; line-height: 1.45; }
-  .field { width: 100%; padding: 0.45em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.92em; font-family: inherit; color: inherit; background: white; }
+  .field { width: 100%; padding: 0.45em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.92em; font-family: inherit; color: #111827; background: white; }
   .field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.15); }
-  select.field { cursor: pointer; }
-  .field-hint { font-size: 0.74em; color: #6b7280; margin-top: 0.22em; font-style: italic; }
   .multi-list { display: flex; flex-direction: column; gap: 0.32em; padding: 0.5em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; max-height: 220px; overflow-y: auto; background: white; }
   .multi-opt { display: flex; align-items: center; gap: 0.5em; cursor: pointer; line-height: 1.3; padding: 0.15em 0.1em; border-radius: 3px; }
   .multi-opt:hover { background: #eef2ff; }
-  .multi-opt input[type="checkbox"] { cursor: pointer; flex-shrink: 0; accent-color: #4f46e5; }
-  .multi-opt-label { font-size: 0.9em; color: #1f2937; word-break: break-word; }
-  html[data-theme="dark"] .multi-list { background: #1e293b; border-color: #475569; }
-  html[data-theme="dark"] .multi-opt:hover { background: rgba(79, 70, 229, 0.18); }
-  html[data-theme="dark"] .multi-opt-label { color: #f1f5f9; }
-  .badge { display: inline-block; background: #eef2ff; color: #4338ca; padding: 0.2em 0.65em; border-radius: 5px; font-size: 0.82em; font-weight: 500; text-transform: capitalize; letter-spacing: 0.02em; }
-  .empty { color: #6b7280; font-size: 0.9em; font-style: italic; }
+  .badge { display: inline-block; background: #eef2ff; color: #4338ca; padding: 0.2em 0.65em; border-radius: 5px; font-size: 0.82em; font-weight: 500; }
+  .empty { color: #6b7280; font-size: 0.85em; font-style: italic; padding: 1em 0; }
   .toc { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.3em; }
   .toc-item { font-size: 0.9em; color: #1f2937; cursor: pointer; padding: 0.25em 0.4em; border-radius: 3px; line-height: 1.4; }
   .toc-item:hover { background: #eef2ff; color: #3730a3; }
-  html[data-theme="dark"] { background: #0f172a; }
-  html[data-theme="dark"] body { background: #0f172a; }
-  html[data-theme="dark"] .panel { color: #e2e8f0; }
-  html[data-theme="dark"] .section h2, html[data-theme="dark"] .k { color: #94a3b8; }
-  html[data-theme="dark"] .v { color: #f1f5f9; }
-  html[data-theme="dark"] .badge { background: #312e81; color: #c7d2fe; }
-  html[data-theme="dark"] .empty { color: #94a3b8; }
-  html[data-theme="dark"] .field { background: #1e293b; border-color: #475569; color: #f1f5f9; }
-  html[data-theme="dark"] select.field { background: #1e293b; color-scheme: dark; }
-  html[data-theme="dark"] .field-hint { color: #94a3b8; }
-  html[data-theme="dark"] .toc-item { color: #e2e8f0; }
-  html[data-theme="dark"] .toc-item:hover { background: #1e293b; color: #c7d2fe; }
-  html[data-theme="dark"] .chev { color: #64748b; }
-  html[data-theme="dark"] .count { background: #312e81; color: #c7d2fe; }
-  html[data-theme="dark"] .mention:hover { background: #1e293b; }
-  html[data-theme="dark"] .mention-ref { color: #60a5fa; }
-  html[data-theme="dark"] .mention:hover .mention-ref { color: #93c5fd; }
-  html[data-theme="dark"] .mention-snip { color: #94a3b8; }
-  .section-danger { margin-top: 2.5em; padding-top: 1.2em; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; }
-  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: background 0.12s, color 0.12s; width: 100%; }
-  .btn-danger:hover { background: #fee2e2; color: #991b1b; }
-  html[data-theme="dark"] .section-danger { border-top-color: #1e293b; }
-  html[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #7f1d1d; }
-  html[data-theme="dark"] .btn-danger:hover { background: #450a0a; color: #fecaca; }
-
-  /* Search results styles */
-  .search-result { padding: 0.7em 0.9em; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
-  .search-result:hover { background: #f1f5f9; }
-  .search-result:last-child { border-bottom: none; }
+  
+  .search-results { display: flex; flex-direction: column; gap: 0.4em; margin-top: 0.8em; }
+  .search-result { padding: 0.5em 0.6em; border-radius: 4px; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
+  .search-result:hover { background: #eef2ff; }
   .search-title { font-size: 0.9em; font-weight: 600; color: #4f46e5; }
   .search-path { font-size: 0.72em; color: #6b7280; font-weight: 500; margin-bottom: 0.15em; }
   .search-snip { font-size: 0.82em; color: #4b5563; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .search-snip em { font-style: normal; background: rgba(79, 70, 229, 0.15); border-radius: 2px; }
-  html[data-theme="dark"] .search-results-overlay { background: #1e293b; border-color: #334155; }
-  html[data-theme="dark"] .search-result:hover { background: #0f172a; }
+
+  .section-danger { margin-top: 2em; padding-top: 1.2em; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; }
+  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: all 0.12s; }
+  .btn-danger:hover { background: #fee2e2; color: #991b1b; }
+
+  .mentions { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5em; }
+  .mention { padding: 0.45em 0.55em; border-radius: 4px; cursor: pointer; line-height: 1.4; }
+  .mention:hover { background: #eef2ff; }
+  .mention-ref { font-size: 0.92em; color: #2563eb; font-weight: 500; word-break: break-word; }
+
+  html[data-theme="dark"] { background: #0f172a; }
+  html[data-theme="dark"] body { background: #0f172a; }
+  html[data-theme="dark"] .panel { color: #e2e8f0; }
+  html[data-theme="dark"] .tabs { background: #0f172a; border-bottom-color: #1e293b; }
+  html[data-theme="dark"] .tab-btn { color: #94a3b8; }
+  html[data-theme="dark"] .tab-btn:hover { color: #818cf8; }
+  html[data-theme="dark"] .tab-btn.active { color: #818cf8; border-bottom-color: #818cf8; }
+  html[data-theme="dark"] .section h2, html[data-theme="dark"] .k, html[data-theme="dark"] .tool-section h3 { color: #94a3b8; }
+  html[data-theme="dark"] .btn-tool { background: #1e293b; border-color: #334155; color: #f1f5f9; }
+  html[data-theme="dark"] .btn-tool:hover { background: #334155; border-color: #475569; }
+  html[data-theme="dark"] .status-area { background: #1e293b; color: #94a3b8; }
+  html[data-theme="dark"] .status-area span { color: #f1f5f9; }
+  html[data-theme="dark"] .history-item { border-bottom-color: #1e293b; }
+  html[data-theme="dark"] .history-item:hover { background: #1e293b; }
+  html[data-theme="dark"] .history-date { color: #f1f5f9; }
+  html[data-theme="dark"] .field { background: #1e293b; border-color: #475569; color: #f1f5f9; }
+  html[data-theme="dark"] .multi-list { background: #1e293b; border-color: #475569; }
   html[data-theme="dark"] .search-title { color: #818cf8; }
-  html[data-theme="dark"] .search-path { color: #94a3b8; }
-  html[data-theme="dark"] .search-snip { color: #94a3b8; }
-  
-  /* Writing & History styles */
-  .writing-results { display: flex; flex-direction: column; gap: 0.6em; margin-top: 0.8em; }
-  .writing-issue { padding: 0.6em; border-radius: 4px; background: #fff; border: 1px solid #e5e7eb; font-size: 13px; }
-  .issue-msg { font-weight: 500; color: #b91c1c; margin-bottom: 0.2em; }
-  .issue-context { font-family: monospace; font-size: 12px; color: #4b5563; background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 2px; }
-  .issue-context em { font-style: normal; background: #fecaca; font-weight: 600; }
-  html[data-theme="dark"] .writing-issue { background: #1e293b; border-color: #334155; }
-  html[data-theme="dark"] .issue-msg { color: #f87171; }
-  html[data-theme="dark"] .issue-context { background: #0f172a; color: #94a3b8; }
-  
-  .history-list { display: flex; flex-direction: column; gap: 0.4em; }
-  .history-item { padding: 0.8em; border-radius: 6px; background: white; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.1s; }
-  .history-item:hover { border-color: #4f46e5; background: #f8fafc; }
-  .history-time { font-size: 0.9em; font-weight: 600; color: #111827; }
-  .history-msg { font-size: 0.8em; color: #6b7280; margin-top: 0.2em; }
-  html[data-theme="dark"] .history-item { background: #1e293b; border-color: #334155; }
-  html[data-theme="dark"] .history-time { color: #f1f5f9; }
-  html[data-theme="dark"] .history-item:hover { background: #0f172a; border-color: #818cf8; }
-
-  /* Preview overlay */
-  #history-preview { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 100; display: none; flex-direction: column; }
-  html[data-theme="dark"] #history-preview { background: #0f172a; }
-  .preview-header { padding: 1em; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; }
-  html[data-theme="dark"] .preview-header { background: #1e293b; border-color: #334155; }
-  .preview-title { font-weight: 600; font-size: 0.9em; }
-  .preview-body { flex: 1; padding: 1.5em; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
-  .preview-actions { display: flex; gap: 0.8em; }
-  
-  /* Theme Mirroring Adjustments */
-  html[data-theme="dark"] .search-container { background: #0f172a; border-color: #1e293b; }
-  html[data-theme="dark"] .search-field { background: #1e293b; border-color: #475569; color: #f1f5f9; }
-  html[data-theme="dark"] .tabs { background: #0f172a; border-color: #1e293b; }
-  html[data-theme="dark"] .tab.active { background: #0f172a; color: #818cf8; border-bottom-color: #818cf8; }
+  html[data-theme="dark"] .search-result:hover { background: #1e293b; }
+  html[data-theme="dark"] .badge { background: #312e81; color: #c7d2fe; }
 </style>
-
-<div class="panel">
-  <!-- Sticky Search -->
-  <div class="search-container">
-    <div class="search-input-wrapper">
-      <input type="text" id="search-input" class="search-field" placeholder="Search portfolio..." autocomplete="off">
-      <div id="search-results" class="search-results-overlay"></div>
-    </div>
-  </div>
-
-  <!-- Tab Bar -->
+<div id="panel" class="panel">
+  ${searchBody}
   <div class="tabs">
-    <div class="tab active" data-tab="page">Page</div>
-    <div class="tab" data-tab="tools">Tools</div>
-    <div class="tab" data-tab="history">History</div>
+    <button class="tab-btn active" data-tab="page">Page</button>
+    <button class="tab-btn" data-tab="tools">Tools</button>
+    <button class="tab-btn" data-tab="history">History</button>
   </div>
-
-  <!-- Tab Content: Page -->
   <div id="tab-page" class="tab-content active">
     ${tocBody}
     ${attrsBody}
     ${mentionsBody}
   </div>
-
-  <!-- Tab Content: Tools -->
   <div id="tab-tools" class="tab-content">
-    <details class="section" data-section="writing" open>
-      <summary class="section-summary">
-        <h2>Writing quality</h2>
-        <span class="chev" aria-hidden="true">▾</span>
-      </summary>
-      <div class="section-body">
-        <div class="section-actions"><button class="btn" id="btn-check-writing">Check grammar & style</button></div>
-        <div id="writing-results" class="writing-results"></div>
-      </div>
-    </details>
-
-    <details class="section" data-section="links" open>
-      <summary class="section-summary">
-        <h2>Link checker</h2>
-        <span class="chev" aria-hidden="true">▾</span>
-      </summary>
-      <div class="section-body">
-        <div class="section-actions"><button class="btn" id="btn-check-links">Check broken links</button></div>
-        <div id="link-results" class="writing-results"></div>
-      </div>
-    </details>
-    
-    <div style="margin-top: 3em">
-      ${dangerBody}
-    </div>
+    ${toolsBody}
   </div>
-
-  <!-- Tab Content: History -->
   <div id="tab-history" class="tab-content">
-    <div class="section">
-      <summary class="section-summary">
-        <h2>Time Machine</h2>
-      </summary>
-      <div class="section-body">
-        <div id="history-list" class="history-list">
-          <div class="empty">Loading version history...</div>
-        </div>
-      </div>
-    </div>
+    ${historyBody}
   </div>
-</div>
-
-<!-- Preview Overlay -->
-<div id="history-preview">
-  <div class="preview-header">
-    <div class="preview-title">Version Preview</div>
-    <div class="preview-actions">
-      <button class="btn" id="btn-restore">Restore this version</button>
-      <button class="btn" style="background:#6b7280" id="btn-close-preview">Close</button>
-    </div>
-  </div>
-  <div id="preview-content" class="preview-body"></div>
 </div>
 `;
 
   // The script is eval'd in the iframe context where `syscall` is a global.
-  // It must be a self-contained string passed as the 4th showPanel arg.
   const fieldsJson = JSON.stringify(editableDescs);
   const pageJson = JSON.stringify(pageName);
   const focusSearchJson = JSON.stringify(focusSearch);
@@ -765,6 +707,8 @@ function buildPanelContent(
   var FIELDS = ${fieldsJson};
   var PAGE = ${pageJson};
   var FOCUS_SEARCH = ${focusSearchJson};
+
+  function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
 
   // Sync data-theme with the parent (theme toggle changes propagate live).
   try {
@@ -778,353 +722,185 @@ function buildPanelContent(
     new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {}
 
-  // Tab switching logic
-  document.querySelectorAll('.tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      var target = tab.getAttribute('data-tab');
-      document.querySelectorAll('.tab, .tab-content').forEach(function(el) {
-        el.classList.remove('active');
-      });
-      tab.classList.add('active');
-      var content = document.getElementById('tab-' + target);
-      if (content) content.classList.add('active');
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var tab = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + tab).classList.add('active');
       
-      if (target === 'history') {
-        loadHistory();
-      }
+      var store = ls();
+      if (store) store.setItem('path-active-tab', tab);
+
+      if (tab === 'tools') updateBackupStatus();
+      if (tab === 'history') updateHistory();
     });
   });
 
-  // Search logic (pinned at top)
+  // Restore active tab
+  var store = ls();
+  if (store) {
+    var activeTab = store.getItem('path-active-tab');
+    if (activeTab && activeTab !== 'page') {
+      var btn = document.querySelector('.tab-btn[data-tab="' + activeTab + '"]');
+      if (btn) btn.click();
+    }
+  }
+
+  async function updateBackupStatus() {
+    try {
+      var status = await syscall('system.invokeFunction', 'path.getBackupStatus');
+      document.getElementById('last-run').textContent = status.lastRun || 'Never';
+      document.getElementById('status-text').textContent = status.status || 'Unknown';
+    } catch (e) {
+      console.error('Backup status fetch failed', e);
+    }
+  }
+
+  async function updateHistory() {
+    var list = document.getElementById('history-list');
+    try {
+      var history = await syscall('system.invokeFunction', 'path.getHistory', PAGE);
+      if (!history || history.length === 0) {
+        list.innerHTML = '<div class="empty">No snapshots found.</div>';
+        return;
+      }
+      list.innerHTML = history.map(function(item) {
+        return \`
+          <div class="history-item">
+            <div class="history-info">
+              <div class="history-date">\${item.date}</div>
+              <div class="history-msg">\${item.message}</div>
+            </div>
+            <div class="history-actions">
+              <button class="btn-icon btn-history-preview" data-id="\${item.id}" title="Preview snapshot">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              </button>
+              <button class="btn-icon btn-history-restore" data-id="\${item.id}" title="Restore snapshot">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
+            </div>
+          </div>\`;
+      }).join('');
+
+      list.querySelectorAll('.btn-history-preview').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          await syscall('system.invokeCommand', 'Path: Preview History', btn.getAttribute('data-id'));
+        });
+      });
+      list.querySelectorAll('.btn-history-restore').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+          await syscall('system.invokeCommand', 'Path: Restore History', btn.getAttribute('data-id'));
+        });
+      });
+    } catch (e) {
+      list.innerHTML = '<div class="empty">History unavailable.</div>';
+    }
+  }
+
+  // Tool buttons
+  document.getElementById('btn-grammar')?.addEventListener('click', async function() {
+    await syscall('system.invokeCommand', 'Path: LanguageTool');
+  });
+  document.getElementById('btn-links')?.addEventListener('click', async function() {
+    await syscall('system.invokeCommand', 'Path: Lychee');
+  });
+  document.getElementById('btn-sync')?.addEventListener('click', async function() {
+    await syscall('system.invokeCommand', 'Path: Rclone');
+  });
+
+  // Search logic
   var searchInput = document.getElementById('search-input');
   var searchResults = document.getElementById('search-results');
   var MEILI_URL = 'http://localhost:7700';
   var MEILI_KEY = 'masterKey123';
 
   if (searchInput) {
-    if (FOCUS_SEARCH) {
-      setTimeout(function() { searchInput.focus(); }, 100);
-    }
+    if (FOCUS_SEARCH) setTimeout(function() { searchInput.focus(); }, 100);
 
     searchInput.addEventListener('input', async function(e) {
       var query = e.target.value;
-      if (!query) {
-        searchResults.innerHTML = '';
-        searchResults.classList.remove('active');
-        return;
-      }
+      if (!query) { searchResults.innerHTML = ''; return; }
       try {
         var response = await fetch(MEILI_URL + '/indexes/pages/search', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + MEILI_KEY
-          },
-          body: JSON.stringify({
-            q: query,
-            attributesToHighlight: ['content', 'title'],
-            highlightPreTag: '<em>',
-            highlightPostTag: '</em>',
-            limit: 8
-          })
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MEILI_KEY },
+          body: JSON.stringify({ q: query, attributesToHighlight: ['content', 'title'], limit: 8 })
         });
         var data = await response.json();
-        var hits = data.hits || [];
-        if (hits.length === 0) {
-           searchResults.innerHTML = '<div class="empty" style="padding:15px">No results found.</div>';
-        } else {
-          searchResults.innerHTML = hits.map(function(hit) {
-            var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
-            var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || (hit.content ? hit.content.substring(0, 100) : '');
-            return \`
-              <div class="search-result" data-path="\${hit.path}">
-                <div class="search-path">\${hit.path}</div>
-                <div class="search-title">\${title}</div>
-                <div class="search-snip">\${snip}</div>
-              </div>\`;
-          }).join('');
-        }
-        searchResults.classList.add('active');
+        searchResults.innerHTML = (data.hits || []).map(function(hit) {
+          var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
+          var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || '';
+          return \`
+            <div class="search-result" data-path="\${hit.path}">
+              <div class="search-path">\${hit.path}</div>
+              <div class="search-title">\${title}</div>
+              <div class="search-snip">\${snip}</div>
+            </div>\`;
+        }).join('');
 
         document.querySelectorAll('.search-result').forEach(function(el) {
           el.addEventListener('click', async function() {
-            var path = el.getAttribute('data-path');
-            if (path) {
-              await syscall('editor.navigate', path);
-              searchResults.classList.remove('active');
-              searchInput.value = '';
-            }
+            await syscall('editor.navigate', el.getAttribute('data-path'));
           });
         });
-      } catch (err) {
-        searchResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Search failed.</div>';
-        searchResults.classList.add('active');
-      }
-    });
-
-    // Close search on click outside
-    document.addEventListener('click', function(e) {
-      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.classList.remove('active');
-      }
+      } catch (err) { searchResults.innerHTML = '<div class="empty">Search unavailable.</div>'; }
     });
   }
 
-  // History / Time Machine logic
-  var WATCHER_URL = 'http://localhost:8020';
-  var historyList = document.getElementById('history-list');
-  var previewOverlay = document.getElementById('history-preview');
-  var previewContent = document.getElementById('preview-content');
-  var currentPreviewHash = null;
-
-  async function loadHistory() {
+  // Attrs save
+  document.getElementById('btn-save')?.addEventListener('click', async function() {
+    var btn = this;
+    btn.disabled = true;
     try {
-      var response = await fetch(WATCHER_URL + '/history?path=' + encodeURIComponent(PAGE));
-      var data = await response.json();
-      var history = data.history || [];
-      
-      if (history.length === 0) {
-        historyList.innerHTML = '<div class="empty">No snapshots found for this file yet. Snapshots occur every 30 minutes if changes are detected.</div>';
-        return;
-      }
-
-      historyList.innerHTML = history.map(function(commit) {
-        var date = new Date(commit.timestamp);
-        var label = date.toLocaleString();
-        return \`
-          <div class="history-item" data-hash="\${commit.hash}">
-            <div class="history-time">\${label}</div>
-            <div class="history-msg">\${commit.message}</div>
-          </div>\`;
-      }).join('');
-
-      document.querySelectorAll('.history-item').forEach(function(el) {
-        el.addEventListener('click', async function() {
-          var hash = el.getAttribute('data-hash');
-          showPreview(hash);
-        });
+      var values = {};
+      FIELDS.forEach(function(f) {
+        var inp = document.getElementById('f-' + f.key);
+        if (inp) values[f.key] = inp.value;
       });
-    } catch (err) {
-      historyList.innerHTML = '<div style="color:red">Failed to load history.</div>';
-    }
-  }
-
-  async function showPreview(hash) {
-    try {
-      currentPreviewHash = hash;
-      previewContent.textContent = 'Loading version...';
-      previewOverlay.style.display = 'flex';
-      
-      var response = await fetch(WATCHER_URL + '/version?path=' + encodeURIComponent(PAGE) + '&hash=' + hash);
-      var data = await response.json();
-      previewContent.textContent = data.content;
-    } catch (err) {
-      previewContent.textContent = 'Error loading version: ' + err;
-    }
-  }
-
-  document.getElementById('btn-close-preview').addEventListener('click', function() {
-    previewOverlay.style.display = 'none';
-  });
-
-  document.getElementById('btn-restore').addEventListener('click', async function() {
-    if (!currentPreviewHash) return;
-    var ok = window.confirm('Restore this version? Your current changes will be overwritten.');
-    if (!ok) return;
-
-    try {
-      var content = previewContent.textContent;
-      await syscall('space.writePage', PAGE, content);
-      await syscall('editor.flashNotification', 'Version restored!');
-      previewOverlay.style.display = 'none';
-      await syscall('editor.reloadPage');
+      await syscall('system.invokeFunction', 'path.saveAttributes', PAGE, values);
     } catch (e) {
-      alert('Restore failed: ' + e);
-    }
+      await syscall('editor.flashNotification', 'Save failed: ' + String(e));
+    } finally { btn.disabled = false; }
   });
-
-  // Writing check logic
-  var writingBtn = document.getElementById('btn-check-writing');
-  var writingResults = document.getElementById('writing-results');
-  var LT_URL = 'http://localhost:8010/v2/check';
-
-  if (writingBtn) {
-    writingBtn.addEventListener('click', async function() {
-      writingBtn.disabled = true;
-      writingBtn.textContent = 'Checking...';
-      writingResults.innerHTML = '';
-      try {
-        var text = await syscall('editor.getText');
-        // Strip frontmatter
-        if (text.startsWith('---')) {
-          var close = text.indexOf('\\n---\\n', 4);
-          if (close === -1) close = text.indexOf('\\n---', 4);
-          if (close !== -1) text = text.substring(close + 5);
-        }
-
-        var response = await fetch(LT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            text: text,
-            language: 'en-GB'
-          })
-        });
-        var data = await response.json();
-        var matches = data.matches || [];
-        if (matches.length === 0) {
-          writingResults.innerHTML = '<div style="color:green;font-size:13px;padding:10px">No issues found!</div>';
-        } else {
-          writingResults.innerHTML = matches.map(function(m) {
-            var ctx = m.context.text;
-            var start = m.context.offset;
-            var len = m.context.length;
-            var highlighted = ctx.substring(0, start) + '<em>' + ctx.substring(start, start + len) + '</em>' + ctx.substring(start + len);
-            return \`
-              <div class="writing-issue">
-                <div class="issue-msg">\${m.message}</div>
-                <div class="issue-context">\${highlighted}</div>
-              </div>\`;
-          }).join('');
-        }
-      } catch (err) {
-        writingResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Check failed.</div>';
-      } finally {
-        writingBtn.disabled = false;
-        writingBtn.textContent = 'Check grammar & style';
-      }
-    });
-  }
-
-  // Link check logic
-  var linkBtn = document.getElementById('btn-check-links');
-  var linkResults = document.getElementById('link-results');
-  var LYCHEE_URL = 'http://localhost:8030/check';
-
-  if (linkBtn) {
-    linkBtn.addEventListener('click', async function() {
-      linkBtn.disabled = true;
-      linkBtn.textContent = 'Checking...';
-      linkResults.innerHTML = '';
-      try {
-        var response = await fetch(LYCHEE_URL + '?path=' + encodeURIComponent(PAGE));
-        var data = await response.json();
-        var issues = data.issues || [];
-        if (issues.length === 0) {
-          linkResults.innerHTML = '<div style="color:green;font-size:13px;padding:10px">No broken links found!</div>';
-        } else {
-          linkResults.innerHTML = issues.map(function(iss) {
-            return \`
-              <div class="writing-issue">
-                <div class="issue-msg">\${iss.status}: \${iss.uri}</div>
-                <div class="issue-context">\${iss.message || ''}</div>
-              </div>\`;
-          }).join('');
-        }
-      } catch (err) {
-        linkResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Check failed. Is Lychee-svc running?</div>';
-      } finally {
-        linkBtn.disabled = false;
-        linkBtn.textContent = 'Check broken links';
-      }
-    });
-  }
-
-  // Multi-select checkboxes
-  document.querySelectorAll('input[type="checkbox"][data-multi-key]').forEach(function(cb) {
-    cb.addEventListener('change', function() {
-      var key = cb.getAttribute('data-multi-key');
-      var hidden = document.getElementById('f-' + key);
-      if (!hidden) return;
-      var checked = Array.prototype.slice.call(
-        document.querySelectorAll('input[type="checkbox"][data-multi-key="' + key + '"]:checked')
-      ).map(function(c) { return c.value; });
-      hidden.value = checked.join(',');
-    });
-  });
-
-  var saveBtn = document.getElementById('btn-save');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', async function() {
-      saveBtn.disabled = true;
-      try {
-        var values = {};
-        FIELDS.forEach(function(f) {
-          var inp = document.getElementById('f-' + f.key);
-          if (inp) values[f.key] = inp.value;
-        });
-        await syscall('system.invokeFunction', 'path.saveAttributes', PAGE, values);
-      } catch (e) {
-        var msg = (e && e.message) ? e.message : String(e);
-        try { await syscall('editor.flashNotification', 'Save failed: ' + msg); } catch (_) {}
-      } finally {
-        saveBtn.disabled = false;
-      }
-    });
-  }
 
   // ToC clicks
   document.querySelectorAll('.toc-item').forEach(function(el) {
     el.addEventListener('click', async function() {
       var line = parseInt(el.getAttribute('data-line'), 10);
-      if (!isNaN(line)) {
-        try {
-          await syscall('editor.moveCursorToLine', line + 1, 0, true);
-        } catch (e) {
-          try { await syscall('editor.moveCursorToLine', line + 1); } catch (_) {}
-        }
-      }
+      if (!isNaN(line)) await syscall('editor.moveCursorToLine', line + 1, 0, true);
     });
   });
 
   // Delete button
-  var deleteBtn = document.getElementById('btn-delete');
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', async function() {
-      var typed = window.prompt(
-        'Delete "' + PAGE + '"?\\n\\nType DELETE to confirm.'
-      );
-      if (typed === null) return;
-      if (typed.trim().toUpperCase() !== 'DELETE') {
-        try { await syscall('editor.flashNotification', 'Confirmation did not match — page not deleted.', 'error'); } catch (_) {}
-        return;
-      }
+  document.getElementById('btn-delete')?.addEventListener('click', async function() {
+    if (window.confirm('Delete "' + PAGE + '"?')) {
       try {
         await syscall('space.deletePage', PAGE);
-        try { await syscall('editor.flashNotification', 'Page deleted.'); } catch (_) {}
-        try { await syscall('editor.navigate', 'index'); } catch (_) {}
+        await syscall('editor.navigate', 'index');
       } catch (e) {
-        var msg = (e && e.message) ? e.message : String(e);
-        try { await syscall('editor.flashNotification', 'Delete failed: ' + msg, 'error'); } catch (_) {}
+        await syscall('editor.flashNotification', 'Delete failed: ' + String(e), 'error');
       }
-    });
-  }
+    }
+  });
 
   // Linked-mention clicks
   document.querySelectorAll('.mention').forEach(function(el) {
     el.addEventListener('click', async function() {
-      var page = el.getAttribute('data-page');
-      if (page) {
-        try { await syscall('editor.navigate', page); } catch (_) {}
-      }
+      await syscall('editor.navigate', el.getAttribute('data-page'));
     });
   });
 
   // Collapsible sections
-  function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
   document.querySelectorAll('details.section').forEach(function(d) {
     var key = 'path-section-' + d.getAttribute('data-section');
-    var store = ls();
-    if (store) {
-      var v = store.getItem(key);
-      if (v === '0') d.removeAttribute('open');
-      else d.setAttribute('open', '');
-    } else {
-      d.setAttribute('open', '');
-    }
+    var v = store ? store.getItem(key) : null;
+    if (v === '0') d.removeAttribute('open');
+    else d.setAttribute('open', '');
     d.addEventListener('toggle', function() {
-      var s = ls();
-      if (s) s.setItem(key, d.open ? '1' : '0');
+      if (store) store.setItem(key, d.open ? '1' : '0');
     });
   });
 })();

@@ -123,6 +123,25 @@ services:
       path-net:
     restart: unless-stopped
 
+  # Rclone — cloud backup sidecar.
+  # Start with: docker compose --profile backup up -d
+  # Configure with: docker compose run --rm rclone-svc rclone config
+  rclone-svc:
+    build: ./rclone-svc
+    container_name: path-rclone-svc
+    profiles:
+      - backup
+    ports:
+      - "8040:8040"
+    environment:
+      - RCLONE_REMOTE=${RCLONE_REMOTE:-gdrive}
+    volumes:
+      - ./space:/space:ro
+      - ./rclone_config:/config/rclone
+    networks:
+      path-net:
+    restart: unless-stopped
+
 networks:
   path-net:
     driver: bridge

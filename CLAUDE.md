@@ -12,7 +12,12 @@ A self-contained CPD / portfolio system for regulated professionals. Two Docker 
 
 ```
 ~/portfolio/
-├── docker-compose.yml         Two services: silverbullet, pandoc-svc
+├── docker-compose.yml         Services: silverbullet, pandoc-svc, meilisearch, meili-indexer, languagetool, lychee-svc, git-watcher, rclone-svc
+├── meili-indexer/             Python sidecar for syncing space to Meilisearch
+├── languagetool/              Grammar checker (profile: writing)
+├── lychee-svc/                Link checker (profile: writing)
+├── git-watcher/               Automated versioning + history API
+├── rclone-svc/                Cloud backup (profile: backup)
 ├── space/                     SilverBullet's data folder (mounted into the container)
 │   ├── CONFIG.md              Lua config: page locking, schemas, theme, capture, helpers, favicon/title hook, framework registry
 │   ├── STYLE.md               Custom CSS (font, frontmatter hidden, toolbar fixed/centred, theme toggle, heatmap palette)
@@ -49,8 +54,13 @@ A self-contained CPD / portfolio system for regulated professionals. Two Docker 
 
 | Service | Image | Port | Network | Volumes |
 |---|---|---|---|---|
-| `silverbullet` | `ghcr.io/silverbulletmd/silverbullet` (currently 2.6.1) | 3000 (host) | `path-net` | `./space:/space` |
-| `pandoc-svc` | Locally built from `./pandoc/Dockerfile` (pandoc/core — no TeX) | 8000 (internal only) | `path-net`, static IP **172.28.0.10** | `./space:/space:ro`, `./exports:/exports` |
+| `silverbullet` | `ghcr.io/silverbulletmd/silverbullet` | 3000 (host) | `path-net` | `./space:/space` |
+| `pandoc-svc` | Locally built (FastAPI + Pandoc) | 8000 (internal) | `path-net` | `./space:/space:ro`, `./exports:/exports` |
+| `meilisearch` | `getmeili/meilisearch` | 7700 (host) | `path-net` | `meili_data:/meili_data` |
+| `git-watcher` | Locally built (FastAPI + GitPython) | 8020 (host) | `path-net` | `./space:/space` |
+| `languagetool` | `erikvl87/languagetool` | 8010 (host) | `path-net` | — |
+| `lychee-svc` | Locally built (FastAPI + Lychee) | 8030 (host) | `path-net` | `./space:/space:ro` |
+| `rclone-svc` | Locally built (FastAPI + Rclone) | 8040 (host) | `path-net` | `./space:/space:ro`, `./rclone_config:/config/rclone` |
 
 `SB_USER` for SB basic auth is set in the compose file (currently hardcoded — needs env-var-ification before distribution).
 
@@ -79,18 +89,19 @@ Then in SB's command palette: **`Plugs: Reload`** — picks up the new bundle wi
 | Function | Hook | What it does |
 |---|---|---|
 | `onPageLoaded` | `editor:pageLoaded` event | Renders both side panels on every page load |
-| `showLeftPanel` | called by `onPageLoaded` | Branded nav: logo + Create / Browse / Workspace sections. Create includes New CPD / claim / future-claim / reflection / contact / credential / quick capture. Browse adds Network, Credentials, History. |
-| `showAttributesPanel` | called by `onPageLoaded` | Right panel: three collapsible `<details>` sections — On this page (ToC), Page attributes (form), Linked mentions (backlinks). Open/closed state persisted per-section in `localStorage` (key `path-section-<name>`). |
-| `fetchLinkedMentions(pageName)` | internal, called by `showAttributesPanel` | Backlinks query via `lua.parseExpression` + `index.queryLuaObjects` against the `link` tag with `scopedVariables = { pageName }`. The std `linkedMentions` widget is **disabled** in CONFIG.md so we own the rendering. |
-| `saveAttributes(pageName, values)` | called from iframe via `system.invokeFunction` | Parses page YAML, applies edits, writes back, reloads |
+| `showLeftPanel` | called by `onPageLoaded` | Branded nav: logo + Create / Browse / Workspace sections. |
+| `showAttributesPanel` | called by `onPageLoaded` | RHS Tabbed Inspector: [Page] (Attributes/ToC/Mentions), [Tools] (Writing/Links/Backup/Delete), [History] (Time Machine snapshots). |
+| `search` | `Ctrl-Shift-f` / toolbar | Remapped standard search to Meilisearch UI; opens RHS and focuses pinned search bar. |
+| `saveAttributes(pageName, values)` | called from iframe | Parses page YAML, applies edits, writes back, reloads |
 | `parseFrontmatter`, `serializeFields` | internal | YAML parser/emitter that round-trips complex (nested-object) lists as raw text |
 | `extractToc` | internal | Heading parser for the *On this page* panel section |
 
 `showAttributesPanel` reads page text from `editor.getText()` first (the editor buffer), falling back to `space.readPage()`. This avoids a race where a brand-new page from a template hasn't been written to disk yet when `pageLoaded` fires.
 
-- **Modular Sidecars**: Use Docker profiles for heavyweight tools (Meilisearch, LanguageTool) to keep the core install lean.
-- **Tabbed Inspector**: Planned refactor to handle panel crowding (Info | Tools | Support).
-- **Automated Versioning**: Planned sidecar for background Git commits to provide "Time Machine" rollbacks without exposing git complexity.
+- **Modular Sidecars**: Use Docker profiles (`search`, `writing`, `backup`) to keep the core install lean.
+- **Tabbed Inspector**: Refactored to manage vertical space (Page \| Tools \| History) with a pinned search bar at **4.5em** top padding.
+- **Automated Versioning**: Background `git-watcher` performs snapshots every 30 mins; History tab provides preview + one-click restore.
+- **Cloud Backup**: Integrated Rclone sync with real-time status reporting in the Tools tab.
 
 ## SB panel API gotchas
  (learned the hard way)
