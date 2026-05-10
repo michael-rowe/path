@@ -47,9 +47,48 @@ services:
       path-net:
     restart: unless-stopped
 
+  # Meilisearch — high-performance search engine.
+  # Start with: docker compose --profile search up -d
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: path-meilisearch
+    profiles:
+      - search
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - meili_data:/meili_data
+    networks:
+      path-net:
+    restart: unless-stopped
+
+  # Meili-indexer — watches the space and indexes YAML/body into Meilisearch.
+  # Start with: docker compose --profile search up -d
+  meili-indexer:
+    build: ./meili-indexer
+    container_name: path-meili-indexer
+    profiles:
+      - search
+    environment:
+      - MEILI_URL=http://meilisearch:7700
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
+    volumes:
+      - ./space:/space:ro
+    networks:
+      path-net:
+    depends_on:
+      - meilisearch
+    restart: unless-stopped
+
 networks:
   path-net:
     driver: bridge
     ipam:
       config:
         - subnet: 172.28.0.0/16
+
+volumes:
+  meili_data:

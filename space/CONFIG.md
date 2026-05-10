@@ -763,18 +763,6 @@ actionButton.define {
   run = toggleTheme,
 }
 
--- Search — priority 1.02, between Focus mode and theme toggle.
--- Invokes the basic-search plug ("Search Space" command).
--- Run `Space: Reindex` once after first install for results to appear.
-actionButton.define {
-  icon = "search",
-  description = "Search across all pages",
-  priority = 1.02,
-  run = function()
-    editor.invokeCommand("Search Space")
-  end
-}
-
 -- Focus mode — priority 1.05, sits between SB's RunCmd (≈1.1) and Search.
 -- This places it: ... RunCmd | FocusMode | Search | Theme.
 actionButton.define {

@@ -25,7 +25,6 @@ From left to right:
 | **Open** | `Ctrl-K` | Open any page by name (fuzzy search) |
 | **Run command** | `Ctrl-/` | Open the command palette |
 | **Focus mode** | `Ctrl-Alt-z` | Hide or restore the Navigator and Inspector |
-| **Search** | `Ctrl-Shift-F` | Full-text search across all records |
 | **Light / dark** | — | Toggle between light and dark mode |
 
 ## Navigator
@@ -42,7 +41,9 @@ It has three sections:
 
 ## Inspector
 
-The Inspector is the right-hand panel. It shows three collapsible sections for the page you are currently viewing:
+The Inspector is the right-hand panel. It shows four collapsible sections for the page you are currently viewing:
+
+**Search portfolio** — a high-performance, full-text search powered by Meilisearch. Press `Ctrl-Shift-f` from anywhere to focus the search box. Results appear as you type; click any result to navigate there. The search indexes your content and all YAML attributes (tags, status, framework), making it the fastest way to find records.
 
 **On this page** — a table of contents built from the headings in the current page. Click any heading to jump directly to it.
 

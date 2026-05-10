@@ -35,7 +35,7 @@ The most useful commands and shortcuts. Bookmark this page or click the **?** ic
 | Open another page | `Ctrl-K` (then start typing — fuzzy match) |
 | Go home | Click the Home icon in the Toolbar |
 | Your profile | Click the Profile icon in the Toolbar |
-| Full-text search | Click the Search icon in the Toolbar, or `Ctrl-Shift-F` |
+| Full-text search | `Ctrl-Shift-f` (opens the Search section in the Inspector) |
 | Toggle focus mode | `Ctrl-Alt-z`, or click the Focus mode icon in the Toolbar |
 | Toggle light / dark | Click the moon/sun icon in the Toolbar |
 | Reload the system | `Ctrl-Alt-r` (after changing styles or scripts) |

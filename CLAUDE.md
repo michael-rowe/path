@@ -50,7 +50,7 @@ A self-contained CPD / portfolio system for regulated professionals. Two Docker 
 | Service | Image | Port | Network | Volumes |
 |---|---|---|---|---|
 | `silverbullet` | `ghcr.io/silverbulletmd/silverbullet` (currently 2.6.1) | 3000 (host) | `path-net` | `./space:/space` |
-| `pandoc-svc` | Locally built from `./pandoc/Dockerfile` | 8000 (internal only) | `path-net`, static IP **172.28.0.10** | `./space:/space:ro`, `./exports:/exports` |
+| `pandoc-svc` | Locally built from `./pandoc/Dockerfile` (pandoc/core — no TeX) | 8000 (internal only) | `path-net`, static IP **172.28.0.10** | `./space:/space:ro`, `./exports:/exports` |
 
 `SB_USER` for SB basic auth is set in the compose file (currently hardcoded — needs env-var-ification before distribution).
 
@@ -384,7 +384,7 @@ What's needed before this can be cloned and run on someone else's machine:
 6. ~~Encode at least HCPC standards as the bundled framework.~~ — done; framework registry at github.com/michael-rowe/path-frameworks ships HCPC + AdvanceHE D4. New users run `Path: Add framework` after install.
 7. (Optional) docker-compose `plug-builder` service for contributors who don't have Node.
 
-Image size at install: **~1.7 GB** total (silverbullet ~150 MB + pandoc-svc ~1.5 GB; texlive is the bulk). First-time download is ~700 MB–1 GB compressed.
+Image size at install: **~250 MB** total (silverbullet ~150 MB + pandoc-svc ~100 MB). PDF export was dropped; `pandoc-svc` uses `pandoc/core` (no TeX Live) and produces Word (`.docx`) only. Browser print handles PDF.
 
 ## Update conventions for this file
 

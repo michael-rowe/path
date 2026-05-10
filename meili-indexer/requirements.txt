@@ -1,0 +1,4 @@
+meilisearch
+watchdog
+PyYAML
+python-frontmatter

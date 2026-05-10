@@ -409,6 +409,7 @@ function buildPanelContent(
   mentions: Mention[] = [],
   isReadonly: boolean = false,
   multiSelect: MultiSelectData = { allPaths: [], criteria: [] },
+  focusSearch: boolean = false,
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
   const editableDescs: { key: string; list: boolean }[] = [];
@@ -507,6 +508,18 @@ function buildPanelContent(
 
     editableDescs.push({ key: f.key, list: f.isList });
   }
+
+  const searchBody = `
+    <details class="section" data-section="search" id="section-search">
+      <summary class="section-summary">
+        <h2>Search portfolio</h2>
+        <span class="chev" aria-hidden="true">▾</span>
+      </summary>
+      <div class="section-body">
+        <input type="text" id="search-input" class="field" placeholder="Search..." autocomplete="off">
+        <div id="search-results" class="search-results"></div>
+      </div>
+    </details>`;
 
   const attrsBody = fields.length === 0 || rowsHtml.length === 0
     ? ""
@@ -627,8 +640,22 @@ function buildPanelContent(
   html[data-theme="dark"] .section-danger { border-top-color: #1e293b; }
   html[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #7f1d1d; }
   html[data-theme="dark"] .btn-danger:hover { background: #450a0a; color: #fecaca; }
+  .search-results { display: flex; flex-direction: column; gap: 0.4em; margin-top: 0.8em; }
+  .search-result { padding: 0.5em 0.6em; border-radius: 4px; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
+  .search-result:hover { background: #eef2ff; }
+  .search-result:last-child { border-bottom: none; }
+  .search-title { font-size: 0.9em; font-weight: 600; color: #4f46e5; }
+  .search-path { font-size: 0.72em; color: #6b7280; font-weight: 500; margin-bottom: 0.15em; }
+  .search-snip { font-size: 0.82em; color: #4b5563; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .search-snip em { font-style: normal; background: rgba(79, 70, 229, 0.15); border-radius: 2px; }
+  html[data-theme="dark"] .search-result:hover { background: #1e293b; }
+  html[data-theme="dark"] .search-title { color: #818cf8; }
+  html[data-theme="dark"] .search-path { color: #94a3b8; }
+  html[data-theme="dark"] .search-snip { color: #94a3b8; }
+  html[data-theme="dark"] .search-snip em { background: rgba(129, 140, 248, 0.25); }
 </style>
 <div id="panel" class="panel">
+  ${searchBody}
   ${tocBody}
   ${attrsBody}
   ${mentionsBody}
@@ -640,10 +667,12 @@ function buildPanelContent(
   // It must be a self-contained string passed as the 4th showPanel arg.
   const fieldsJson = JSON.stringify(editableDescs);
   const pageJson = JSON.stringify(pageName);
+  const focusSearchJson = JSON.stringify(focusSearch);
   const script = `
 (function() {
   var FIELDS = ${fieldsJson};
   var PAGE = ${pageJson};
+  var FOCUS_SEARCH = ${focusSearchJson};
 
   // Sync data-theme with the parent (theme toggle changes propagate live).
   try {
@@ -657,20 +686,69 @@ function buildPanelContent(
     new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {}
 
+  // Search logic
+  var searchInput = document.getElementById('search-input');
+  var searchResults = document.getElementById('search-results');
+  var MEILI_URL = 'http://localhost:7700';
+  var MEILI_KEY = 'masterKey123';
+
+  if (searchInput) {
+    if (FOCUS_SEARCH) {
+      setTimeout(function() { searchInput.focus(); }, 100);
+      // Ensure the search section is open if we are focusing it
+      var searchDetails = document.querySelector('details[data-section="search"]');
+      if (searchDetails) searchDetails.setAttribute('open', '');
+    }
+
+    searchInput.addEventListener('input', async function(e) {
+      var query = e.target.value;
+      if (!query) {
+        searchResults.innerHTML = '';
+        return;
+      }
+      try {
+        var response = await fetch(MEILI_URL + '/indexes/pages/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + MEILI_KEY
+          },
+          body: JSON.stringify({
+            q: query,
+            attributesToHighlight: ['content', 'title'],
+            highlightPreTag: '<em>',
+            highlightPostTag: '</em>',
+            limit: 8
+          })
+        });
+        var data = await response.json();
+        var hits = data.hits || [];
+        searchResults.innerHTML = hits.map(function(hit) {
+          var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
+          var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || (hit.content ? hit.content.substring(0, 100) : '');
+          return \`
+            <div class="search-result" data-path="\${hit.path}">
+              <div class="search-path">\${hit.path}</div>
+              <div class="search-title">\${title}</div>
+              <div class="search-snip">\${snip}</div>
+            </div>\`;
+        }).join('');
+
+        document.querySelectorAll('.search-result').forEach(function(el) {
+          el.addEventListener('click', async function() {
+            var path = el.getAttribute('data-path');
+            if (path) await syscall('editor.navigate', path);
+          });
+        });
+      } catch (err) {
+        searchResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Search failed.</div>';
+      }
+    });
+  }
+
   // Multi-select checkboxes: keep the hidden input's comma-joined
   // value in sync with which boxes are ticked. The save handler reads
   // f-<key> the same way for plain inputs, dropdowns, and these.
-  document.querySelectorAll('input[type="checkbox"][data-multi-key]').forEach(function(cb) {
-    cb.addEventListener('change', function() {
-      var key = cb.getAttribute('data-multi-key');
-      var hidden = document.getElementById('f-' + key);
-      if (!hidden) return;
-      var checked = Array.prototype.slice.call(
-        document.querySelectorAll('input[type="checkbox"][data-multi-key="' + key + '"]:checked')
-      ).map(function(c) { return c.value; });
-      hidden.value = checked.join(',');
-    });
-  });
 
   var saveBtn = document.getElementById('btn-save');
   if (saveBtn) {
@@ -829,7 +907,7 @@ function buildTocHtml(items: TocItem[]): string {
   `;
 }
 
-export async function showAttributesPanel(): Promise<void> {
+export async function showAttributesPanel(focusSearch: boolean = false): Promise<void> {
   const pageName = await editor.getCurrentPage();
   if (!pageName) {
     await editor.hidePanel("rhs");
@@ -922,10 +1000,20 @@ export async function showAttributesPanel(): Promise<void> {
     mentions,
     isReadonly,
     multiSelect,
+    focusSearch,
   );
   // Second arg = flex grow. Editor is flex:1, so 0.7 puts the panel
   // at roughly 40% of the available space.
   await editor.showPanel("rhs", 0.7, html, script);
+}
+
+export async function search(): Promise<void> {
+  // Restore if hidden (zen mode)
+  if (zenMode) {
+    zenMode = false;
+    await showLeftPanel();
+  }
+  await showAttributesPanel(true);
 }
 
 export async function saveAttributes(

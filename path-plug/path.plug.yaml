@@ -34,4 +34,10 @@ functions:
       name: "Path: Toggle focus mode"
       key: "Ctrl-Alt-z"
 
+  search:
+    path: path.ts:search
+    command:
+      name: "Path: Search"
+      key: "Ctrl-Shift-f"
+
 
