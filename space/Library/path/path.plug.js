@@ -1,26 +1,16 @@
-var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enumerable:!0})};function me(e){let t=atob(e),n=t.length,o=new Uint8Array(n);for(let i=0;i<n;i++)o[i]=t.charCodeAt(i);return o}function q(e){typeof e=="string"&&(e=new TextEncoder().encode(e));let t="",n=e.byteLength;for(let o=0;o<n;o++)t+=String.fromCharCode(e[o]);return btoa(t)}var Ur=new Uint8Array(16),pe=class{constructor(e="",t=1e3){this.prefix=e,this.maxCaptureSize=t,this.prefix=e,this.originalConsole={log:console.log.bind(console),info:console.info.bind(console),warn:console.warn.bind(console),error:console.error.bind(console),debug:console.debug.bind(console)},this.patchConsole()}originalConsole;logBuffer=[];patchConsole(){let e=t=>(...n)=>{let o=this.prefix?[this.prefix,...n]:n;this.originalConsole[t](...o),this.captureLog(t,n)};console.log=e("log"),console.info=e("info"),console.warn=e("warn"),console.error=e("error"),console.debug=e("debug")}captureLog(e,t){let n={level:e,timestamp:Date.now(),message:t.map(o=>{if(typeof o=="string")return o;try{return JSON.stringify(o)}catch{return String(o)}}).join(" ")};this.logBuffer.push(n),this.logBuffer.length>this.maxCaptureSize&&this.logBuffer.shift()}async postToServer(e,t){if(this.logBuffer.length>0){let o=[...this.logBuffer];this.logBuffer=[];try{if(!(await fetch(e,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o.map(a=>({...a,source:t})))})).ok)throw new Error("Failed to post logs to server")}catch(i){console.warn("Could not post logs to server",i.message),this.logBuffer.unshift(...o)}}}},I;function fe(e=""){return I=new pe(e),I}var R=e=>{throw new Error("Not initialized yet")},O=typeof window>"u"&&typeof globalThis.WebSocketPair>"u",j=new Map,U=0;O&&(globalThis.syscall=async(e,...t)=>await new Promise((n,o)=>{U++,j.set(U,{resolve:n,reject:o}),R({type:"sys",id:U,name:e,args:t})}));function V(e,t,n){O&&(R=n,self.addEventListener("message",o=>{(async()=>{let i=o.data;switch(i.type){case"inv":{let a=e[i.name];if(!a)throw new Error(`Function not loaded: ${i.name}`);try{let s=await Promise.resolve(a(...i.args||[]));R({type:"invr",id:i.id,result:s})}catch(s){console.error("An exception was thrown as a result of invoking function",i.name,"error:",s.message),R({type:"invr",id:i.id,error:s.message})}}break;case"sysr":{let a=i.id,s=j.get(a);if(!s)throw Error("Invalid request id");j.delete(a),i.error?s.reject(new Error(i.error)):s.resolve(i.result)}break}})().catch(console.error)}),R({type:"manifest",manifest:t}),fe(`[${t.name} plug]`))}async function ge(e,t){if(typeof e!="string"){let n=new Uint8Array(await e.arrayBuffer()),o=n.length>0?q(n):void 0;t={method:e.method,headers:Object.fromEntries(e.headers.entries()),base64Body:o},e=e.url}return syscall("sandboxFetch.fetch",e,t)}globalThis.nativeFetch=globalThis.fetch;function he(){globalThis.fetch=async(e,t)=>{let n=t?.body?q(new Uint8Array(await new Response(t.body).arrayBuffer())):void 0,o=await ge(e,t&&{method:t.method,headers:t.headers,base64Body:n});return new Response(o.base64Body?me(o.base64Body):null,{status:o.status,headers:o.headers})}}O&&he();var u={};F(u,{alert:()=>et,configureVimMode:()=>yt,confirm:()=>Xe,copyToClipboard:()=>ut,deleteLine:()=>mt,dispatch:()=>Je,downloadFile:()=>Oe,filterBox:()=>Ne,flashNotification:()=>He,fold:()=>nt,foldAll:()=>at,getCurrentEditor:()=>we,getCurrentPage:()=>ye,getCurrentPageMeta:()=>be,getCurrentPath:()=>ve,getCursor:()=>Se,getRecentlyOpenedPages:()=>xe,getSelection:()=>Ce,getText:()=>Pe,getUiOption:()=>tt,goHistory:()=>je,hidePanel:()=>Ie,insertAtCursor:()=>Ye,insertAtPos:()=>Ve,invokeCommand:()=>Ae,isMobile:()=>vt,moveCursor:()=>Qe,moveCursorToLine:()=>Ge,moveLineDown:()=>gt,moveLineUp:()=>ft,navigate:()=>Le,newWindow:()=>Ue,openCommandPalette:()=>$e,openPageNavigator:()=>Ee,openSearchPanel:()=>dt,openUrl:()=>Be,prompt:()=>Ze,rebuildEditorState:()=>Re,redo:()=>ct,reloadConfigAndCommands:()=>De,reloadPage:()=>_e,reloadUI:()=>Fe,replaceRange:()=>We,save:()=>Te,sendMessage:()=>bt,setSelection:()=>Me,setText:()=>ke,setUiOption:()=>rt,showPanel:()=>ze,showProgress:()=>qe,toggleComment:()=>pt,toggleFold:()=>it,undo:()=>lt,unfold:()=>ot,unfoldAll:()=>st,uploadFile:()=>Ke,vimEx:()=>ht});typeof globalThis.syscall>"u"&&(globalThis.syscall=()=>{throw new Error("Not implemented here")});function r(e,...t){return globalThis.syscall(e,...t)}function ye(){return r("editor.getCurrentPage")}function be(){return r("editor.getCurrentPageMeta")}function ve(){return r("editor.getCurrentPath")}function xe(){return r("editor.getRecentlyOpenedPages")}function we(){return r("editor.getCurrentEditor")}function Pe(){return r("editor.getText")}function ke(e,t=!1){return r("editor.setText",e,t)}function Se(){return r("editor.getCursor")}function Ce(){return r("editor.getSelection")}function Me(e,t){return r("editor.setSelection",e,t)}function Ae(e,t){return r("editor.invokeCommand",e,t)}function Te(){return r("editor.save")}function Le(e,t=!1,n=!1){return r("editor.navigate",e,t,n)}function Ee(e="page"){return r("editor.openPageNavigator",e)}function $e(){return r("editor.openCommandPalette")}function _e(){return r("editor.reloadPage")}function Fe(){return r("editor.reloadUI")}function Re(){return r("editor.rebuildEditorState")}function De(){return r("editor.reloadConfigAndCommands")}function Be(e,t=!1){return r("editor.openUrl",e,t)}function Ue(){return r("editor.newWindow")}function je(e){return r("editor.goHistory",e)}function Oe(e,t){return r("editor.downloadFile",e,t)}function Ke(e,t){return r("editor.uploadFile",e,t)}function He(e,t="info"){return r("editor.flashNotification",e,t)}function Ne(e,t,n="",o=""){return r("editor.filterBox",e,t,n,o)}function ze(e,t,n,o=""){return r("editor.showPanel",e,t,n,o)}function Ie(e){return r("editor.hidePanel",e)}function qe(e,t){return r("editor.showProgress",e,t)}function Ve(e,t){return r("editor.insertAtPos",e,t)}function We(e,t,n){return r("editor.replaceRange",e,t,n)}function Qe(e,t=!1){return r("editor.moveCursor",e,t)}function Ge(e,t=1,n=!1){return r("editor.moveCursorToLine",e,t,n)}function Ye(e,t=!1,n=!1){return r("editor.insertAtCursor",e,t,n)}function Je(e){return r("editor.dispatch",e)}function Ze(e,t=""){return r("editor.prompt",e,t)}function Xe(e){return r("editor.confirm",e)}function et(e){return r("editor.alert",e)}function tt(e){return r("editor.getUiOption",e)}function rt(e,t){return r("editor.setUiOption",e,t)}function nt(){return r("editor.fold")}function ot(){return r("editor.unfold")}function it(){return r("editor.toggleFold")}function at(){return r("editor.foldAll")}function st(){return r("editor.unfoldAll")}function lt(){return r("editor.undo")}function ct(){return r("editor.redo")}function dt(){return r("editor.openSearchPanel")}function ut(e){return r("editor.copyToClipboard",e)}function mt(){return r("editor.deleteLine")}function pt(){return r("editor.toggleComment")}function ft(){return r("editor.moveLineUp")}function gt(){return r("editor.moveLineDown")}function ht(e){return r("editor.vimEx",e)}function yt(){return r("editor.configureVimMode")}function bt(e,t){return r("editor.sendMessage",e,t)}function vt(){return r("editor.isMobile")}var v={};F(v,{deleteDocument:()=>Ft,deleteFile:()=>Kt,deletePage:()=>At,fileExists:()=>Ht,getDocumentMeta:()=>Et,getFileMeta:()=>jt,getPageMeta:()=>Pt,listDocuments:()=>Lt,listFiles:()=>Rt,listPages:()=>wt,listPlugs:()=>Tt,pageExists:()=>kt,readDocument:()=>$t,readFile:()=>Dt,readFileWithMeta:()=>Ut,readPage:()=>St,readPageWithMeta:()=>Ct,readRef:()=>Bt,writeDocument:()=>_t,writeFile:()=>Ot,writePage:()=>Mt});function wt(){return r("space.listPages")}function Pt(e){return r("space.getPageMeta",e)}function kt(e){return r("space.pageExists",e)}function St(e){return r("space.readPage",e)}function Ct(e){return r("space.readPageWithMeta",e)}function Mt(e,t){return r("space.writePage",e,t)}function At(e){return r("space.deletePage",e)}function Tt(){return r("space.listPlugs")}function Lt(){return r("space.listDocuments")}function Et(e){return r("space.getDocumentMeta",e)}function $t(e){return r("space.readDocument",e)}function _t(e,t){return r("space.writeDocument",e,t)}function Ft(e){return r("space.deleteDocument",e)}function Rt(){return r("space.listFiles")}function Dt(e){return r("space.readFile",e)}function Bt(e){return r("space.readRef",e)}function Ut(e){return r("space.readFileWithMeta",e)}function jt(e){return r("space.getFileMeta",e)}function Ot(e,t){return r("space.writeFile",e,t)}function Kt(e){return r("space.deleteFile",e)}function Ht(e){return r("space.fileExists",e)}var D={};F(D,{cleanDatabases:()=>Xt,getBaseURI:()=>Gt,getConfig:()=>Jt,getMode:()=>Wt,getURLPrefix:()=>Qt,getVersion:()=>Yt,invokeCommand:()=>zt,invokeFunction:()=>Nt,listCommands:()=>It,listSyscalls:()=>qt,reloadPlugs:()=>Vt,wipeClient:()=>Zt});function Nt(e,...t){return r("system.invokeFunction",e,...t)}function zt(e,t){return r("system.invokeCommand",e,t)}function It(){return r("system.listCommands")}function qt(){return r("system.listSyscalls")}function Vt(){return r("system.reloadPlugs")}function Wt(){return r("system.getMode")}function Qt(){return r("system.getURLPrefix")}function Gt(){return r("system.getBaseURI")}function Yt(){return r("system.getVersion")}function Jt(e,t=void 0){return r("system.getConfig",e,t)}function Zt(e=!1){return r("system.wipeClient",e)}function Xt(){return r("system.cleanDatabases")}var Gr=new Uint8Array(16);var P={};F(P,{evalExpression:()=>mr,parse:()=>dr,parseExpression:()=>ur});function dr(e){return r("lua.parse",e)}function ur(e){return r("lua.parseExpression",e)}function mr(e){return r("lua.evalExpression",e)}var T={};F(T,{deleteObject:()=>xr,ensureFullIndex:()=>br,getObjectByRef:()=>yr,indexObjects:()=>fr,queryLuaObjects:()=>hr,reindexSpace:()=>vr,validateObjects:()=>gr});function fr(e,t){return r("index.indexObjects",e,t)}function gr(e,t){return r("index.validateObjects",e,t)}function hr(e,t,n){return r("index.queryLuaObjects",e,t,n)}function yr(e,t,n){return r("index.getObjectByRef",e,t,n)}function br(){return r("index.ensureFullIndex")}function vr(){return r("index.reindexSpace")}function xr(e,t,n){return r("index.deleteObject",e,t,n)}var L=!1,W=!1,Q=!1,J=new Set(["tags","itags","asTag","lastModified","pageDecoration","title"]),G={full_name:"Full name",job_title:"Job title",activity_type:"Activity type",claim_type:"Claim type",last_updated:"Last updated",reflection_brief:"Reflection brief",post_nominals:"Post-nominals",preferred_name:"Preferred name",relationship_type:"Relationship",shared_interests:"Shared interests",met_via:"Met via",introduction_from:"Introduction from",last_contact:"Last contact",next_contact:"Next contact",credential_type:"Credential type",badge_url:"Badge URL",badge_image:"Badge image",verification_url:"Verification URL",award_date:"Award date",file_type:"File type",related_cpd:"Related CPD",related_claims:"Related claims"},wr={framework:"e.g. UoL-TSPP-Professor",hours:"decimal number",date:"YYYY-MM-DD",last_updated:"YYYY-MM-DD",path:"slug of a Path page (e.g. uol-professor)",paths:"Path slugs this contributes to (e.g. uol-professor, advance-he-d4)",standard:"code from the framework (e.g. 1.1)",evidence:"[[wikilinks]] to evidence pages",standards:"criterion codes from the Path's framework that this addresses (e.g. 1.1, 2.3)",related_cpd:"[[wikilinks]] to CPD entries this evidence supports",related_claims:"[[wikilinks]] to claims this evidence supports",orcid:"URL or 0000-0000-0000-0000",scholar:"Google Scholar profile URL",linkedin:"LinkedIn profile URL",github:"GitHub username or URL",mastodon:"@user@instance",pronouns:"e.g. she/her, they/them",expertise:"comma-separated tags, e.g. AI-education, qualitative-research",shared_interests:"comma-separated topics you both care about",met_via:"e.g. AMEE-2024, introduction-from-X, professional-body"},Pr={"cpd-claim":["draft","ready","published"],cpd:["draft","complete"],capture:["unprocessed","processed"],path:["active","planned","paused","completed","abandoned"],"personal-statement":["draft","ready"],contact:["active","occasional","dormant","former"],milestone:["planned","reached","missed"]},kr={claim_type:["evidence","forward-looking"],activity_type:["conference","course","workshop","project","teaching","supervision","reading","writing","other"],relationship_type:["collaborator","mentor","mentee","peer","senior-colleague","conference-contact","professional-body","student","other"],credential_type:["open-badge","certification","degree","fellowship","membership","other"],file_type:["pdf","image","email","video","web","other"]};function Sr(e,t){return e==="status"?Pr[t]??null:e==="framework"&&t==="reflection"?["gibbs","era","driscoll","rolfe"]:kr[e]??null}function Y(e){let t=e.trim();return t.length>=2&&(t.startsWith('"')&&t.endsWith('"')||t.startsWith("'")&&t.endsWith("'"))?t.slice(1,-1):t}function Z(e){if(!e.startsWith(`---
+var de=Object.defineProperty;var B=(e,t)=>{for(var n in t)de(e,n,{get:t[n],enumerable:!0})};function ue(e){let t=atob(e),n=t.length,i=new Uint8Array(n);for(let o=0;o<n;o++)i[o]=t.charCodeAt(o);return i}function q(e){typeof e=="string"&&(e=new TextEncoder().encode(e));let t="",n=e.byteLength;for(let i=0;i<n;i++)t+=String.fromCharCode(e[i]);return btoa(t)}var Ur=new Uint8Array(16),me=class{constructor(e="",t=1e3){this.prefix=e,this.maxCaptureSize=t,this.prefix=e,this.originalConsole={log:console.log.bind(console),info:console.info.bind(console),warn:console.warn.bind(console),error:console.error.bind(console),debug:console.debug.bind(console)},this.patchConsole()}originalConsole;logBuffer=[];patchConsole(){let e=t=>(...n)=>{let i=this.prefix?[this.prefix,...n]:n;this.originalConsole[t](...i),this.captureLog(t,n)};console.log=e("log"),console.info=e("info"),console.warn=e("warn"),console.error=e("error"),console.debug=e("debug")}captureLog(e,t){let n={level:e,timestamp:Date.now(),message:t.map(i=>{if(typeof i=="string")return i;try{return JSON.stringify(i)}catch{return String(i)}}).join(" ")};this.logBuffer.push(n),this.logBuffer.length>this.maxCaptureSize&&this.logBuffer.shift()}async postToServer(e,t){if(this.logBuffer.length>0){let i=[...this.logBuffer];this.logBuffer=[];try{if(!(await fetch(e,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(i.map(a=>({...a,source:t})))})).ok)throw new Error("Failed to post logs to server")}catch(o){console.warn("Could not post logs to server",o.message),this.logBuffer.unshift(...i)}}}},K;function pe(e=""){return K=new me(e),K}var _=e=>{throw new Error("Not initialized yet")},j=typeof window>"u"&&typeof globalThis.WebSocketPair>"u",D=new Map,H=0;j&&(globalThis.syscall=async(e,...t)=>await new Promise((n,i)=>{H++,D.set(H,{resolve:n,reject:i}),_({type:"sys",id:H,name:e,args:t})}));function V(e,t,n){j&&(_=n,self.addEventListener("message",i=>{(async()=>{let o=i.data;switch(o.type){case"inv":{let a=e[o.name];if(!a)throw new Error(`Function not loaded: ${o.name}`);try{let s=await Promise.resolve(a(...o.args||[]));_({type:"invr",id:o.id,result:s})}catch(s){console.error("An exception was thrown as a result of invoking function",o.name,"error:",s.message),_({type:"invr",id:o.id,error:s.message})}}break;case"sysr":{let a=o.id,s=D.get(a);if(!s)throw Error("Invalid request id");D.delete(a),o.error?s.reject(new Error(o.error)):s.resolve(o.result)}break}})().catch(console.error)}),_({type:"manifest",manifest:t}),pe(`[${t.name} plug]`))}async function fe(e,t){if(typeof e!="string"){let n=new Uint8Array(await e.arrayBuffer()),i=n.length>0?q(n):void 0;t={method:e.method,headers:Object.fromEntries(e.headers.entries()),base64Body:i},e=e.url}return syscall("sandboxFetch.fetch",e,t)}globalThis.nativeFetch=globalThis.fetch;function he(){globalThis.fetch=async(e,t)=>{let n=t?.body?q(new Uint8Array(await new Response(t.body).arrayBuffer())):void 0,i=await fe(e,t&&{method:t.method,headers:t.headers,base64Body:n});return new Response(i.base64Body?ue(i.base64Body):null,{status:i.status,headers:i.headers})}}j&&he();var u={};B(u,{alert:()=>Xe,configureVimMode:()=>gt,confirm:()=>Ze,copyToClipboard:()=>dt,deleteLine:()=>ut,dispatch:()=>Ye,downloadFile:()=>De,filterBox:()=>ze,flashNotification:()=>Ie,fold:()=>rt,foldAll:()=>ot,getCurrentEditor:()=>xe,getCurrentPage:()=>ge,getCurrentPageMeta:()=>ye,getCurrentPath:()=>ve,getCursor:()=>Pe,getRecentlyOpenedPages:()=>be,getSelection:()=>Le,getText:()=>we,getUiOption:()=>et,goHistory:()=>He,hidePanel:()=>Ne,insertAtCursor:()=>Qe,insertAtPos:()=>qe,invokeCommand:()=>Se,isMobile:()=>vt,moveCursor:()=>We,moveCursorToLine:()=>Ge,moveLineDown:()=>ft,moveLineUp:()=>pt,navigate:()=>Ee,newWindow:()=>Ue,openCommandPalette:()=>Me,openPageNavigator:()=>Ae,openSearchPanel:()=>ct,openUrl:()=>Fe,prompt:()=>Je,rebuildEditorState:()=>Be,redo:()=>lt,reloadConfigAndCommands:()=>_e,reloadPage:()=>Re,reloadUI:()=>$e,replaceRange:()=>Ve,save:()=>Te,sendMessage:()=>yt,setSelection:()=>Ce,setText:()=>ke,setUiOption:()=>tt,showPanel:()=>Oe,showProgress:()=>Ke,toggleComment:()=>mt,toggleFold:()=>it,undo:()=>st,unfold:()=>nt,unfoldAll:()=>at,uploadFile:()=>je,vimEx:()=>ht});typeof globalThis.syscall>"u"&&(globalThis.syscall=()=>{throw new Error("Not implemented here")});function r(e,...t){return globalThis.syscall(e,...t)}function ge(){return r("editor.getCurrentPage")}function ye(){return r("editor.getCurrentPageMeta")}function ve(){return r("editor.getCurrentPath")}function be(){return r("editor.getRecentlyOpenedPages")}function xe(){return r("editor.getCurrentEditor")}function we(){return r("editor.getText")}function ke(e,t=!1){return r("editor.setText",e,t)}function Pe(){return r("editor.getCursor")}function Le(){return r("editor.getSelection")}function Ce(e,t){return r("editor.setSelection",e,t)}function Se(e,t){return r("editor.invokeCommand",e,t)}function Te(){return r("editor.save")}function Ee(e,t=!1,n=!1){return r("editor.navigate",e,t,n)}function Ae(e="page"){return r("editor.openPageNavigator",e)}function Me(){return r("editor.openCommandPalette")}function Re(){return r("editor.reloadPage")}function $e(){return r("editor.reloadUI")}function Be(){return r("editor.rebuildEditorState")}function _e(){return r("editor.reloadConfigAndCommands")}function Fe(e,t=!1){return r("editor.openUrl",e,t)}function Ue(){return r("editor.newWindow")}function He(e){return r("editor.goHistory",e)}function De(e,t){return r("editor.downloadFile",e,t)}function je(e,t){return r("editor.uploadFile",e,t)}function Ie(e,t="info"){return r("editor.flashNotification",e,t)}function ze(e,t,n="",i=""){return r("editor.filterBox",e,t,n,i)}function Oe(e,t,n,i=""){return r("editor.showPanel",e,t,n,i)}function Ne(e){return r("editor.hidePanel",e)}function Ke(e,t){return r("editor.showProgress",e,t)}function qe(e,t){return r("editor.insertAtPos",e,t)}function Ve(e,t,n){return r("editor.replaceRange",e,t,n)}function We(e,t=!1){return r("editor.moveCursor",e,t)}function Ge(e,t=1,n=!1){return r("editor.moveCursorToLine",e,t,n)}function Qe(e,t=!1,n=!1){return r("editor.insertAtCursor",e,t,n)}function Ye(e){return r("editor.dispatch",e)}function Je(e,t=""){return r("editor.prompt",e,t)}function Ze(e){return r("editor.confirm",e)}function Xe(e){return r("editor.alert",e)}function et(e){return r("editor.getUiOption",e)}function tt(e,t){return r("editor.setUiOption",e,t)}function rt(){return r("editor.fold")}function nt(){return r("editor.unfold")}function it(){return r("editor.toggleFold")}function ot(){return r("editor.foldAll")}function at(){return r("editor.unfoldAll")}function st(){return r("editor.undo")}function lt(){return r("editor.redo")}function ct(){return r("editor.openSearchPanel")}function dt(e){return r("editor.copyToClipboard",e)}function ut(){return r("editor.deleteLine")}function mt(){return r("editor.toggleComment")}function pt(){return r("editor.moveLineUp")}function ft(){return r("editor.moveLineDown")}function ht(e){return r("editor.vimEx",e)}function gt(){return r("editor.configureVimMode")}function yt(e,t){return r("editor.sendMessage",e,t)}function vt(){return r("editor.isMobile")}var v={};B(v,{deleteDocument:()=>$t,deleteFile:()=>jt,deletePage:()=>St,fileExists:()=>It,getDocumentMeta:()=>At,getFileMeta:()=>Ht,getPageMeta:()=>wt,listDocuments:()=>Et,listFiles:()=>Bt,listPages:()=>xt,listPlugs:()=>Tt,pageExists:()=>kt,readDocument:()=>Mt,readFile:()=>_t,readFileWithMeta:()=>Ut,readPage:()=>Pt,readPageWithMeta:()=>Lt,readRef:()=>Ft,writeDocument:()=>Rt,writeFile:()=>Dt,writePage:()=>Ct});function xt(){return r("space.listPages")}function wt(e){return r("space.getPageMeta",e)}function kt(e){return r("space.pageExists",e)}function Pt(e){return r("space.readPage",e)}function Lt(e){return r("space.readPageWithMeta",e)}function Ct(e,t){return r("space.writePage",e,t)}function St(e){return r("space.deletePage",e)}function Tt(){return r("space.listPlugs")}function Et(){return r("space.listDocuments")}function At(e){return r("space.getDocumentMeta",e)}function Mt(e){return r("space.readDocument",e)}function Rt(e,t){return r("space.writeDocument",e,t)}function $t(e){return r("space.deleteDocument",e)}function Bt(){return r("space.listFiles")}function _t(e){return r("space.readFile",e)}function Ft(e){return r("space.readRef",e)}function Ut(e){return r("space.readFileWithMeta",e)}function Ht(e){return r("space.getFileMeta",e)}function Dt(e,t){return r("space.writeFile",e,t)}function jt(e){return r("space.deleteFile",e)}function It(e){return r("space.fileExists",e)}var F={};B(F,{cleanDatabases:()=>Zt,getBaseURI:()=>Gt,getConfig:()=>Yt,getMode:()=>Vt,getURLPrefix:()=>Wt,getVersion:()=>Qt,invokeCommand:()=>Ot,invokeFunction:()=>zt,listCommands:()=>Nt,listSyscalls:()=>Kt,reloadPlugs:()=>qt,wipeClient:()=>Jt});function zt(e,...t){return r("system.invokeFunction",e,...t)}function Ot(e,t){return r("system.invokeCommand",e,t)}function Nt(){return r("system.listCommands")}function Kt(){return r("system.listSyscalls")}function qt(){return r("system.reloadPlugs")}function Vt(){return r("system.getMode")}function Wt(){return r("system.getURLPrefix")}function Gt(){return r("system.getBaseURI")}function Qt(){return r("system.getVersion")}function Yt(e,t=void 0){return r("system.getConfig",e,t)}function Jt(e=!1){return r("system.wipeClient",e)}function Zt(){return r("system.cleanDatabases")}var Gr=new Uint8Array(16);var P={};B(P,{evalExpression:()=>ur,parse:()=>cr,parseExpression:()=>dr});function cr(e){return r("lua.parse",e)}function dr(e){return r("lua.parseExpression",e)}function ur(e){return r("lua.evalExpression",e)}var E={};B(E,{deleteObject:()=>br,ensureFullIndex:()=>yr,getObjectByRef:()=>gr,indexObjects:()=>pr,queryLuaObjects:()=>hr,reindexSpace:()=>vr,validateObjects:()=>fr});function pr(e,t){return r("index.indexObjects",e,t)}function fr(e,t){return r("index.validateObjects",e,t)}function hr(e,t,n){return r("index.queryLuaObjects",e,t,n)}function gr(e,t,n){return r("index.getObjectByRef",e,t,n)}function yr(){return r("index.ensureFullIndex")}function vr(){return r("index.reindexSpace")}function br(e,t,n){return r("index.deleteObject",e,t,n)}var A=!1,W=!1,G=!1,J=new Set(["tags","itags","asTag","lastModified","pageDecoration","title"]),Q={full_name:"Full name",job_title:"Job title",activity_type:"Activity type",claim_type:"Claim type",last_updated:"Last updated",reflection_brief:"Reflection brief",post_nominals:"Post-nominals",preferred_name:"Preferred name",relationship_type:"Relationship",shared_interests:"Shared interests",met_via:"Met via",introduction_from:"Introduction from",last_contact:"Last contact",next_contact:"Next contact",credential_type:"Credential type",badge_url:"Badge URL",badge_image:"Badge image",verification_url:"Verification URL",award_date:"Award date",file_type:"File type",related_cpd:"Related CPD",related_claims:"Related claims"},xr={framework:"e.g. UoL-TSPP-Professor",hours:"decimal number",date:"YYYY-MM-DD",last_updated:"YYYY-MM-DD",path:"slug of a Path page (e.g. uol-professor)",paths:"Path slugs this contributes to (e.g. uol-professor, advance-he-d4)",standard:"code from the framework (e.g. 1.1)",evidence:"[[wikilinks]] to evidence pages",standards:"criterion codes from the Path's framework that this addresses (e.g. 1.1, 2.3)",related_cpd:"[[wikilinks]] to CPD entries this evidence supports",related_claims:"[[wikilinks]] to claims this evidence supports",orcid:"URL or 0000-0000-0000-0000",scholar:"Google Scholar profile URL",linkedin:"LinkedIn profile URL",github:"GitHub username or URL",mastodon:"@user@instance",pronouns:"e.g. she/her, they/them",expertise:"comma-separated tags, e.g. AI-education, qualitative-research",shared_interests:"comma-separated topics you both care about",met_via:"e.g. AMEE-2024, introduction-from-X, professional-body"},wr={"cpd-claim":["draft","ready","published"],cpd:["draft","complete"],capture:["unprocessed","processed"],path:["active","planned","paused","completed","abandoned"],"personal-statement":["draft","ready"],contact:["active","occasional","dormant","former"],milestone:["planned","reached","missed"]},kr={claim_type:["evidence","forward-looking"],activity_type:["conference","course","workshop","project","teaching","supervision","reading","writing","other"],relationship_type:["collaborator","mentor","mentee","peer","senior-colleague","conference-contact","professional-body","student","other"],credential_type:["open-badge","certification","degree","fellowship","membership","other"],file_type:["pdf","image","email","video","web","other"]};function Pr(e,t){return e==="status"?wr[t]??null:e==="framework"&&t==="reflection"?["gibbs","era","driscoll","rolfe"]:kr[e]??null}function Y(e){let t=e.trim();return t.length>=2&&(t.startsWith('"')&&t.endsWith('"')||t.startsWith("'")&&t.endsWith("'"))?t.slice(1,-1):t}function Z(e){if(!e.startsWith(`---
 `)&&!e.startsWith(`---\r
 `))return null;let t=e.indexOf(`
 `)+1,n=e.indexOf(`
----`,t);if(n<0)return null;let o=e.substring(t,n),i=n+4;e[i]===`
-`&&i++;let a=[],s=null;for(let d of o.split(`
-`)){let h=d.trim();if(h===""||h.startsWith("#")){s&&s.cont.push(d);continue}if(!d.startsWith(" ")&&!d.startsWith("	")){let y=d.match(/^([\w-]+):\s*(.*)$/);if(y){s&&a.push(s),s={key:y[1],headerValue:y[2],cont:[]};continue}}s&&s.cont.push(d)}s&&a.push(s);let c=[];for(let d of a){if(d.headerValue.trim()!==""){c.push({key:d.key,value:Y(d.headerValue),isList:!1});continue}let h=d.cont.filter(f=>f.trim()!==""&&!f.trim().startsWith("#"));if(h.length===0){c.push({key:d.key,value:[],isList:!0});continue}let y=/^(\s+)-\s+(.*)$/;if(h.every(f=>{let b=f.match(y);return b?!/:\s/.test(b[2]):!1})){let f=h.map(b=>Y(b.match(y)[2]));c.push({key:d.key,value:f,isList:!0})}else c.push({key:d.key,value:[],isList:!0,complex:!0,raw:d.cont.join(`
-`)})}return{fields:c,rest:e.substring(i),fmStart:t,fmEnd:n}}function K(e){if(G[e])return G[e];let t=e.replace(/_/g," ");return t.charAt(0).toUpperCase()+t.slice(1)}function p(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}function B(e){return e===""||/[:#"'\n]/.test(e)||/^\s|\s$/.test(e)?`"${e.replace(/\\/g,"\\\\").replace(/"/g,'\\"')}"`:e}function Cr(e,t){let n=[];for(let o of e){if(o.complex){n.push(`${o.key}:`),o.raw&&n.push(o.raw);continue}if(!(!J.has(o.key)&&o.key!=="type")){if(o.isList){n.push(`${o.key}:`);for(let s of o.value)n.push(`  - ${B(s)}`)}else n.push(`${o.key}: ${B(o.value)}`);continue}let a=t[o.key]??"";if(o.isList){let s=a.split(",").map(c=>c.trim()).filter(c=>c.length>0);n.push(`${o.key}:`);for(let c of s)n.push(`  - ${B(c)}`)}else n.push(`${o.key}: ${B(a.trim())}`)}return n.join(`
-`)}function Mr(e){let t=e.split("/").pop()||e;return(t.replace(/^\d{4}-\d{2}-\d{2}-?/,"")||t).replace(/[-_]/g," ").replace(/\b(\p{L})/gu,o=>o.toUpperCase())}async function Ar(){try{let e=await P.parseExpression('p.type == "path"'),t=await T.queryLuaObjects("page",{objectVariable:"p",where:e})??[],n=[];for(let o of t){let a=(o?.name??"").replace(/^paths\//,"");!a||a.endsWith("-coverage")||n.push({slug:a,title:o?.title||a,framework:o?.framework||""})}return n.sort((o,i)=>o.title.localeCompare(i.title)),n}catch(e){return console.error("fetchAllPaths failed",e),[]}}async function Tr(e){if(!e)return[];try{let t=await P.parseExpression('c.type == "criterion" and c.framework == framework'),n=await T.queryLuaObjects("page",{objectVariable:"c",where:t},{framework:e})??[],o=[];for(let i of n){let a=i?.code||"";a&&o.push({code:a,title:i?.title||""})}return o.sort((i,a)=>i.code.localeCompare(a.code)),o}catch(t){return console.error("fetchCriteriaForFramework failed",t),[]}}async function Lr(e){try{let t=await P.parseExpression("l.page ~= pageName and l.toPage == pageName"),n=await P.parseExpression("l.pageLastModified"),o=await T.queryLuaObjects("link",{objectVariable:"l",where:t,orderBy:[{expr:n,desc:!0}],limit:50},{pageName:e})??[],i=new Set,a=[];for(let s of o){let c=s?.page??"";!c||i.has(c)||(i.add(c),a.push({ref:s?.ref??c,pageName:c}))}return a}catch(t){return console.error("fetchLinkedMentions failed",t),[]}}function Er(e,t,n=[],o=[],i=!1,a={allPaths:[],criteria:[]},s=!1){let c=[],d=[],h=t.find(l=>l.key==="type")?.value??"";for(let l of t){if(J.has(l.key)||l.complex)continue;if(l.key==="type"){c.push(`<div class="row"><div class="k">Type</div><div class="v"><span class="badge">${p(l.value)}</span></div></div>`);continue}let N=l.isList?l.value.join(", "):l.value;if(l.isList&&(l.key==="paths"||l.key==="standards")){let M=l.key==="paths"?a.allPaths.map(g=>({value:g.slug,label:g.title})):a.criteria.map(g=>({value:g.code,label:g.title?`${g.code} \u2014 ${g.title}`:g.code}));if(M.length>0){let g=p(K(l.key)),w=l.value.filter(A=>A&&A.trim()),le=new Set(w),ce=w.join(","),de=M.map(A=>`<label class="multi-opt">
-            <input type="checkbox" data-multi-key="${p(l.key)}" value="${p(A.value)}"${le.has(A.value)?" checked":""}>
-            <span class="multi-opt-label">${p(A.label)}</span>
-          </label>`).join("");c.push(`<div class="row"><div class="k">${g}</div><input type="hidden" id="f-${l.key}" data-key="${l.key}" value="${p(ce)}"><div class="multi-list">${de}</div></div>`),d.push({key:l.key,list:l.isList});continue}}let z=Sr(l.key,h);if(z){let M=p(K(l.key)),g=['<option value="">\u2014</option>',...z.map(w=>`<option value="${p(w)}"${N===w?" selected":""}>${p(w)}</option>`)].join("");c.push(`<div class="row"><label class="k" for="f-${l.key}">${M}</label><select class="field" id="f-${l.key}" data-key="${l.key}">${g}</select></div>`)}else{let M=p(K(l.key))+(l.isList?' <span class="hint">(comma-separated)</span>':""),g=wr[l.key],w=g?`<div class="field-hint">${p(g)}</div>`:"";c.push(`<div class="row"><label class="k" for="f-${l.key}">${M}</label><input class="field" id="f-${l.key}" data-key="${l.key}" value="${p(N)}">${w}</div>`)}d.push({key:l.key,list:l.isList})}let y=`
-    <details class="section" data-section="search" id="section-search">
-      <summary class="section-summary">
-        <h2>Search portfolio</h2>
-        <span class="chev" aria-hidden="true">\u25BE</span>
-      </summary>
-      <div class="section-body">
-        <input type="text" id="search-input" class="field" placeholder="Search..." autocomplete="off">
-        <div id="search-results" class="search-results"></div>
-      </div>
-    </details>`,m=t.length===0||c.length===0?"":`
-    <details class="section" data-section="attrs">
+---`,t);if(n<0)return null;let i=e.substring(t,n),o=n+4;e[o]===`
+`&&o++;let a=[],s=null;for(let d of i.split(`
+`)){let g=d.trim();if(g===""||g.startsWith("#")){s&&s.cont.push(d);continue}if(!d.startsWith(" ")&&!d.startsWith("	")){let y=d.match(/^([\w-]+):\s*(.*)$/);if(y){s&&a.push(s),s={key:y[1],headerValue:y[2],cont:[]};continue}}s&&s.cont.push(d)}s&&a.push(s);let c=[];for(let d of a){if(d.headerValue.trim()!==""){c.push({key:d.key,value:Y(d.headerValue),isList:!1});continue}let g=d.cont.filter(f=>f.trim()!==""&&!f.trim().startsWith("#"));if(g.length===0){c.push({key:d.key,value:[],isList:!0});continue}let y=/^(\s+)-\s+(.*)$/;if(g.every(f=>{let b=f.match(y);return b?!/:\s/.test(b[2]):!1})){let f=g.map(b=>Y(b.match(y)[2]));c.push({key:d.key,value:f,isList:!0})}else c.push({key:d.key,value:[],isList:!0,complex:!0,raw:d.cont.join(`
+`)})}return{fields:c,rest:e.substring(o),fmStart:t,fmEnd:n}}function I(e){if(Q[e])return Q[e];let t=e.replace(/_/g," ");return t.charAt(0).toUpperCase()+t.slice(1)}function p(e){return e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}function U(e){return e===""||/[:#"'\n]/.test(e)||/^\s|\s$/.test(e)?`"${e.replace(/\\/g,"\\\\").replace(/"/g,'\\"')}"`:e}function Lr(e,t){let n=[];for(let i of e){if(i.complex){n.push(`${i.key}:`),i.raw&&n.push(i.raw);continue}if(!(!J.has(i.key)&&i.key!=="type")){if(i.isList){n.push(`${i.key}:`);for(let s of i.value)n.push(`  - ${U(s)}`)}else n.push(`${i.key}: ${U(i.value)}`);continue}let a=t[i.key]??"";if(i.isList){let s=a.split(",").map(c=>c.trim()).filter(c=>c.length>0);n.push(`${i.key}:`);for(let c of s)n.push(`  - ${U(c)}`)}else n.push(`${i.key}: ${U(a.trim())}`)}return n.join(`
+`)}function Cr(e){let t=e.split("/").pop()||e;return(t.replace(/^\d{4}-\d{2}-\d{2}-?/,"")||t).replace(/[-_]/g," ").replace(/\b(\p{L})/gu,i=>i.toUpperCase())}async function Sr(){try{let e=await P.parseExpression('p.type == "path"'),t=await E.queryLuaObjects("page",{objectVariable:"p",where:e})??[],n=[];for(let i of t){let a=(i?.name??"").replace(/^paths\//,"");!a||a.endsWith("-coverage")||n.push({slug:a,title:i?.title||a,framework:i?.framework||""})}return n.sort((i,o)=>i.title.localeCompare(o.title)),n}catch(e){return console.error("fetchAllPaths failed",e),[]}}async function Tr(e){if(!e)return[];try{let t=await P.parseExpression('c.type == "criterion" and c.framework == framework'),n=await E.queryLuaObjects("page",{objectVariable:"c",where:t},{framework:e})??[],i=[];for(let o of n){let a=o?.code||"";a&&i.push({code:a,title:o?.title||""})}return i.sort((o,a)=>o.code.localeCompare(a.code)),i}catch(t){return console.error("fetchCriteriaForFramework failed",t),[]}}async function Er(e){try{let t=await P.parseExpression("l.page ~= pageName and l.toPage == pageName"),n=await P.parseExpression("l.pageLastModified"),i=await E.queryLuaObjects("link",{objectVariable:"l",where:t,orderBy:[{expr:n,desc:!0}],limit:50},{pageName:e})??[],o=new Set,a=[];for(let s of i){let c=s?.page??"";!c||o.has(c)||(o.add(c),a.push({ref:s?.ref??c,pageName:c}))}return a}catch(t){return console.error("fetchLinkedMentions failed",t),[]}}function Ar(e,t,n=[],i=[],o=!1,a={allPaths:[],criteria:[]},s=!1){let c=[],d=[],g=t.find(l=>l.key==="type")?.value??"";for(let l of t){if(J.has(l.key)||l.complex)continue;if(l.key==="type"){c.push(`<div class="row"><div class="k">Type</div><div class="v"><span class="badge">${p(l.value)}</span></div></div>`);continue}let O=l.isList?l.value.join(", "):l.value;if(l.isList&&(l.key==="paths"||l.key==="standards")){let S=l.key==="paths"?a.allPaths.map(h=>({value:h.slug,label:h.title})):a.criteria.map(h=>({value:h.code,label:h.title?`${h.code} \u2014 ${h.title}`:h.code}));if(S.length>0){let h=p(I(l.key)),w=l.value.filter(T=>T&&T.trim()),se=new Set(w),le=w.join(","),ce=S.map(T=>`<label class="multi-opt">
+            <input type="checkbox" data-multi-key="${p(l.key)}" value="${p(T.value)}"${se.has(T.value)?" checked":""}>
+            <span class="multi-opt-label">${p(T.label)}</span>
+          </label>`).join("");c.push(`<div class="row"><div class="k">${h}</div><input type="hidden" id="f-${l.key}" data-key="${l.key}" value="${p(le)}"><div class="multi-list">${ce}</div></div>`),d.push({key:l.key,list:l.isList});continue}}let N=Pr(l.key,g);if(N){let S=p(I(l.key)),h=['<option value="">\u2014</option>',...N.map(w=>`<option value="${p(w)}"${O===w?" selected":""}>${p(w)}</option>`)].join("");c.push(`<div class="row"><label class="k" for="f-${l.key}">${S}</label><select class="field" id="f-${l.key}" data-key="${l.key}">${h}</select></div>`)}else{let S=p(I(l.key))+(l.isList?' <span class="hint">(comma-separated)</span>':""),h=xr[l.key],w=h?`<div class="field-hint">${p(h)}</div>`:"";c.push(`<div class="row"><label class="k" for="f-${l.key}">${S}</label><input class="field" id="f-${l.key}" data-key="${l.key}" value="${p(O)}">${w}</div>`)}d.push({key:l.key,list:l.isList})}let y=t.length===0||c.length===0?"":`
+    <details class="section" data-section="attrs" open>
       <summary class="section-summary">
         <h2>Page attributes</h2>
         <span class="chev" aria-hidden="true">\u25BE</span>
@@ -29,22 +19,41 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
         <div class="section-actions"><button class="btn" id="btn-save">Save</button></div>
         <div class="attrs">${c.join("")}</div>
       </div>
-    </details>`,f=_r(n),b=o.length===0?"":`
+    </details>`,m=Rr(n),f=i.length===0?"":`
     <details class="section" data-section="mentions">
       <summary class="section-summary">
-        <h2>Linked mentions <span class="count">${o.length}</span></h2>
+        <h2>Linked mentions <span class="count">${i.length}</span></h2>
         <span class="chev" aria-hidden="true">\u25BE</span>
       </summary>
       <div class="section-body">
-        <ul class="mentions">${o.map(l=>`<li class="mention" data-page="${p(l.pageName)}"><div class="mention-ref">${p(Mr(l.pageName))}</div></li>`).join("")}</ul>
+        <ul class="mentions">${i.map(l=>`<li class="mention" data-page="${p(l.pageName)}"><div class="mention-ref">${p(Cr(l.pageName))}</div></li>`).join("")}</ul>
       </div>
-    </details>`,_=`
+    </details>`,k=`
 <style>
   html, body { margin: 0; padding: 0; }
   html { background: #f8fafc; }
   body { font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 15px; background: #f8fafc; margin: 0; padding: 0; }
   * { box-sizing: border-box; }
-  .panel { padding: 1.3em 1.1em; color: #1f2937; }
+  .panel { height: 100vh; display: flex; flex-direction: column; color: #1f2937; }
+  
+  /* Sticky Search */
+  .search-container { padding: 2.2em 1.1em 0.8em 1.1em; background: #f8fafc; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
+  .search-input-wrapper { position: relative; }
+  .search-field { width: 100%; padding: 0.6em 0.8em; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.92em; font-family: inherit; background: white; color: inherit; }
+  .search-field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.1); }
+  .search-results-overlay { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; display: none; z-index: 20; }
+  .search-results-overlay.active { display: block; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid #e5e7eb; background: #f1f5f9; padding: 0 0.5em; flex-shrink: 0; }
+  .tab { padding: 0.75em 1.1em; font-size: 0.82em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: #4f46e5; }
+  .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; background: #f8fafc; }
+
+  /* Content Area */
+  .tab-content { flex: 1; overflow-y: auto; padding: 1.3em 1.1em; display: none; }
+  .tab-content.active { display: block; }
+
   .section { margin-bottom: 1.4em; }
   .section:last-child { margin-bottom: 0; }
   .section > summary { list-style: none; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 0.6em; padding: 0.25em 0; }
@@ -69,7 +78,7 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
   .k { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 500; }
   .hint { text-transform: none; letter-spacing: 0; font-style: italic; opacity: 0.7; font-weight: 400; }
   .v { font-size: 0.95em; color: #111827; word-break: break-word; line-height: 1.45; }
-  .field { width: 100%; padding: 0.45em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.92em; font-family: inherit; color: #111827; background: white; }
+  .field { width: 100%; padding: 0.45em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.92em; font-family: inherit; color: inherit; background: white; }
   .field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.15); }
   select.field { cursor: pointer; }
   .field-hint { font-size: 0.74em; color: #6b7280; margin-top: 0.22em; font-style: italic; }
@@ -105,40 +114,147 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
   html[data-theme="dark"] .mention:hover .mention-ref { color: #93c5fd; }
   html[data-theme="dark"] .mention-snip { color: #94a3b8; }
   .section-danger { margin-top: 2.5em; padding-top: 1.2em; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; }
-  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: background 0.12s, color 0.12s; }
+  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: background 0.12s, color 0.12s; width: 100%; }
   .btn-danger:hover { background: #fee2e2; color: #991b1b; }
   html[data-theme="dark"] .section-danger { border-top-color: #1e293b; }
   html[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #7f1d1d; }
   html[data-theme="dark"] .btn-danger:hover { background: #450a0a; color: #fecaca; }
-  .search-results { display: flex; flex-direction: column; gap: 0.4em; margin-top: 0.8em; }
-  .search-result { padding: 0.5em 0.6em; border-radius: 4px; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
-  .search-result:hover { background: #eef2ff; }
+
+  /* Search results styles */
+  .search-result { padding: 0.7em 0.9em; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
+  .search-result:hover { background: #f1f5f9; }
   .search-result:last-child { border-bottom: none; }
   .search-title { font-size: 0.9em; font-weight: 600; color: #4f46e5; }
   .search-path { font-size: 0.72em; color: #6b7280; font-weight: 500; margin-bottom: 0.15em; }
   .search-snip { font-size: 0.82em; color: #4b5563; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .search-snip em { font-style: normal; background: rgba(79, 70, 229, 0.15); border-radius: 2px; }
-  html[data-theme="dark"] .search-result:hover { background: #1e293b; }
+  html[data-theme="dark"] .search-results-overlay { background: #1e293b; border-color: #334155; }
+  html[data-theme="dark"] .search-result:hover { background: #0f172a; }
   html[data-theme="dark"] .search-title { color: #818cf8; }
   html[data-theme="dark"] .search-path { color: #94a3b8; }
   html[data-theme="dark"] .search-snip { color: #94a3b8; }
-  html[data-theme="dark"] .search-snip em { background: rgba(129, 140, 248, 0.25); }
+  
+  /* Writing & History styles */
+  .writing-results { display: flex; flex-direction: column; gap: 0.6em; margin-top: 0.8em; }
+  .writing-issue { padding: 0.6em; border-radius: 4px; background: #fff; border: 1px solid #e5e7eb; font-size: 13px; }
+  .issue-msg { font-weight: 500; color: #b91c1c; margin-bottom: 0.2em; }
+  .issue-context { font-family: monospace; font-size: 12px; color: #4b5563; background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 2px; }
+  .issue-context em { font-style: normal; background: #fecaca; font-weight: 600; }
+  html[data-theme="dark"] .writing-issue { background: #1e293b; border-color: #334155; }
+  html[data-theme="dark"] .issue-msg { color: #f87171; }
+  html[data-theme="dark"] .issue-context { background: #0f172a; color: #94a3b8; }
+  
+  .history-list { display: flex; flex-direction: column; gap: 0.4em; }
+  .history-item { padding: 0.8em; border-radius: 6px; background: white; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.1s; }
+  .history-item:hover { border-color: #4f46e5; background: #f8fafc; }
+  .history-time { font-size: 0.9em; font-weight: 600; color: #111827; }
+  .history-msg { font-size: 0.8em; color: #6b7280; margin-top: 0.2em; }
+  html[data-theme="dark"] .history-item { background: #1e293b; border-color: #334155; }
+  html[data-theme="dark"] .history-time { color: #f1f5f9; }
+  html[data-theme="dark"] .history-item:hover { background: #0f172a; border-color: #818cf8; }
+
+  /* Preview overlay */
+  #history-preview { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 100; display: none; flex-direction: column; }
+  html[data-theme="dark"] #history-preview { background: #0f172a; }
+  .preview-header { padding: 1em; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; }
+  html[data-theme="dark"] .preview-header { background: #1e293b; border-color: #334155; }
+  .preview-title { font-weight: 600; font-size: 0.9em; }
+  .preview-body { flex: 1; padding: 1.5em; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+  .preview-actions { display: flex; gap: 0.8em; }
+  
+  /* Theme Mirroring Adjustments */
+  html[data-theme="dark"] .search-container { background: #0f172a; border-color: #1e293b; }
+  html[data-theme="dark"] .search-field { background: #1e293b; border-color: #475569; color: #f1f5f9; }
+  html[data-theme="dark"] .tabs { background: #0f172a; border-color: #1e293b; }
+  html[data-theme="dark"] .tab.active { background: #0f172a; color: #818cf8; border-bottom-color: #818cf8; }
 </style>
-<div id="panel" class="panel">
-  ${y}
-  ${f}
-  ${m}
-  ${b}
-  ${i?"":`
+
+<div class="panel">
+  <!-- Sticky Search -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <input type="text" id="search-input" class="search-field" placeholder="Search portfolio..." autocomplete="off">
+      <div id="search-results" class="search-results-overlay"></div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tabs">
+    <div class="tab active" data-tab="page">Page</div>
+    <div class="tab" data-tab="tools">Tools</div>
+    <div class="tab" data-tab="history">History</div>
+  </div>
+
+  <!-- Tab Content: Page -->
+  <div id="tab-page" class="tab-content active">
+    ${m}
+    ${y}
+    ${f}
+  </div>
+
+  <!-- Tab Content: Tools -->
+  <div id="tab-tools" class="tab-content">
+    <details class="section" data-section="writing" open>
+      <summary class="section-summary">
+        <h2>Writing quality</h2>
+        <span class="chev" aria-hidden="true">\u25BE</span>
+      </summary>
+      <div class="section-body">
+        <div class="section-actions"><button class="btn" id="btn-check-writing">Check grammar & style</button></div>
+        <div id="writing-results" class="writing-results"></div>
+      </div>
+    </details>
+
+    <details class="section" data-section="links" open>
+      <summary class="section-summary">
+        <h2>Link checker</h2>
+        <span class="chev" aria-hidden="true">\u25BE</span>
+      </summary>
+      <div class="section-body">
+        <div class="section-actions"><button class="btn" id="btn-check-links">Check broken links</button></div>
+        <div id="link-results" class="writing-results"></div>
+      </div>
+    </details>
+    
+    <div style="margin-top: 3em">
+      ${o?"":`
     <div class="section section-danger">
       <button class="btn-danger" id="btn-delete" type="button">Delete this page</button>
     </div>`}
+    </div>
+  </div>
+
+  <!-- Tab Content: History -->
+  <div id="tab-history" class="tab-content">
+    <div class="section">
+      <summary class="section-summary">
+        <h2>Time Machine</h2>
+      </summary>
+      <div class="section-body">
+        <div id="history-list" class="history-list">
+          <div class="empty">Loading version history...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-`,S=JSON.stringify(d),x=JSON.stringify(e),C=JSON.stringify(s),se=`
+
+<!-- Preview Overlay -->
+<div id="history-preview">
+  <div class="preview-header">
+    <div class="preview-title">Version Preview</div>
+    <div class="preview-actions">
+      <button class="btn" id="btn-restore">Restore this version</button>
+      <button class="btn" style="background:#6b7280" id="btn-close-preview">Close</button>
+    </div>
+  </div>
+  <div id="preview-content" class="preview-body"></div>
+</div>
+`,$=JSON.stringify(d),L=JSON.stringify(e),x=JSON.stringify(s),C=`
 (function() {
-  var FIELDS = ${S};
-  var PAGE = ${x};
-  var FOCUS_SEARCH = ${C};
+  var FIELDS = ${$};
+  var PAGE = ${L};
+  var FOCUS_SEARCH = ${x};
 
   // Sync data-theme with the parent (theme toggle changes propagate live).
   try {
@@ -152,7 +268,24 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
     new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {}
 
-  // Search logic
+  // Tab switching logic
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.getAttribute('data-tab');
+      document.querySelectorAll('.tab, .tab-content').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      tab.classList.add('active');
+      var content = document.getElementById('tab-' + target);
+      if (content) content.classList.add('active');
+      
+      if (target === 'history') {
+        loadHistory();
+      }
+    });
+  });
+
+  // Search logic (pinned at top)
   var searchInput = document.getElementById('search-input');
   var searchResults = document.getElementById('search-results');
   var MEILI_URL = 'http://localhost:7700';
@@ -161,15 +294,13 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
   if (searchInput) {
     if (FOCUS_SEARCH) {
       setTimeout(function() { searchInput.focus(); }, 100);
-      // Ensure the search section is open if we are focusing it
-      var searchDetails = document.querySelector('details[data-section="search"]');
-      if (searchDetails) searchDetails.setAttribute('open', '');
     }
 
     searchInput.addEventListener('input', async function(e) {
       var query = e.target.value;
       if (!query) {
         searchResults.innerHTML = '';
+        searchResults.classList.remove('active');
         return;
       }
       try {
@@ -189,32 +320,218 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
         });
         var data = await response.json();
         var hits = data.hits || [];
-        searchResults.innerHTML = hits.map(function(hit) {
-          var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
-          var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || (hit.content ? hit.content.substring(0, 100) : '');
-          return \`
-            <div class="search-result" data-path="\${hit.path}">
-              <div class="search-path">\${hit.path}</div>
-              <div class="search-title">\${title}</div>
-              <div class="search-snip">\${snip}</div>
-            </div>\`;
-        }).join('');
+        if (hits.length === 0) {
+           searchResults.innerHTML = '<div class="empty" style="padding:15px">No results found.</div>';
+        } else {
+          searchResults.innerHTML = hits.map(function(hit) {
+            var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
+            var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || (hit.content ? hit.content.substring(0, 100) : '');
+            return \`
+              <div class="search-result" data-path="\${hit.path}">
+                <div class="search-path">\${hit.path}</div>
+                <div class="search-title">\${title}</div>
+                <div class="search-snip">\${snip}</div>
+              </div>\`;
+          }).join('');
+        }
+        searchResults.classList.add('active');
 
         document.querySelectorAll('.search-result').forEach(function(el) {
           el.addEventListener('click', async function() {
             var path = el.getAttribute('data-path');
-            if (path) await syscall('editor.navigate', path);
+            if (path) {
+              await syscall('editor.navigate', path);
+              searchResults.classList.remove('active');
+              searchInput.value = '';
+            }
           });
         });
       } catch (err) {
         searchResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Search failed.</div>';
+        searchResults.classList.add('active');
+      }
+    });
+
+    // Close search on click outside
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.remove('active');
       }
     });
   }
 
-  // Multi-select checkboxes: keep the hidden input's comma-joined
-  // value in sync with which boxes are ticked. The save handler reads
-  // f-<key> the same way for plain inputs, dropdowns, and these.
+  // History / Time Machine logic
+  var WATCHER_URL = 'http://localhost:8020';
+  var historyList = document.getElementById('history-list');
+  var previewOverlay = document.getElementById('history-preview');
+  var previewContent = document.getElementById('preview-content');
+  var currentPreviewHash = null;
+
+  async function loadHistory() {
+    try {
+      var response = await fetch(WATCHER_URL + '/history?path=' + encodeURIComponent(PAGE));
+      var data = await response.json();
+      var history = data.history || [];
+      
+      if (history.length === 0) {
+        historyList.innerHTML = '<div class="empty">No snapshots found for this file yet. Snapshots occur every 30 minutes if changes are detected.</div>';
+        return;
+      }
+
+      historyList.innerHTML = history.map(function(commit) {
+        var date = new Date(commit.timestamp);
+        var label = date.toLocaleString();
+        return \`
+          <div class="history-item" data-hash="\${commit.hash}">
+            <div class="history-time">\${label}</div>
+            <div class="history-msg">\${commit.message}</div>
+          </div>\`;
+      }).join('');
+
+      document.querySelectorAll('.history-item').forEach(function(el) {
+        el.addEventListener('click', async function() {
+          var hash = el.getAttribute('data-hash');
+          showPreview(hash);
+        });
+      });
+    } catch (err) {
+      historyList.innerHTML = '<div style="color:red">Failed to load history.</div>';
+    }
+  }
+
+  async function showPreview(hash) {
+    try {
+      currentPreviewHash = hash;
+      previewContent.textContent = 'Loading version...';
+      previewOverlay.style.display = 'flex';
+      
+      var response = await fetch(WATCHER_URL + '/version?path=' + encodeURIComponent(PAGE) + '&hash=' + hash);
+      var data = await response.json();
+      previewContent.textContent = data.content;
+    } catch (err) {
+      previewContent.textContent = 'Error loading version: ' + err;
+    }
+  }
+
+  document.getElementById('btn-close-preview').addEventListener('click', function() {
+    previewOverlay.style.display = 'none';
+  });
+
+  document.getElementById('btn-restore').addEventListener('click', async function() {
+    if (!currentPreviewHash) return;
+    var ok = window.confirm('Restore this version? Your current changes will be overwritten.');
+    if (!ok) return;
+
+    try {
+      var content = previewContent.textContent;
+      await syscall('space.writePage', PAGE, content);
+      await syscall('editor.flashNotification', 'Version restored!');
+      previewOverlay.style.display = 'none';
+      await syscall('editor.reloadPage');
+    } catch (e) {
+      alert('Restore failed: ' + e);
+    }
+  });
+
+  // Writing check logic
+  var writingBtn = document.getElementById('btn-check-writing');
+  var writingResults = document.getElementById('writing-results');
+  var LT_URL = 'http://localhost:8010/v2/check';
+
+  if (writingBtn) {
+    writingBtn.addEventListener('click', async function() {
+      writingBtn.disabled = true;
+      writingBtn.textContent = 'Checking...';
+      writingResults.innerHTML = '';
+      try {
+        var text = await syscall('editor.getText');
+        // Strip frontmatter
+        if (text.startsWith('---')) {
+          var close = text.indexOf('\\n---\\n', 4);
+          if (close === -1) close = text.indexOf('\\n---', 4);
+          if (close !== -1) text = text.substring(close + 5);
+        }
+
+        var response = await fetch(LT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            text: text,
+            language: 'en-GB'
+          })
+        });
+        var data = await response.json();
+        var matches = data.matches || [];
+        if (matches.length === 0) {
+          writingResults.innerHTML = '<div style="color:green;font-size:13px;padding:10px">No issues found!</div>';
+        } else {
+          writingResults.innerHTML = matches.map(function(m) {
+            var ctx = m.context.text;
+            var start = m.context.offset;
+            var len = m.context.length;
+            var highlighted = ctx.substring(0, start) + '<em>' + ctx.substring(start, start + len) + '</em>' + ctx.substring(start + len);
+            return \`
+              <div class="writing-issue">
+                <div class="issue-msg">\${m.message}</div>
+                <div class="issue-context">\${highlighted}</div>
+              </div>\`;
+          }).join('');
+        }
+      } catch (err) {
+        writingResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Check failed.</div>';
+      } finally {
+        writingBtn.disabled = false;
+        writingBtn.textContent = 'Check grammar & style';
+      }
+    });
+  }
+
+  // Link check logic
+  var linkBtn = document.getElementById('btn-check-links');
+  var linkResults = document.getElementById('link-results');
+  var LYCHEE_URL = 'http://localhost:8030/check';
+
+  if (linkBtn) {
+    linkBtn.addEventListener('click', async function() {
+      linkBtn.disabled = true;
+      linkBtn.textContent = 'Checking...';
+      linkResults.innerHTML = '';
+      try {
+        var response = await fetch(LYCHEE_URL + '?path=' + encodeURIComponent(PAGE));
+        var data = await response.json();
+        var issues = data.issues || [];
+        if (issues.length === 0) {
+          linkResults.innerHTML = '<div style="color:green;font-size:13px;padding:10px">No broken links found!</div>';
+        } else {
+          linkResults.innerHTML = issues.map(function(iss) {
+            return \`
+              <div class="writing-issue">
+                <div class="issue-msg">\${iss.status}: \${iss.uri}</div>
+                <div class="issue-context">\${iss.message || ''}</div>
+              </div>\`;
+          }).join('');
+        }
+      } catch (err) {
+        linkResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Check failed. Is Lychee-svc running?</div>';
+      } finally {
+        linkBtn.disabled = false;
+        linkBtn.textContent = 'Check broken links';
+      }
+    });
+  }
+
+  // Multi-select checkboxes
+  document.querySelectorAll('input[type="checkbox"][data-multi-key]').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var key = cb.getAttribute('data-multi-key');
+      var hidden = document.getElementById('f-' + key);
+      if (!hidden) return;
+      var checked = Array.prototype.slice.call(
+        document.querySelectorAll('input[type="checkbox"][data-multi-key="' + key + '"]:checked')
+      ).map(function(c) { return c.value; });
+      hidden.value = checked.join(',');
+    });
+  });
 
   var saveBtn = document.getElementById('btn-save');
   if (saveBtn) {
@@ -236,7 +553,7 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
     });
   }
 
-  // ToC clicks: scroll the editor to the heading's line.
+  // ToC clicks
   document.querySelectorAll('.toc-item').forEach(function(el) {
     el.addEventListener('click', async function() {
       var line = parseInt(el.getAttribute('data-line'), 10);
@@ -250,10 +567,7 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
     });
   });
 
-  // Delete button: confirm by typing DELETE (case-insensitive), then
-  // delete via syscall and navigate home. SB's space.deletePage removes
-  // the file from disk; there's no trash bin, so the confirmation has
-  // to be deliberate but doesn't need to be onerous.
+  // Delete button
   var deleteBtn = document.getElementById('btn-delete');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async function() {
@@ -276,7 +590,7 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
     });
   }
 
-  // Linked-mention clicks: navigate to the mentioning page.
+  // Linked-mention clicks
   document.querySelectorAll('.mention').forEach(function(el) {
     el.addEventListener('click', async function() {
       var page = el.getAttribute('data-page');
@@ -286,8 +600,7 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
     });
   });
 
-  // Collapsible sections: restore + persist open/closed state.
-  // Default is open; an explicit "0" in storage means user collapsed it.
+  // Collapsible sections
   function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
   document.querySelectorAll('details.section').forEach(function(d) {
     var key = 'path-section-' + d.getAttribute('data-section');
@@ -305,23 +618,23 @@ var ue=Object.defineProperty;var F=(e,t)=>{for(var n in t)ue(e,n,{get:t[n],enume
     });
   });
 })();
-`;return{html:_,script:se}}function $r(e){let t=[],n=e,o=0;if(n.startsWith("---")){let s=n.indexOf(`
----`,4);if(s>=0){let c=s+4;o=n.substring(0,c).split(`
-`).length,n=n.substring(c).replace(/^\n/,"")}}let i=n.split(`
-`),a=!1;for(let s=0;s<i.length;s++){let c=i[s];if(c.startsWith("```")){a=!a;continue}if(a)continue;let d=c.match(/^(#{1,6})\s+(.+?)\s*$/);d&&t.push({level:d[1].length,text:d[2].replace(/[*_`]/g,""),line:o+s})}return t}function _r(e){if(e.length===0)return"";let t=Math.min(...e.map(o=>o.level));return`
+`;return{html:k,script:C}}function Mr(e){let t=[],n=e,i=0;if(n.startsWith("---")){let s=n.indexOf(`
+---`,4);if(s>=0){let c=s+4;i=n.substring(0,c).split(`
+`).length,n=n.substring(c).replace(/^\n/,"")}}let o=n.split(`
+`),a=!1;for(let s=0;s<o.length;s++){let c=o[s];if(c.startsWith("```")){a=!a;continue}if(a)continue;let d=c.match(/^(#{1,6})\s+(.+?)\s*$/);d&&t.push({level:d[1].length,text:d[2].replace(/[*_`]/g,""),line:i+s})}return t}function Rr(e){if(e.length===0)return"";let t=Math.min(...e.map(i=>i.level));return`
     <details class="section" data-section="toc">
       <summary class="section-summary">
         <h2>On this page</h2>
         <span class="chev" aria-hidden="true">\u25BE</span>
       </summary>
       <div class="section-body">
-        <ul class="toc">${e.map((o,i)=>{let a=(o.level-t)*12;return`<li class="toc-item" data-line="${o.line}" data-idx="${i}" style="padding-left:${a}px;">${p(o.text)}</li>`}).join("")}</ul>
+        <ul class="toc">${e.map((i,o)=>{let a=(i.level-t)*12;return`<li class="toc-item" data-line="${i.line}" data-idx="${o}" style="padding-left:${a}px;">${p(i.text)}</li>`}).join("")}</ul>
       </div>
     </details>
-  `}async function $(e=!1){let t=await u.getCurrentPage();if(!t){await u.hidePanel("rhs");return}let n="";try{n=await u.getText()}catch{n=""}if(!n)try{n=await v.readPage(t)}catch{n=""}if(!n){globalThis.setTimeout?.(()=>{$().catch(m=>console.error("showAttributesPanel retry",m))},250),await u.hidePanel("rhs");return}let o=Z(n),i=$r(n),a=await Lr(t),s=/^readonly:\s*true\s*$/m.test(n),c={allPaths:[],criteria:[]};if((o?.fields??[]).some(m=>m.isList&&(m.key==="paths"||m.key==="standards"))){let m=await Ar(),f=o?.fields.find(k=>k.key==="framework")?.value||"";if(!f){let k=o?.fields.find(x=>x.key==="path"),_=o?.fields.find(x=>x.key==="paths"),S="";if(k&&!k.isList?S=k.value:_&&_.isList&&(S=_.value.find(C=>C&&C.trim())??""),S){let x=m.find(C=>C.slug===S);x&&(f=x.framework)}}let b=f?await Tr(f):[];c={allPaths:m,criteria:b}}if(s&&(!o||o.fields.length===0)&&i.length===0&&a.length===0){await u.hidePanel("rhs");return}let{html:h,script:y}=Er(t,o?.fields??[],i,a,s,c,e);await u.showPanel("rhs",.7,h,y)}async function X(){L&&(L=!1,await E()),await $(!0)}async function H(e,t){let n=await v.readPage(e),o=Z(n);if(!o){await u.flashNotification("No frontmatter to save");return}let a=`---
-${Cr(o.fields,t)}
+  `}async function R(e=!1){let t=await u.getCurrentPage();if(!t){await u.hidePanel("rhs");return}let n="";try{n=await u.getText()}catch{n=""}if(!n)try{n=await v.readPage(t)}catch{n=""}if(!n){globalThis.setTimeout?.(()=>{R().catch(m=>console.error("showAttributesPanel retry",m))},250),await u.hidePanel("rhs");return}let i=Z(n),o=Mr(n),a=await Er(t),s=/^readonly:\s*true\s*$/m.test(n),c={allPaths:[],criteria:[]};if((i?.fields??[]).some(m=>m.isList&&(m.key==="paths"||m.key==="standards"))){let m=await Sr(),f=i?.fields.find(k=>k.key==="framework")?.value||"";if(!f){let k=i?.fields.find(x=>x.key==="path"),$=i?.fields.find(x=>x.key==="paths"),L="";if(k&&!k.isList?L=k.value:$&&$.isList&&(L=$.value.find(C=>C&&C.trim())??""),L){let x=m.find(C=>C.slug===L);x&&(f=x.framework)}}let b=f?await Tr(f):[];c={allPaths:m,criteria:b}}if(s&&(!i||i.fields.length===0)&&o.length===0&&a.length===0){await u.hidePanel("rhs");return}let{html:g,script:y}=Ar(t,i?.fields??[],o,a,s,c,e);await u.showPanel("rhs",.7,g,y)}async function X(){A&&(A=!1,await M()),await R(!0)}async function z(e,t){let n=await v.readPage(e),i=Z(n);if(!i){await u.flashNotification("No frontmatter to save");return}let a=`---
+${Lr(i.fields,t)}
 ---
-${o.rest}`;if(a===n){await u.flashNotification("No changes");return}await v.writePage(e,a),await u.flashNotification("Saved"),await u.reloadPage()}var ee={plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',paperclip:'<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',"plus-circle":'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',"edit-3":'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',"pen-tool":'<path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2 9.586 9.586"/><circle cx="11" cy="11" r="2"/>',feather:'<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l6.74-6.76z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>',"trending-up":'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',compass:'<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',"file-text":'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',"file-down":'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>',calendar:'<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',bookmark:'<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',"check-square":'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',"book-open":'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',layers:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',award:'<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',"refresh-cw":'<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',focus:'<circle cx="12" cy="12" r="3"/><path d="M3 9V6a1 1 0 0 1 1-1h3"/><path d="M21 9V6a1 1 0 0 0-1-1h-3"/><path d="M3 15v3a1 1 0 0 0 1 1h3"/><path d="M21 15v3a1 1 0 0 1-1 1h-3"/>',"sidebar-collapse":'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/>',"sidebar-expand":'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',cpu:'<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>'};function Fr(e){return`<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ee[e]??""}</svg>`}async function Rr(){try{let e=await v.readPage("_system/announcements-cache").catch(()=>"");if(!e)return 0;let t=e.match(/```json\s*([\s\S]*?)\s*```/);if(!t)return 0;let n=JSON.parse(t[1]).announcements??[],o=new Set;try{let i=await v.readPage("_system/announcements-read");o=new Set(Array.from(i.matchAll(/^- ([\w\-_.]+)$/gm)).map(a=>a[1]))}catch{}return n.filter(i=>i.id&&!o.has(i.id)).length}catch{return 0}}async function Dr(){let e=await Rr(),n=[{title:"",items:[{label:"Capture",icon:"plus",command:"Path: Capture"}]},{title:"Browse",items:[{label:"All Paths",icon:"compass",navigate:"paths/index"},{label:"Claims",icon:"feather",navigate:"Claims"},{label:"CPD activities",icon:"calendar",navigate:"CPD"},{label:"Reflections",icon:"repeat",navigate:"Reflections"},{label:"Evidence",icon:"paperclip",navigate:"Evidence"},{label:"Network",icon:"users",navigate:"Network"},{label:"Credentials",icon:"award",navigate:"Credentials"},{label:"Captures",icon:"bookmark",navigate:"Captures"},{label:"Inbox",icon:"inbox",navigate:"Inbox"},{label:"Tasks",icon:"check-square",navigate:"Tasks"},{label:"All pages",icon:"layers",navigate:"Browse"}]},{title:"Workspace",items:[{label:"Setup",icon:"check-square",navigate:"Setup"},{label:"Announcements",icon:"bell",navigate:"Announcements",badge:e},{label:"History",icon:"clock",navigate:"History"},{label:"Export to Word",icon:"file-text",command:"Path: Export to Word"},{label:"AI context",icon:"cpu",navigate:"_system/mcp-context"},{label:"Manual",icon:"book-open",navigate:"manual/cheatsheet"},{label:"Add framework",icon:"download",command:"Path: Add framework"},{label:"About",icon:"info",navigate:"About"}]}].map(a=>{let s=a.title===""&&a.items.length===1&&a.items[0].command==="Path: Capture",c=s?"nav-item nav-capture":"nav-item",d=s?"section section-capture":"section",h=a.items.map(m=>{let f=m.navigate?`data-navigate="${p(m.navigate)}"`:`data-command="${p(m.command??"")}"`,b=m.badge&&m.badge>0?`<span class="nav-badge">${m.badge}</span>`:"";return`<li class="${c}" ${f}>${Fr(m.icon)}<span class="nav-label">${p(m.label)}</span>${b}</li>`}).join(""),y=a.title?`<h2>${p(a.title)}</h2>`:"";return`<div class="${d}">${y}<ul class="nav">${h}</ul></div>`}).join("");return{html:`
+${i.rest}`;if(a===n){await u.flashNotification("No changes");return}await v.writePage(e,a),await u.flashNotification("Saved"),await u.reloadPage()}var ee={plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',paperclip:'<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',"plus-circle":'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',"edit-3":'<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',"pen-tool":'<path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2 9.586 9.586"/><circle cx="11" cy="11" r="2"/>',feather:'<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l6.74-6.76z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>',"trending-up":'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',compass:'<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',"file-text":'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',"file-down":'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>',calendar:'<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',bookmark:'<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',"check-square":'<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',"book-open":'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',layers:'<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',award:'<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',"refresh-cw":'<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',focus:'<circle cx="12" cy="12" r="3"/><path d="M3 9V6a1 1 0 0 1 1-1h3"/><path d="M21 9V6a1 1 0 0 0-1-1h-3"/><path d="M3 15v3a1 1 0 0 0 1 1h3"/><path d="M21 15v3a1 1 0 0 1-1 1h-3"/>',"sidebar-collapse":'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/>',"sidebar-expand":'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',cpu:'<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>'};function $r(e){return`<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ee[e]??""}</svg>`}async function Br(){try{let e=await v.readPage("_system/announcements-cache").catch(()=>"");if(!e)return 0;let t=e.match(/```json\s*([\s\S]*?)\s*```/);if(!t)return 0;let n=JSON.parse(t[1]).announcements??[],i=new Set;try{let o=await v.readPage("_system/announcements-read");i=new Set(Array.from(o.matchAll(/^- ([\w\-_.]+)$/gm)).map(a=>a[1]))}catch{}return n.filter(o=>o.id&&!i.has(o.id)).length}catch{return 0}}async function _r(){let e=await Br(),n=[{title:"",items:[{label:"Capture",icon:"plus",command:"Path: Capture"}]},{title:"Browse",items:[{label:"All Paths",icon:"compass",navigate:"paths/index"},{label:"Claims",icon:"feather",navigate:"Claims"},{label:"CPD activities",icon:"calendar",navigate:"CPD"},{label:"Reflections",icon:"repeat",navigate:"Reflections"},{label:"Evidence",icon:"paperclip",navigate:"Evidence"},{label:"Network",icon:"users",navigate:"Network"},{label:"Credentials",icon:"award",navigate:"Credentials"},{label:"Captures",icon:"bookmark",navigate:"Captures"},{label:"Inbox",icon:"inbox",navigate:"Inbox"},{label:"Tasks",icon:"check-square",navigate:"Tasks"},{label:"All pages",icon:"layers",navigate:"Browse"}]},{title:"Workspace",items:[{label:"Setup",icon:"check-square",navigate:"Setup"},{label:"Announcements",icon:"bell",navigate:"Announcements",badge:e},{label:"History",icon:"clock",navigate:"History"},{label:"Export to Word",icon:"file-text",command:"Path: Export to Word"},{label:"AI context",icon:"cpu",navigate:"_system/mcp-context"},{label:"Manual",icon:"book-open",navigate:"manual/cheatsheet"},{label:"Add framework",icon:"download",command:"Path: Add framework"},{label:"About",icon:"info",navigate:"About"}]}].map(a=>{let s=a.title===""&&a.items.length===1&&a.items[0].command==="Path: Capture",c=s?"nav-item nav-capture":"nav-item",d=s?"section section-capture":"section",g=a.items.map(m=>{let f=m.navigate?`data-navigate="${p(m.navigate)}"`:`data-command="${p(m.command??"")}"`,b=m.badge&&m.badge>0?`<span class="nav-badge">${m.badge}</span>`:"";return`<li class="${c}" ${f}>${$r(m.icon)}<span class="nav-label">${p(m.label)}</span>${b}</li>`}).join(""),y=a.title?`<h2>${p(a.title)}</h2>`:"";return`<div class="${d}">${y}<ul class="nav">${g}</ul></div>`}).join("");return{html:`
 <style>
   html, body { margin: 0; padding: 0; }
   html { background: #f8fafc; }
@@ -401,6 +714,6 @@ ${o.rest}`;if(a===n){await u.flashNotification("No changes");return}await v.writ
   });
 
 })();
-`}}async function E(){let{html:e,script:t}=await Dr();await u.showPanel("lhs",.5,e,t)}async function te(){L?(L=!1,await Promise.all([E().catch(e=>console.error("showLeftPanel",e)),$().catch(e=>console.error("showAttributesPanel",e))])):(L=!0,await Promise.all([u.hidePanel("lhs"),u.hidePanel("rhs")]))}async function re(){if(!L){if(!W){W=!0;let e=await u.getCurrentPage();if(e&&e!=="Setup"){let t=!1;try{t=(await v.readPage("_system/onboarding")).includes("redirect: true")}catch{t=!0}if(t){try{await v.writePage("_system/onboarding",`redirect: false
-`)}catch{}await u.navigate("Setup");return}}}Q||(Q=!0,(async()=>{try{await D.invokeCommand("Path: Refresh announcements (silent)"),await E().catch(()=>{})}catch{}})());try{await u.getCurrentPage()==="Announcements"&&globalThis.setTimeout?.(()=>{D.invokeCommand("Path: Mark all announcements as read").catch(()=>{})},600)}catch{}await Promise.all([E().catch(e=>console.error("showLeftPanel failed",e)),$().catch(e=>console.error("showAttributesPanel failed",e))])}}async function ne(){await u.flashNotification("Hello from the Path plug!")}async function oe(){let e=await u.getCurrentPage();if(!e){await u.flashNotification("No current page");return}await u.flashNotification(`debugSave: targeting ${e}`);try{await H(e,{title:"DEBUG_TEST"})}catch(t){let n=t instanceof Error?t.message:String(t);await u.flashNotification(`debugSave threw: ${n}`)}}var ie={hello:ne,showAttributesPanel:$,showLeftPanel:E,saveAttributes:H,debugSave:oe,onPageLoaded:re,toggleZenMode:te,search:X},ae={name:"path",functions:{hello:{path:"path.ts:hello",command:{name:"Path: Hello from plug"}},showAttributesPanel:{path:"path.ts:showAttributesPanel",command:{name:"Path: Show attributes panel"}},showLeftPanel:{path:"path.ts:showLeftPanel",command:{name:"Path: Refresh navigator"}},saveAttributes:{path:"path.ts:saveAttributes"},debugSave:{path:"path.ts:debugSave",command:{name:"Path: Debug save (writes title=DEBUG_TEST)"}},onPageLoaded:{path:"path.ts:onPageLoaded",events:["editor:pageLoaded"]},toggleZenMode:{path:"path.ts:toggleZenMode",command:{name:"Path: Toggle focus mode",key:"Ctrl-Alt-z"}},search:{path:"path.ts:search",command:{name:"Path: Search",key:"Ctrl-Shift-f"}}},assets:{}},Pn={manifest:ae,functionMapping:ie};V(ie,ae,self.postMessage);export{Pn as plug};
+`}}async function M(){let{html:e,script:t}=await _r();await u.showPanel("lhs",.5,e,t)}async function te(){A?(A=!1,await Promise.all([M().catch(e=>console.error("showLeftPanel",e)),R().catch(e=>console.error("showAttributesPanel",e))])):(A=!0,await Promise.all([u.hidePanel("lhs"),u.hidePanel("rhs")]))}async function re(){if(!A){if(!W){W=!0;let e=await u.getCurrentPage();if(e&&e!=="Setup"){let t=!1;try{t=(await v.readPage("_system/onboarding")).includes("redirect: true")}catch{t=!0}if(t){try{await v.writePage("_system/onboarding",`redirect: false
+`)}catch{}await u.navigate("Setup");return}}}G||(G=!0,(async()=>{try{await F.invokeCommand("Path: Refresh announcements (silent)"),await M().catch(()=>{})}catch{}})());try{await u.getCurrentPage()==="Announcements"&&globalThis.setTimeout?.(()=>{F.invokeCommand("Path: Mark all announcements as read").catch(()=>{})},600)}catch{}await Promise.all([M().catch(e=>console.error("showLeftPanel failed",e)),R().catch(e=>console.error("showAttributesPanel failed",e))])}}async function ne(){await u.flashNotification("Hello from the Path plug!")}async function ie(){let e=await u.getCurrentPage();if(!e){await u.flashNotification("No current page");return}await u.flashNotification(`debugSave: targeting ${e}`);try{await z(e,{title:"DEBUG_TEST"})}catch(t){let n=t instanceof Error?t.message:String(t);await u.flashNotification(`debugSave threw: ${n}`)}}var oe={hello:ne,showAttributesPanel:R,showLeftPanel:M,saveAttributes:z,debugSave:ie,onPageLoaded:re,toggleZenMode:te,search:X},ae={name:"path",functions:{hello:{path:"path.ts:hello",command:{name:"Path: Hello from plug"}},showAttributesPanel:{path:"path.ts:showAttributesPanel",command:{name:"Path: Show attributes panel"}},showLeftPanel:{path:"path.ts:showLeftPanel",command:{name:"Path: Refresh navigator"}},saveAttributes:{path:"path.ts:saveAttributes"},debugSave:{path:"path.ts:debugSave",command:{name:"Path: Debug save (writes title=DEBUG_TEST)"}},onPageLoaded:{path:"path.ts:onPageLoaded",events:["editor:pageLoaded"]},toggleZenMode:{path:"path.ts:toggleZenMode",command:{name:"Path: Toggle focus mode",key:"Ctrl-Alt-z"}},search:{path:"path.ts:search",command:{name:"Path: Search",key:"Ctrl-Shift-f"}}},assets:{}},wn={manifest:ae,functionMapping:oe};V(oe,ae,self.postMessage);export{wn as plug};
 //# sourceMappingURL=path.plug.js.map

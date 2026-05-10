@@ -132,10 +132,7 @@ function stripQuotes(s: string): string {
   return t;
 }
 
-// Parse the YAML frontmatter into block-shaped fields. Each block has a
-// top-level `key:` line and optionally indented continuation lines.
-// Continuation that's purely `- "value"` items is treated as a simple list;
-// anything richer (nested keys) is marked `complex` and round-tripped raw.
+// Parse the YAML frontmatter into block-shaped fields.
 function parseFrontmatter(text: string): ParsedPage | null {
   if (!text.startsWith("---\n") && !text.startsWith("---\r\n")) return null;
   const fmStart = text.indexOf("\n") + 1;
@@ -155,13 +152,10 @@ function parseFrontmatter(text: string): ParsedPage | null {
 
   for (const rawLine of fmText.split("\n")) {
     const trimmed = rawLine.trim();
-    // Comments and blank lines: keep them inside the current block as
-    // raw continuation. Outside any block they're simply dropped.
     if (trimmed === "" || trimmed.startsWith("#")) {
       if (cur) cur.cont.push(rawLine);
       continue;
     }
-    // A new top-level key starts only at column 0.
     if (!rawLine.startsWith(" ") && !rawLine.startsWith("\t")) {
       const m = rawLine.match(/^([\w-]+):\s*(.*)$/);
       if (m) {
@@ -184,7 +178,6 @@ function parseFrontmatter(text: string): ParsedPage | null {
       });
       continue;
     }
-    // No header value → potentially a list block.
     const realLines = b.cont.filter(
       (l) => l.trim() !== "" && !l.trim().startsWith("#"),
     );
@@ -192,12 +185,10 @@ function parseFrontmatter(text: string): ParsedPage | null {
       fields.push({ key: b.key, value: [], isList: true });
       continue;
     }
-    // Simple list: every real line matches `<indent>- <scalar>`.
     const simpleListRe = /^(\s+)-\s+(.*)$/;
     const allSimple = realLines.every((l) => {
       const m = l.match(simpleListRe);
       if (!m) return false;
-      // The scalar must not contain a colon followed by space (object key).
       return !/:\s/.test(m[2]);
     });
     if (allSimple) {
@@ -245,9 +236,6 @@ function serializeFields(
 ): string {
   const lines: string[] = [];
   for (const f of originalFields) {
-    // Complex blocks: emit the raw text we captured at parse time. This
-    // round-trips qualifications, registrations, and any other nested-
-    // object YAML byte-for-byte without us needing to understand them.
     if (f.complex) {
       lines.push(`${f.key}:`);
       if (f.raw) lines.push(f.raw);
@@ -290,9 +278,6 @@ interface Mention {
   pageName: string;
 }
 
-// Strip a path prefix and any leading YYYY-MM-DD- date stamp, then
-// title-case word separators. `manual/interface` -> "Interface";
-// `cpd/2026-05-07-prs-conference` -> "Prs Conference".
 function mentionDisplayName(pageName: string): string {
   const last = pageName.split("/").pop() || pageName;
   const stripped = last.replace(/^\d{4}-\d{2}-\d{2}-?/, "") || last;
@@ -301,8 +286,6 @@ function mentionDisplayName(pageName: string): string {
     .replace(/\b(\p{L})/gu, (c) => c.toUpperCase());
 }
 
-// Lookup all installed Paths (excluding the `*-coverage` dashboard
-// pages). Used to populate the multi-select for `paths` fields.
 async function fetchAllPaths(): Promise<
   { slug: string; title: string; framework: string }[]
 > {
@@ -332,8 +315,6 @@ async function fetchAllPaths(): Promise<
   }
 }
 
-// Criteria of a given framework, used to populate the multi-select for
-// `standards` fields. Sorted by code so 1.1, 1.2, ..., 4.2 stay in order.
 async function fetchCriteriaForFramework(
   framework: string,
 ): Promise<{ code: string; title: string }[]> {
@@ -509,22 +490,10 @@ function buildPanelContent(
     editableDescs.push({ key: f.key, list: f.isList });
   }
 
-  const searchBody = `
-    <details class="section" data-section="search" id="section-search">
-      <summary class="section-summary">
-        <h2>Search portfolio</h2>
-        <span class="chev" aria-hidden="true">▾</span>
-      </summary>
-      <div class="section-body">
-        <input type="text" id="search-input" class="field" placeholder="Search..." autocomplete="off">
-        <div id="search-results" class="search-results"></div>
-      </div>
-    </details>`;
-
   const attrsBody = fields.length === 0 || rowsHtml.length === 0
     ? ""
     : `
-    <details class="section" data-section="attrs">
+    <details class="section" data-section="attrs" open>
       <summary class="section-summary">
         <h2>Page attributes</h2>
         <span class="chev" aria-hidden="true">▾</span>
@@ -558,9 +527,6 @@ function buildPanelContent(
       </div>
     </details>`;
 
-  // "Delete this page" lives at the bottom. Hidden on readonly pages —
-  // a user editing a manual page should remove `readonly: true` first,
-  // which is a deliberate choice to prevent accidents.
   const dangerBody = isReadonly
     ? ""
     : `
@@ -574,7 +540,26 @@ function buildPanelContent(
   html { background: #f8fafc; }
   body { font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 15px; background: #f8fafc; margin: 0; padding: 0; }
   * { box-sizing: border-box; }
-  .panel { padding: 1.3em 1.1em; color: #1f2937; }
+  .panel { height: 100vh; display: flex; flex-direction: column; color: #1f2937; }
+  
+  /* Sticky Search */
+  .search-container { padding: 2.2em 1.1em 0.8em 1.1em; background: #f8fafc; border-bottom: 1px solid #e5e7eb; position: sticky; top: 0; z-index: 10; }
+  .search-input-wrapper { position: relative; }
+  .search-field { width: 100%; padding: 0.6em 0.8em; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.92em; font-family: inherit; background: white; color: inherit; }
+  .search-field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.1); }
+  .search-results-overlay { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; display: none; z-index: 20; }
+  .search-results-overlay.active { display: block; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid #e5e7eb; background: #f1f5f9; padding: 0 0.5em; flex-shrink: 0; }
+  .tab { padding: 0.75em 1.1em; font-size: 0.82em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: #4f46e5; }
+  .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; background: #f8fafc; }
+
+  /* Content Area */
+  .tab-content { flex: 1; overflow-y: auto; padding: 1.3em 1.1em; display: none; }
+  .tab-content.active { display: block; }
+
   .section { margin-bottom: 1.4em; }
   .section:last-child { margin-bottom: 0; }
   .section > summary { list-style: none; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; gap: 0.6em; padding: 0.25em 0; }
@@ -599,7 +584,7 @@ function buildPanelContent(
   .k { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 500; }
   .hint { text-transform: none; letter-spacing: 0; font-style: italic; opacity: 0.7; font-weight: 400; }
   .v { font-size: 0.95em; color: #111827; word-break: break-word; line-height: 1.45; }
-  .field { width: 100%; padding: 0.45em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.92em; font-family: inherit; color: #111827; background: white; }
+  .field { width: 100%; padding: 0.45em 0.6em; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.92em; font-family: inherit; color: inherit; background: white; }
   .field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,0.15); }
   select.field { cursor: pointer; }
   .field-hint { font-size: 0.74em; color: #6b7280; margin-top: 0.22em; font-style: italic; }
@@ -635,31 +620,138 @@ function buildPanelContent(
   html[data-theme="dark"] .mention:hover .mention-ref { color: #93c5fd; }
   html[data-theme="dark"] .mention-snip { color: #94a3b8; }
   .section-danger { margin-top: 2.5em; padding-top: 1.2em; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; }
-  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: background 0.12s, color 0.12s; }
+  .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: background 0.12s, color 0.12s; width: 100%; }
   .btn-danger:hover { background: #fee2e2; color: #991b1b; }
   html[data-theme="dark"] .section-danger { border-top-color: #1e293b; }
   html[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #7f1d1d; }
   html[data-theme="dark"] .btn-danger:hover { background: #450a0a; color: #fecaca; }
-  .search-results { display: flex; flex-direction: column; gap: 0.4em; margin-top: 0.8em; }
-  .search-result { padding: 0.5em 0.6em; border-radius: 4px; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
-  .search-result:hover { background: #eef2ff; }
+
+  /* Search results styles */
+  .search-result { padding: 0.7em 0.9em; cursor: pointer; line-height: 1.4; border-bottom: 1px solid rgba(128,128,128,0.1); }
+  .search-result:hover { background: #f1f5f9; }
   .search-result:last-child { border-bottom: none; }
   .search-title { font-size: 0.9em; font-weight: 600; color: #4f46e5; }
   .search-path { font-size: 0.72em; color: #6b7280; font-weight: 500; margin-bottom: 0.15em; }
   .search-snip { font-size: 0.82em; color: #4b5563; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .search-snip em { font-style: normal; background: rgba(79, 70, 229, 0.15); border-radius: 2px; }
-  html[data-theme="dark"] .search-result:hover { background: #1e293b; }
+  html[data-theme="dark"] .search-results-overlay { background: #1e293b; border-color: #334155; }
+  html[data-theme="dark"] .search-result:hover { background: #0f172a; }
   html[data-theme="dark"] .search-title { color: #818cf8; }
   html[data-theme="dark"] .search-path { color: #94a3b8; }
   html[data-theme="dark"] .search-snip { color: #94a3b8; }
-  html[data-theme="dark"] .search-snip em { background: rgba(129, 140, 248, 0.25); }
+  
+  /* Writing & History styles */
+  .writing-results { display: flex; flex-direction: column; gap: 0.6em; margin-top: 0.8em; }
+  .writing-issue { padding: 0.6em; border-radius: 4px; background: #fff; border: 1px solid #e5e7eb; font-size: 13px; }
+  .issue-msg { font-weight: 500; color: #b91c1c; margin-bottom: 0.2em; }
+  .issue-context { font-family: monospace; font-size: 12px; color: #4b5563; background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 2px; }
+  .issue-context em { font-style: normal; background: #fecaca; font-weight: 600; }
+  html[data-theme="dark"] .writing-issue { background: #1e293b; border-color: #334155; }
+  html[data-theme="dark"] .issue-msg { color: #f87171; }
+  html[data-theme="dark"] .issue-context { background: #0f172a; color: #94a3b8; }
+  
+  .history-list { display: flex; flex-direction: column; gap: 0.4em; }
+  .history-item { padding: 0.8em; border-radius: 6px; background: white; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.1s; }
+  .history-item:hover { border-color: #4f46e5; background: #f8fafc; }
+  .history-time { font-size: 0.9em; font-weight: 600; color: #111827; }
+  .history-msg { font-size: 0.8em; color: #6b7280; margin-top: 0.2em; }
+  html[data-theme="dark"] .history-item { background: #1e293b; border-color: #334155; }
+  html[data-theme="dark"] .history-time { color: #f1f5f9; }
+  html[data-theme="dark"] .history-item:hover { background: #0f172a; border-color: #818cf8; }
+
+  /* Preview overlay */
+  #history-preview { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 100; display: none; flex-direction: column; }
+  html[data-theme="dark"] #history-preview { background: #0f172a; }
+  .preview-header { padding: 1em; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; }
+  html[data-theme="dark"] .preview-header { background: #1e293b; border-color: #334155; }
+  .preview-title { font-weight: 600; font-size: 0.9em; }
+  .preview-body { flex: 1; padding: 1.5em; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+  .preview-actions { display: flex; gap: 0.8em; }
+  
+  /* Theme Mirroring Adjustments */
+  html[data-theme="dark"] .search-container { background: #0f172a; border-color: #1e293b; }
+  html[data-theme="dark"] .search-field { background: #1e293b; border-color: #475569; color: #f1f5f9; }
+  html[data-theme="dark"] .tabs { background: #0f172a; border-color: #1e293b; }
+  html[data-theme="dark"] .tab.active { background: #0f172a; color: #818cf8; border-bottom-color: #818cf8; }
 </style>
-<div id="panel" class="panel">
-  ${searchBody}
-  ${tocBody}
-  ${attrsBody}
-  ${mentionsBody}
-  ${dangerBody}
+
+<div class="panel">
+  <!-- Sticky Search -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <input type="text" id="search-input" class="search-field" placeholder="Search portfolio..." autocomplete="off">
+      <div id="search-results" class="search-results-overlay"></div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tabs">
+    <div class="tab active" data-tab="page">Page</div>
+    <div class="tab" data-tab="tools">Tools</div>
+    <div class="tab" data-tab="history">History</div>
+  </div>
+
+  <!-- Tab Content: Page -->
+  <div id="tab-page" class="tab-content active">
+    ${tocBody}
+    ${attrsBody}
+    ${mentionsBody}
+  </div>
+
+  <!-- Tab Content: Tools -->
+  <div id="tab-tools" class="tab-content">
+    <details class="section" data-section="writing" open>
+      <summary class="section-summary">
+        <h2>Writing quality</h2>
+        <span class="chev" aria-hidden="true">▾</span>
+      </summary>
+      <div class="section-body">
+        <div class="section-actions"><button class="btn" id="btn-check-writing">Check grammar & style</button></div>
+        <div id="writing-results" class="writing-results"></div>
+      </div>
+    </details>
+
+    <details class="section" data-section="links" open>
+      <summary class="section-summary">
+        <h2>Link checker</h2>
+        <span class="chev" aria-hidden="true">▾</span>
+      </summary>
+      <div class="section-body">
+        <div class="section-actions"><button class="btn" id="btn-check-links">Check broken links</button></div>
+        <div id="link-results" class="writing-results"></div>
+      </div>
+    </details>
+    
+    <div style="margin-top: 3em">
+      ${dangerBody}
+    </div>
+  </div>
+
+  <!-- Tab Content: History -->
+  <div id="tab-history" class="tab-content">
+    <div class="section">
+      <summary class="section-summary">
+        <h2>Time Machine</h2>
+      </summary>
+      <div class="section-body">
+        <div id="history-list" class="history-list">
+          <div class="empty">Loading version history...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Overlay -->
+<div id="history-preview">
+  <div class="preview-header">
+    <div class="preview-title">Version Preview</div>
+    <div class="preview-actions">
+      <button class="btn" id="btn-restore">Restore this version</button>
+      <button class="btn" style="background:#6b7280" id="btn-close-preview">Close</button>
+    </div>
+  </div>
+  <div id="preview-content" class="preview-body"></div>
 </div>
 `;
 
@@ -686,7 +778,24 @@ function buildPanelContent(
     new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
   } catch (e) {}
 
-  // Search logic
+  // Tab switching logic
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.getAttribute('data-tab');
+      document.querySelectorAll('.tab, .tab-content').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      tab.classList.add('active');
+      var content = document.getElementById('tab-' + target);
+      if (content) content.classList.add('active');
+      
+      if (target === 'history') {
+        loadHistory();
+      }
+    });
+  });
+
+  // Search logic (pinned at top)
   var searchInput = document.getElementById('search-input');
   var searchResults = document.getElementById('search-results');
   var MEILI_URL = 'http://localhost:7700';
@@ -695,15 +804,13 @@ function buildPanelContent(
   if (searchInput) {
     if (FOCUS_SEARCH) {
       setTimeout(function() { searchInput.focus(); }, 100);
-      // Ensure the search section is open if we are focusing it
-      var searchDetails = document.querySelector('details[data-section="search"]');
-      if (searchDetails) searchDetails.setAttribute('open', '');
     }
 
     searchInput.addEventListener('input', async function(e) {
       var query = e.target.value;
       if (!query) {
         searchResults.innerHTML = '';
+        searchResults.classList.remove('active');
         return;
       }
       try {
@@ -723,32 +830,218 @@ function buildPanelContent(
         });
         var data = await response.json();
         var hits = data.hits || [];
-        searchResults.innerHTML = hits.map(function(hit) {
-          var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
-          var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || (hit.content ? hit.content.substring(0, 100) : '');
-          return \`
-            <div class="search-result" data-path="\${hit.path}">
-              <div class="search-path">\${hit.path}</div>
-              <div class="search-title">\${title}</div>
-              <div class="search-snip">\${snip}</div>
-            </div>\`;
-        }).join('');
+        if (hits.length === 0) {
+           searchResults.innerHTML = '<div class="empty" style="padding:15px">No results found.</div>';
+        } else {
+          searchResults.innerHTML = hits.map(function(hit) {
+            var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
+            var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || (hit.content ? hit.content.substring(0, 100) : '');
+            return \`
+              <div class="search-result" data-path="\${hit.path}">
+                <div class="search-path">\${hit.path}</div>
+                <div class="search-title">\${title}</div>
+                <div class="search-snip">\${snip}</div>
+              </div>\`;
+          }).join('');
+        }
+        searchResults.classList.add('active');
 
         document.querySelectorAll('.search-result').forEach(function(el) {
           el.addEventListener('click', async function() {
             var path = el.getAttribute('data-path');
-            if (path) await syscall('editor.navigate', path);
+            if (path) {
+              await syscall('editor.navigate', path);
+              searchResults.classList.remove('active');
+              searchInput.value = '';
+            }
           });
         });
       } catch (err) {
         searchResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Search failed.</div>';
+        searchResults.classList.add('active');
+      }
+    });
+
+    // Close search on click outside
+    document.addEventListener('click', function(e) {
+      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.remove('active');
       }
     });
   }
 
-  // Multi-select checkboxes: keep the hidden input's comma-joined
-  // value in sync with which boxes are ticked. The save handler reads
-  // f-<key> the same way for plain inputs, dropdowns, and these.
+  // History / Time Machine logic
+  var WATCHER_URL = 'http://localhost:8020';
+  var historyList = document.getElementById('history-list');
+  var previewOverlay = document.getElementById('history-preview');
+  var previewContent = document.getElementById('preview-content');
+  var currentPreviewHash = null;
+
+  async function loadHistory() {
+    try {
+      var response = await fetch(WATCHER_URL + '/history?path=' + encodeURIComponent(PAGE));
+      var data = await response.json();
+      var history = data.history || [];
+      
+      if (history.length === 0) {
+        historyList.innerHTML = '<div class="empty">No snapshots found for this file yet. Snapshots occur every 30 minutes if changes are detected.</div>';
+        return;
+      }
+
+      historyList.innerHTML = history.map(function(commit) {
+        var date = new Date(commit.timestamp);
+        var label = date.toLocaleString();
+        return \`
+          <div class="history-item" data-hash="\${commit.hash}">
+            <div class="history-time">\${label}</div>
+            <div class="history-msg">\${commit.message}</div>
+          </div>\`;
+      }).join('');
+
+      document.querySelectorAll('.history-item').forEach(function(el) {
+        el.addEventListener('click', async function() {
+          var hash = el.getAttribute('data-hash');
+          showPreview(hash);
+        });
+      });
+    } catch (err) {
+      historyList.innerHTML = '<div style="color:red">Failed to load history.</div>';
+    }
+  }
+
+  async function showPreview(hash) {
+    try {
+      currentPreviewHash = hash;
+      previewContent.textContent = 'Loading version...';
+      previewOverlay.style.display = 'flex';
+      
+      var response = await fetch(WATCHER_URL + '/version?path=' + encodeURIComponent(PAGE) + '&hash=' + hash);
+      var data = await response.json();
+      previewContent.textContent = data.content;
+    } catch (err) {
+      previewContent.textContent = 'Error loading version: ' + err;
+    }
+  }
+
+  document.getElementById('btn-close-preview').addEventListener('click', function() {
+    previewOverlay.style.display = 'none';
+  });
+
+  document.getElementById('btn-restore').addEventListener('click', async function() {
+    if (!currentPreviewHash) return;
+    var ok = window.confirm('Restore this version? Your current changes will be overwritten.');
+    if (!ok) return;
+
+    try {
+      var content = previewContent.textContent;
+      await syscall('space.writePage', PAGE, content);
+      await syscall('editor.flashNotification', 'Version restored!');
+      previewOverlay.style.display = 'none';
+      await syscall('editor.reloadPage');
+    } catch (e) {
+      alert('Restore failed: ' + e);
+    }
+  });
+
+  // Writing check logic
+  var writingBtn = document.getElementById('btn-check-writing');
+  var writingResults = document.getElementById('writing-results');
+  var LT_URL = 'http://localhost:8010/v2/check';
+
+  if (writingBtn) {
+    writingBtn.addEventListener('click', async function() {
+      writingBtn.disabled = true;
+      writingBtn.textContent = 'Checking...';
+      writingResults.innerHTML = '';
+      try {
+        var text = await syscall('editor.getText');
+        // Strip frontmatter
+        if (text.startsWith('---')) {
+          var close = text.indexOf('\\n---\\n', 4);
+          if (close === -1) close = text.indexOf('\\n---', 4);
+          if (close !== -1) text = text.substring(close + 5);
+        }
+
+        var response = await fetch(LT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            text: text,
+            language: 'en-GB'
+          })
+        });
+        var data = await response.json();
+        var matches = data.matches || [];
+        if (matches.length === 0) {
+          writingResults.innerHTML = '<div style="color:green;font-size:13px;padding:10px">No issues found!</div>';
+        } else {
+          writingResults.innerHTML = matches.map(function(m) {
+            var ctx = m.context.text;
+            var start = m.context.offset;
+            var len = m.context.length;
+            var highlighted = ctx.substring(0, start) + '<em>' + ctx.substring(start, start + len) + '</em>' + ctx.substring(start + len);
+            return \`
+              <div class="writing-issue">
+                <div class="issue-msg">\${m.message}</div>
+                <div class="issue-context">\${highlighted}</div>
+              </div>\`;
+          }).join('');
+        }
+      } catch (err) {
+        writingResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Check failed.</div>';
+      } finally {
+        writingBtn.disabled = false;
+        writingBtn.textContent = 'Check grammar & style';
+      }
+    });
+  }
+
+  // Link check logic
+  var linkBtn = document.getElementById('btn-check-links');
+  var linkResults = document.getElementById('link-results');
+  var LYCHEE_URL = 'http://localhost:8030/check';
+
+  if (linkBtn) {
+    linkBtn.addEventListener('click', async function() {
+      linkBtn.disabled = true;
+      linkBtn.textContent = 'Checking...';
+      linkResults.innerHTML = '';
+      try {
+        var response = await fetch(LYCHEE_URL + '?path=' + encodeURIComponent(PAGE));
+        var data = await response.json();
+        var issues = data.issues || [];
+        if (issues.length === 0) {
+          linkResults.innerHTML = '<div style="color:green;font-size:13px;padding:10px">No broken links found!</div>';
+        } else {
+          linkResults.innerHTML = issues.map(function(iss) {
+            return \`
+              <div class="writing-issue">
+                <div class="issue-msg">\${iss.status}: \${iss.uri}</div>
+                <div class="issue-context">\${iss.message || ''}</div>
+              </div>\`;
+          }).join('');
+        }
+      } catch (err) {
+        linkResults.innerHTML = '<div style="color:red;font-size:12px;padding:10px">Check failed. Is Lychee-svc running?</div>';
+      } finally {
+        linkBtn.disabled = false;
+        linkBtn.textContent = 'Check broken links';
+      }
+    });
+  }
+
+  // Multi-select checkboxes
+  document.querySelectorAll('input[type="checkbox"][data-multi-key]').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var key = cb.getAttribute('data-multi-key');
+      var hidden = document.getElementById('f-' + key);
+      if (!hidden) return;
+      var checked = Array.prototype.slice.call(
+        document.querySelectorAll('input[type="checkbox"][data-multi-key="' + key + '"]:checked')
+      ).map(function(c) { return c.value; });
+      hidden.value = checked.join(',');
+    });
+  });
 
   var saveBtn = document.getElementById('btn-save');
   if (saveBtn) {
@@ -770,7 +1063,7 @@ function buildPanelContent(
     });
   }
 
-  // ToC clicks: scroll the editor to the heading's line.
+  // ToC clicks
   document.querySelectorAll('.toc-item').forEach(function(el) {
     el.addEventListener('click', async function() {
       var line = parseInt(el.getAttribute('data-line'), 10);
@@ -784,10 +1077,7 @@ function buildPanelContent(
     });
   });
 
-  // Delete button: confirm by typing DELETE (case-insensitive), then
-  // delete via syscall and navigate home. SB's space.deletePage removes
-  // the file from disk; there's no trash bin, so the confirmation has
-  // to be deliberate but doesn't need to be onerous.
+  // Delete button
   var deleteBtn = document.getElementById('btn-delete');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async function() {
@@ -810,7 +1100,7 @@ function buildPanelContent(
     });
   }
 
-  // Linked-mention clicks: navigate to the mentioning page.
+  // Linked-mention clicks
   document.querySelectorAll('.mention').forEach(function(el) {
     el.addEventListener('click', async function() {
       var page = el.getAttribute('data-page');
@@ -820,8 +1110,7 @@ function buildPanelContent(
     });
   });
 
-  // Collapsible sections: restore + persist open/closed state.
-  // Default is open; an explicit "0" in storage means user collapsed it.
+  // Collapsible sections
   function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
   document.querySelectorAll('details.section').forEach(function(d) {
     var key = 'path-section-' + d.getAttribute('data-section');

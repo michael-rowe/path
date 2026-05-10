@@ -83,6 +83,46 @@ services:
       - meilisearch
     restart: unless-stopped
 
+  # Git-watcher — automated "Time Machine" versioning.
+  git-watcher:
+    build: ./git-watcher
+    container_name: path-git-watcher
+    ports:
+      - "8020:8020"
+    volumes:
+      - ./space:/space
+    networks:
+      path-net:
+    restart: unless-stopped
+
+  # LanguageTool — self-hosted grammar and style checker.
+  # Start with: docker compose --profile writing up -d
+  languagetool:
+    image: erikvl87/languagetool
+    container_name: path-languagetool
+    profiles:
+      - writing
+    ports:
+      - "8010:8010"
+    networks:
+      path-net:
+    restart: unless-stopped
+
+  # Lychee — broken link checker.
+  # Start with: docker compose --profile writing up -d
+  lychee-svc:
+    build: ./lychee-svc
+    container_name: path-lychee-svc
+    profiles:
+      - writing
+    ports:
+      - "8030:8030"
+    volumes:
+      - ./space:/space:ro
+    networks:
+      path-net:
+    restart: unless-stopped
+
 networks:
   path-net:
     driver: bridge

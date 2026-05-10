@@ -41,17 +41,31 @@ It has three sections:
 
 ## Inspector
 
-The Inspector is the right-hand panel. It shows four collapsible sections for the page you are currently viewing:
+The Inspector is the right-hand panel. It features a pinned **search bar** at the top and three functional tabs:
 
-**Search portfolio** — a high-performance, full-text search powered by Meilisearch. Press `Ctrl-Shift-f` from anywhere to focus the search box. Results appear as you type; click any result to navigate there. The search indexes your content and all YAML attributes (tags, status, framework), making it the fastest way to find records.
+### Pinned Search
+A high-performance, full-text search powered by Meilisearch. Press `Ctrl-Shift-f` from anywhere to focus the search box. Results appear as you type; click any result to navigate there. The search indexes your content and all YAML attributes (tags, status, framework), making it the fastest way to find records.
+
+### Page Tab
+Contains the structural and metadata elements for the current page:
 
 **On this page** — a table of contents built from the headings in the current page. Click any heading to jump directly to it.
 
-**Page attributes** — the structured fields from the page's YAML frontmatter, rendered as an editable form. Change a value and click **Save** to write it back to the file. Fields with a fixed set of valid options (status, claim type, activity type, file type, framework, and others) appear as dropdowns. Multi-value fields like `paths` and `standards` appear as checkbox lists driven by your installed Paths and the relevant framework's criteria.
+**Page attributes** — the structured fields from the page's YAML frontmatter, rendered as an editable form. Change a value and click **Save** to write it back to the file. Fields with a fixed set of valid options appear as dropdowns. Multi-value fields like `paths` and `standards` appear as checkbox lists driven by your installed Paths.
 
-**Linked mentions** — every page in Path that links to the current one. Click any result to navigate there. This is how you trace the connections between a CPD entry, its reflections, and the claims that cite it.
+**Linked mentions** — every page in Path that links to the current one. This is how you trace the connections between a CPD entry, its reflections, and the claims that cite it.
 
-At the bottom of the Inspector, a **Delete this page** button removes the current page (after a typed "DELETE" confirmation). The button is hidden on view-only pages.
+### Tools Tab
+Utility features for the current page:
+
+**Writing quality** — an integrated grammar and style checker powered by LanguageTool. Click **Check grammar & style** to analyze the current page. Issues are highlighted with context and suggested fixes.
+
+**Link checker** — a high-performance broken link checker powered by Lychee. Click **Check broken links** to verify all internal and external references in the page.
+
+**Delete this page** — permanently remove the current record (requires typing DELETE to confirm). The button is hidden on view-only pages.
+
+### History Tab
+The Path **Time Machine**. Shows a list of automated snapshots taken every 30 minutes. Click any snapshot to preview the previous version, and use the **Restore** button to roll back changes.
 
 > **note** The YAML block in the editor body is hidden by default. The Inspector is the intended editing surface for page metadata.
 

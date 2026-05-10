@@ -88,7 +88,12 @@ Then in SB's command palette: **`Plugs: Reload`** — picks up the new bundle wi
 
 `showAttributesPanel` reads page text from `editor.getText()` first (the editor buffer), falling back to `space.readPage()`. This avoids a race where a brand-new page from a template hasn't been written to disk yet when `pageLoaded` fires.
 
-## SB panel API gotchas (learned the hard way)
+- **Modular Sidecars**: Use Docker profiles for heavyweight tools (Meilisearch, LanguageTool) to keep the core install lean.
+- **Tabbed Inspector**: Planned refactor to handle panel crowding (Info | Tools | Support).
+- **Automated Versioning**: Planned sidecar for background Git commits to provide "Time Machine" rollbacks without exposing git complexity.
+
+## SB panel API gotchas
+ (learned the hard way)
 
 - **Panels run in iframes** when `html` is a string (the path we use). Shadow DOM is for HTMLElement panels, only constructible from native code.
 - **`<script>` tags inside the HTML are silently dropped** — SB sets the iframe's `body.innerHTML = html`, which strips scripts. The script must be passed as the **4th arg** to `editor.showPanel(id, mode, html, script)`. The iframe `eval`s it after innerHTML assignment.
