@@ -75,16 +75,20 @@ Path is a SilverBullet plug, not a fork. The editor is SilverBullet — wikilink
 
 A few screenshots to give you a sense of what it looks like.
 
-<img width="2836" height="1433" alt="path_interface" src="https://github.com/user-attachments/assets/1833f012-1978-49d6-948a-8514b7758e7c" /><br />
+_User interface with Navigator panel on the left, Toolbar on the top, and tabbed Inspector panel on the right. New, enhanced search. And new version controlled notes with the ability to roll back to any previous version._
+<img width="2161" height="1473" alt="path_inspector_panel" src="https://github.com/user-attachments/assets/101a5a2d-1bd1-4789-9ac1-811282b44870" /><br />
 
+_Dark mode_
+<img width="2174" height="1519" alt="path_dark_mode" src="https://github.com/user-attachments/assets/716aac1b-b435-4473-96af-2e9493dce230" /><br />
+
+_Automated heatmap showing coverage of content against framework criteria._
 <img width="1309" height="1163" alt="path_heatmap" src="https://github.com/user-attachments/assets/f8d9b3ce-1bfc-4175-bb03-3b5486ee05c8" /><br />
 
+_Ability to download new frameworks._
 <img width="1431" height="739" alt="path_frameworks" src="https://github.com/user-attachments/assets/b1ff2ba0-b652-4b5d-9a4b-4af0df52e9ef" /><br />
 
+_Task dashboard aggregates tasks from across Path into one convenient location._
 <img width="1308" height="504" alt="path_task_dashboard" src="https://github.com/user-attachments/assets/206a8cff-a39e-49ff-8ed1-87087d8aca99" /><br />
-
-<img width="2843" height="1461" alt="path_dark_mode" src="https://github.com/user-attachments/assets/7487ced9-20ed-433e-ae70-0f4db6b7cd4f" /><br />
-
 
 ---
 
