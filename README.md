@@ -57,13 +57,17 @@ Every piece of content is a structured markdown page with YAML frontmatter (you 
 
 ### Editor surface
 
-Path is a SilverBullet plug, not a fork. The editor is SilverBullet — wikilinks, transclusion, full-text search. Path adds:
+Path is a SilverBullet plug, not a fork. The editor is SilverBullet — wikilinks, transclusion, markdown. Path adds:
 
-- A branded left-hand **Navigator** with browse links per page type.
-- A right-hand **Inspector** for editable YAML frontmatter (dropdowns where there are enums, multi-select checkboxes for `paths` and `standards`, a Linked Mentions section, a Delete-page button).
-- A "View only" badge on system pages so you don't accidentally edit the dashboard.
-- Light/dark themes that persist.
-- A **Focus mode** that hides both panels.
+- A **Toolbar** at the top for app-level actions: a distinctive indigo **Capture** button (the primary creation action), **Sync to cloud**, **Export to Word**, **Manual** (`?`), and the light/dark theme toggle. Each is one click, no menu diving.
+- A branded left-hand **Navigator** with browse links per page type, an **Announcements** feed (unread badge), and a **Recent** list of edited pages.
+- A right-hand **Inspector** with three tabs:
+  - **Page** — pinned full-text search, table of contents, editable YAML attributes (dropdowns for enums, multi-select checkboxes for `paths` and `standards`), and Linked Mentions.
+  - **Tools** — Check grammar & style, Check broken links, Delete this page. Editable pages only.
+  - **History** — per-page version timeline with one-click preview and restore (see Time Machine below).
+- A "View only" badge on system pages so you don't accidentally edit the dashboard. Readonly pages hide the Tools and History tabs.
+- A **Setup** page that walks you through onboarding and auto-hides from the Navigator once you have a profile, an installed framework, and an active Path.
+- Light/dark themes that persist. **Focus mode** (`Ctrl-Alt-z`) hides both side panels for distraction-free editing.
 
 ---
 
@@ -86,7 +90,7 @@ A few screenshots to give you a sense of what it looks like.
 
 ### Workflow
 
-A single **Capture** button opens a picker that routes to the right template. Active Path is detected automatically; with two or more, you're asked which Path the new entry is for. Frameworks then drive the rest — for example, a new claim's `framework` field auto-fills based on the chosen Path, and the Inspector's `standards` field becomes a checkbox list of that framework's criteria rather than free-text.
+A single **Capture** action — toolbar button or `Ctrl-Alt-c` — opens a picker that routes to the right template. Active Path is detected automatically; with two or more, you're asked which Path the new entry is for. Frameworks then drive the rest — for example, a new claim's `framework` field auto-fills based on the chosen Path, and the Inspector's `standards` field becomes a checkbox list of that framework's criteria rather than free-text.
 
 When a goal is achieved (or abandoned), `Path: Archive this Path` flips its status without removing any links from your historical CPD or claims.
 
@@ -102,7 +106,51 @@ Queries use SilverBullet's Lua-based query language and re-evaluate live as you 
 
 ### Export
 
-Optional Pandoc sidecar runs as a separate Docker container. Compiles a chosen subset of pages — personal statement, claims, supporting evidence — into a Word document ready for editing and submission. For PDF, use your browser's print function. Excluded by default to keep the install small (~150 MB without, ~250 MB with).
+Optional Pandoc sidecar runs as a separate Docker container. Compiles a chosen subset of pages — personal statement, claims, supporting evidence — into a Word document ready for editing and submission. For PDF, use your browser's print function. Excluded by default to keep the install small (~150 MB without, ~250 MB with). Start with `docker compose --profile export up -d`. The Toolbar's file icon triggers the export.
+
+---
+
+### Time Machine — version history per page
+
+A background **git-watcher** sidecar takes a snapshot of `space/` every 30 minutes. The Inspector's **History** tab shows the version timeline for the current page: each entry lists which files the snapshot touched. Click the preview icon to see a previous version of the page, then **Restore this version** in the sticky banner to bring it back. Snapshots are stored in a local git repo inside `space/` — nothing leaves your machine.
+
+Runs by default with `docker compose up -d`. To force a snapshot or change the interval, see `git-watcher/main.py` (env var `COMMIT_INTERVAL`).
+
+---
+
+### Cloud backup
+
+Optional **rclone** sidecar syncs `space/` to any cloud target rclone supports (Google Drive, Dropbox, S3, WebDAV, OneDrive, …). One-time configure inside the container, then click the cloud-upload icon in the Toolbar to push your portfolio to your remote. Sync runs in the background; status persists across container restarts.
+
+```bash
+docker compose --profile backup up -d
+docker compose run --rm rclone-svc rclone config    # one-time
+```
+
+Behind the scenes: a `RCLONE_REMOTE` env var picks the remote name (default `gdrive`), and the destination folder is `Path-Portfolio-Backup`.
+
+---
+
+### Writing tools
+
+Two optional sidecars accessible from the Inspector's **Tools** tab:
+
+- **Check grammar & style** — runs the current page through **LanguageTool** (self-hosted, no calls out). Issues are rendered into `_system/last-grammar-check`.
+- **Check broken links** — runs the current page through **Lychee**. Broken or unreachable links are rendered into `_system/last-link-check`. Results are debounced for 60 seconds per page so a quick re-run doesn't hammer external hosts.
+
+Start with `docker compose --profile writing up -d`. (LanguageTool ships with the Java runtime, so this profile adds ~1.5 GB.)
+
+---
+
+### Search
+
+Optional **Meilisearch** index of the whole space, plus a `meili-indexer` sidecar that re-indexes pages as you save. The Inspector's pinned search box queries it. Results highlight the matched fragment and route on click.
+
+```bash
+docker compose --profile search up -d
+```
+
+The Meilisearch master key is read from `.env` (`MEILI_MASTER_KEY`); the plug reads the same value from `space/_system/path-config.md` — keep them in sync.
 
 ---
 
@@ -187,14 +235,20 @@ cp .env.example .env
 # Edit .env: SB_USER=admin:your-password
 ```
 
-Then either:
+Then bring up the services you want:
 
 ```bash
-docker compose up -d                          # ~150 MB, no PDF export
-docker compose --profile export up -d         # ~500 MB, includes Pandoc + XeLaTeX
+docker compose up -d                          # core: SilverBullet + Time Machine
+docker compose --profile export up -d         # + Word export
+docker compose --profile search up -d         # + full-text search
+docker compose --profile writing up -d        # + grammar & link check
+docker compose --profile backup up -d         # + cloud backup (run rclone config first)
+docker compose --profile ai up -d             # + MCP server for AI clients
 ```
 
-Open http://localhost:3000, log in with whatever you put in `.env`, and follow the **Getting started** page. It walks you through filling in your profile, installing a framework, and creating your first activity.
+Profiles compose: `docker compose --profile export --profile search --profile writing up -d`.
+
+Open http://localhost:3000, log in with whatever you put in `.env`, and follow the **Setup** page. It walks you through filling in your profile, installing a framework, and creating your first activity. The Setup entry disappears from the Navigator once those three steps are done.
 
 ---
 
