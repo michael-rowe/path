@@ -1480,19 +1480,9 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
       badge?: number;
     }[];
   }[] = [
-    // Single capture button replaces the long Create list — picker
-    // (`Path: Capture`) shows all entry types including New task,
-    // Quick capture, Contact, Credential, Personal statement, etc.
-    {
-      title: "",
-      items: [
-        {
-          label: "Capture",
-          icon: "plus",
-          command: "Path: Capture",
-        },
-      ],
-    },
+    // Capture moved to the Toolbar (rendered as a solid indigo "+"
+    // circle, see CONFIG.md and STYLE.md). The Navigator no longer
+    // duplicates it.
     {
       title: "Browse",
       items: [
