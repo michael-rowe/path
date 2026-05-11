@@ -98,23 +98,12 @@ async def get_status():
         logger.error(f"Status check error: {e}")
         return {"error": str(e)}
 
-@app.post("/sync")
-async def trigger_sync(remote: str = None):
-    """Triggers an rclone sync operation."""
-    target_remote = remote or DEFAULT_REMOTE
-
-    if not os.path.exists(CONFIG_PATH):
-        raise HTTPException(status_code=400, detail="Rclone not configured. Please run 'rclone config' first.")
-
-    # Refuse to interleave concurrent syncs — the second caller gets a
-    # clear 409 rather than racing on last_sync_status mid-write.
-    if not _sync_lock.acquire(blocking=False):
-        raise HTTPException(status_code=409, detail="Sync already in progress")
-
+def _run_sync(target_remote: str) -> None:
+    """The actual sync work. Runs in a background thread spawned by
+    /sync so the HTTP request can return immediately. Holds _sync_lock
+    for the whole duration; the /sync entrypoint checks the lock
+    before spawning to refuse concurrent syncs."""
     try:
-        last_sync_status["status"] = "Running..."
-        last_sync_status["last_run"] = datetime.now().isoformat()
-
         dest = f"{target_remote}:{DEFAULT_DEST}"
         logger.info(f"Starting sync to {dest}")
 
@@ -125,34 +114,69 @@ async def trigger_sync(remote: str = None):
             ["rclone", "sync", SPACE_PATH, dest],
             capture_output=True,
             text=True,
-            timeout=300,  # 5 minute timeout
+            timeout=600,  # 10 minute timeout — async, so no client waiting
         )
 
         if result.returncode == 0:
             last_sync_status["status"] = "Success"
             last_sync_status["details"] = "Sync completed successfully."
+            last_sync_status["last_run"] = datetime.now().isoformat()
             logger.info("Sync success")
         else:
             last_sync_status["status"] = "Error"
-            # Truncate stderr in the response — keep full output in logs.
             last_sync_status["details"] = (result.stderr or "")[:500]
+            last_sync_status["last_run"] = datetime.now().isoformat()
             logger.error(f"Sync failed: {result.stderr}")
-
-        _save_status()
-        return last_sync_status
     except subprocess.TimeoutExpired:
         last_sync_status["status"] = "Timeout"
-        last_sync_status["details"] = "Sync operation timed out after 5 minutes."
-        _save_status()
-        return last_sync_status
+        last_sync_status["details"] = "Sync timed out after 10 minutes."
+        last_sync_status["last_run"] = datetime.now().isoformat()
+        logger.error("Sync timed out")
     except Exception as e:
-        logger.error(f"Sync error: {e}")
         last_sync_status["status"] = "Error"
         last_sync_status["details"] = str(e)
-        _save_status()
-        raise HTTPException(status_code=500, detail=str(e))
+        last_sync_status["last_run"] = datetime.now().isoformat()
+        logger.exception("Sync background thread crashed")
     finally:
+        _save_status()
         _sync_lock.release()
+
+
+@app.post("/sync")
+async def trigger_sync(remote: str = None):
+    """Kick off a sync in the background and return immediately.
+
+    Real rclone runs can take minutes; the SB plug sandbox-fetch has a
+    30s timeout, so a synchronous endpoint reports failure even on a
+    healthy sync. The background thread holds _sync_lock for its
+    lifetime, so a second concurrent /sync still gets a clean 409.
+    Status and last_run land in /status (and persist to disk) on
+    completion."""
+    target_remote = remote or DEFAULT_REMOTE
+
+    if not os.path.exists(CONFIG_PATH):
+        raise HTTPException(status_code=400, detail="Rclone not configured. Please run 'rclone config' first.")
+
+    if not _sync_lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Sync already in progress")
+
+    # Lock acquired here; the background thread releases it in finally.
+    last_sync_status["status"] = "Running..."
+    last_sync_status["last_run"] = datetime.now().isoformat()
+    last_sync_status["details"] = ""
+    _save_status()
+
+    threading.Thread(
+        target=_run_sync, args=(target_remote,), daemon=True
+    ).start()
+
+    # 202 Accepted: work started, not yet finished. Client polls /status
+    # or just trusts the persisted state.
+    return {
+        "status": last_sync_status["status"],
+        "last_run": last_sync_status["last_run"],
+        "started": True,
+    }
 
 if __name__ == "__main__":
     import uvicorn
