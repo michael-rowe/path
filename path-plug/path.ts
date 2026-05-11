@@ -756,21 +756,35 @@ function buildPanelContent(
   ${searchBody}
   <div class="tabs">
     <button class="tab-btn ${preview ? "" : "active"}" data-tab="page">Page</button>
+    ${
+    // Tools (per-page actions) and History (snapshot timeline) only
+    // make sense on editable user pages. Hide them on readonly system
+    // pages (manuals, dashboards, About). Preview pages are technically
+    // readonly but need History visible for the Restore banner, so
+    // keep both tabs when `preview` is set.
+    isReadonly && !preview
+      ? ""
+      : `
     <button class="tab-btn" data-tab="tools">Tools</button>
-    <button class="tab-btn ${preview ? "active" : ""}" data-tab="history">History</button>
+    <button class="tab-btn ${preview ? "active" : ""}" data-tab="history">History</button>`
+  }
   </div>
   <div id="tab-page" class="tab-content ${preview ? "" : "active"}">
     ${tocBody}
     ${attrsBody}
     ${mentionsBody}
   </div>
+  ${
+    isReadonly && !preview
+      ? ""
+      : `
   <div id="tab-tools" class="tab-content">
     ${toolsBody}
   </div>
   <div id="tab-history" class="tab-content ${preview ? "active" : ""}">
     ${
-      preview
-        ? `
+        preview
+          ? `
     <div class="preview-banner">
       <div class="preview-banner-title">Previewing snapshot <code>${
           escapeHtml(preview.hash.slice(0, 7))
@@ -783,10 +797,11 @@ function buildPanelContent(
         <button class="btn-secondary" id="btn-preview-back">Back to current</button>
       </div>
     </div>`
-        : ""
-    }
+          : ""
+      }
     ${historyBody}
-  </div>
+  </div>`
+  }
 </div>
 `;
 
@@ -1556,7 +1571,9 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
   .brand-row { display: flex; align-items: center; gap: 0.55em; margin: 0 0 0.15em 0; }
   .logo { width: 24px; height: 24px; color: #4f46e5; flex-shrink: 0; }
   .brand { font-size: 1.3em; font-weight: 600; letter-spacing: 0.01em; margin: 0; color: #111827; flex: 1; }
-  .tagline { font-size: 0.78em; color: #6b7280; margin: 0 0 1.7em 0; font-style: italic; }
+  .tagline { font-size: 0.78em; color: #6b7280; margin: 0 0 1em 0; font-style: italic; }
+  .nav-divider { border: 0; border-top: 1px solid #e5e7eb; margin: 0 0 1.4em 0; }
+  html[data-theme="dark"] .nav-divider { border-top-color: #1e293b; }
   .section { margin-bottom: 1.5em; }
   .section h2 { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; margin: 0 0 0.55em 0; font-weight: 600; }
   .nav { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.1em; }
@@ -1592,6 +1609,7 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
     <h1 class="brand">Path</h1>
   </div>
   <p class="tagline">Career development for professionals</p>
+  <hr class="nav-divider">
   ${sectionsHtml}
 </div>
 `;

@@ -112,8 +112,32 @@ def auto_commit_worker():
                 # Check again after adding
                 if repo.is_dirty():
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-                    repo.index.commit(f"snapshot: {timestamp}")
-                    logger.info(f"Automated snapshot created at {timestamp}")
+                    # Include the changed paths in the commit message so the
+                    # Inspector History tab can show which files this snapshot
+                    # actually touched. Without this, every snapshot reads as
+                    # "snapshot: <time>" and a user looking at one page sees
+                    # commits that genuinely touched it but with messages that
+                    # don't reveal what changed.
+                    diff = repo.index.diff("HEAD") if repo.head.is_valid() else []
+                    # diff items have .a_path / .b_path; new files use b_path.
+                    changed = sorted({
+                        (d.b_path or d.a_path) for d in diff
+                        if (d.b_path or d.a_path)
+                    })
+                    if not changed:
+                        # Initial commit or fully untracked — fall back to
+                        # walking the index directly.
+                        changed = sorted({e[0] for e in repo.index.entries.keys()})[:20]
+                    summary_count = len(changed)
+                    summary_paths = ", ".join(changed[:5])
+                    if summary_count > 5:
+                        summary_paths += f", … (+{summary_count - 5} more)"
+                    message = (
+                        f"snapshot: {timestamp} — {summary_count} file"
+                        f"{'s' if summary_count != 1 else ''}: {summary_paths}"
+                    )
+                    repo.index.commit(message)
+                    logger.info(f"Snapshot created: {summary_count} file(s)")
             else:
                 logger.debug("No changes detected, skipping snapshot.")
         except Exception as e:
