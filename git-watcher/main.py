@@ -9,11 +9,28 @@ from git import Repo, GitCommandError
 
 # Configuration
 SPACE_PATH = "/space"
-COMMIT_INTERVAL = 1800  # 30 minutes in seconds
+COMMIT_INTERVAL = int(os.environ.get("COMMIT_INTERVAL", "1800"))  # default 30 min
 API_PORT = 8020
 
+# Files / directories never to commit. Written into space/.gitignore on
+# every startup so existing repos created before this list was extended
+# pick up the additions.
+GITIGNORE_LINES = [
+    ".git/",
+    "Library/",
+    "_system/",
+    ".silverbullet.db",
+    ".silverbullet.db-journal",
+    ".silverbullet.db-wal",
+    ".silverbullet.db-shm",
+]
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+# Sticky error surfaced via /health so the Inspector can tell the user
+# the sidecar isn't doing anything useful.
+init_error: str | None = None
 
 app = FastAPI(title="Path Time Machine API")
 
@@ -29,32 +46,55 @@ app.add_middleware(
 # Configure git safety first
 os.system("git config --global --add safe.directory /space")
 
+
+def ensure_gitignore() -> None:
+    """Make sure space/.gitignore lists everything in GITIGNORE_LINES.
+
+    Runs on every startup, not only on fresh init, so repos created before
+    a line was added still pick it up. Existing user entries are preserved.
+    """
+    gitignore_path = os.path.join(SPACE_PATH, ".gitignore")
+    existing: list[str] = []
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path) as f:
+            existing = [line.rstrip("\n") for line in f.readlines()]
+    missing = [line for line in GITIGNORE_LINES if line not in existing]
+    if not missing:
+        return
+    with open(gitignore_path, "a" if existing else "w") as f:
+        if existing and existing[-1] != "":
+            f.write("\n")
+        for line in missing:
+            f.write(line + "\n")
+    logger.info(f"Added {len(missing)} entries to .gitignore: {missing}")
+
+
 # Initialize Git Repo
 repo = None
 try:
     if not os.path.exists(os.path.join(SPACE_PATH, ".git")):
         logger.info(f"Initializing new git repository in {SPACE_PATH}")
         repo = Repo.init(SPACE_PATH)
-        # Create a .gitignore to exclude system files if it doesn't exist
-        gitignore_path = os.path.join(SPACE_PATH, ".gitignore")
-        if not os.path.exists(gitignore_path):
-            with open(gitignore_path, "w") as f:
-                f.write(".git/\nLibrary/\n_system/\n.silverbullet.db\n")
-        
+        ensure_gitignore()
         repo.git.add(".gitignore")
         repo.index.commit("initial: Path repository initialized")
         logger.info("Initial commit created.")
     else:
         repo = Repo(SPACE_PATH)
+        ensure_gitignore()
         logger.info("Existing git repository found.")
 except Exception as e:
     logger.error(f"Failed to initialize git: {e}")
+    init_error = f"init failed: {e}"
     # Try one more time to just open it if init failed because it already existed but was "dubious"
     try:
         repo = Repo(SPACE_PATH)
+        ensure_gitignore()
+        init_error = None
         logger.info("Existing git repository opened after safe.directory fix.")
     except Exception as e2:
         logger.error(f"Second attempt to open repo failed: {e2}")
+        init_error = f"init failed: {e}; reopen failed: {e2}"
 
 def auto_commit_worker():
     """Background thread to perform commits every 30 minutes."""
@@ -80,6 +120,17 @@ def auto_commit_worker():
             logger.error(f"Auto-commit error: {e}")
         
         time.sleep(COMMIT_INTERVAL)
+
+@app.get("/health")
+async def health():
+    """Liveness + init state. Used by the Inspector to warn when the
+    Time Machine isn't actually capturing snapshots."""
+    return {
+        "ok": repo is not None and init_error is None,
+        "init_error": init_error,
+        "commit_interval_seconds": COMMIT_INTERVAL,
+    }
+
 
 @app.get("/history")
 async def get_history(path: str):

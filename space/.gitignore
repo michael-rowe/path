@@ -2,3 +2,7 @@
 Library/
 _system/
 .silverbullet.db
+
+.silverbullet.db-journal
+.silverbullet.db-wal
+.silverbullet.db-shm
