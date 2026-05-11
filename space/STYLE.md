@@ -55,6 +55,29 @@ Custom styles for Path. Edit the `space-style` block below; reload (or run `Syst
   margin-top: 44px !important;
 }
 
+/* Capture toolbar button — primary creation action; visually stand out
+   from the otherwise uniform action button row. SB renders the button's
+   description as the title attribute, so we target by that. The icon
+   inherits stroke from currentColor, so tinting the button colour tints
+   the SVG. */
+#sb-top .sb-actions button[title^="Capture"] {
+  color: #4f46e5 !important;
+}
+#sb-top .sb-actions button[title^="Capture"] svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 2.4 !important;
+}
+#sb-top .sb-actions button[title^="Capture"]:hover {
+  color: #4338ca !important;
+}
+html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"] {
+  color: #818cf8 !important;
+}
+html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"]:hover {
+  color: #a5b4fc !important;
+}
+
 /* ============ Frontmatter — hidden; edit via the Inspector ============ */
 
 /* Hide the YAML body — the right-hand "Page attributes" panel is the

@@ -24,20 +24,24 @@ The most useful commands and shortcuts. Bookmark this page or click the **?** ic
 - [[manual/files-and-evidence|Files and evidence]] — adding PDFs, certificates, photos
 - [[manual/glossary|Glossary]] — plain-language definitions
 - [[manual/ai-features|AI features]] — connecting an AI assistant to your portfolio
+- [[manual/about|About]] — version, attribution, licence, source
 - [[manual/cheatsheet|Cheatsheet]] — this page
 
 ## Most useful commands
 
 | Action | How |
 |---|---|
-| Capture something new | Click the **+ Capture** button in the Navigator, or press `Ctrl-Alt-c` |
+| Capture something new | Click the **+ Capture** icon in the Toolbar (indigo), the Capture button in the Navigator, or press `Ctrl-Alt-c` |
 | Open the command palette | `Ctrl-/` (then start typing) |
 | Open another page | `Ctrl-K` (then start typing — fuzzy match) |
 | Go home | Click the Home icon in the Toolbar |
 | Your profile | Click the Profile icon in the Toolbar |
 | Full-text search | `Ctrl-Shift-f` (opens the Search section in the Inspector) |
-| Toggle focus mode | `Ctrl-Alt-z`, or click the Focus mode icon in the Toolbar |
+| Toggle focus mode | `Ctrl-Alt-z` |
 | Toggle light / dark | Click the moon/sun icon in the Toolbar |
+| Sync to cloud | Click the cloud-upload icon in the Toolbar |
+| Export to Word | Click the file icon in the Toolbar |
+| Open this manual | Click the book icon in the Toolbar |
 | Reload the system | `Ctrl-Alt-r` (after changing styles or scripts) |
 
 ## Capture menu options

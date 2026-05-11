@@ -1419,8 +1419,57 @@ async function announcementsUnreadCount(): Promise<number> {
   }
 }
 
+// Three quick checks deciding whether the user is past the onboarding
+// arc. When true, the Setup nav item is hidden — it'll reappear
+// automatically if any of these conditions stop holding (e.g. the
+// installed-frameworks page is deleted). The intent matches the
+// onboardingStatus() Lua widget on the Setup page: profile filled,
+// framework installed, an active Path exists. CPD/reflection/claim
+// checks the widget also covers aren't required here — at that point
+// the user has unambiguously started using Path.
+async function isOnboardingComplete(): Promise<boolean> {
+  try {
+    // Profile filled — at minimum a full_name.
+    const profileText = await space.readPage("profile").catch(() => "");
+    const profileParsed = parseFrontmatter(profileText);
+    const fullName = profileParsed?.fields.find((f) => f.key === "full_name")
+      ?.value as string | undefined;
+    if (!fullName || !fullName.trim()) return false;
+
+    // A framework is installed — _system/installed-frameworks has at
+    // least one `slug:` line in its body.
+    const frameworksText = await space
+      .readPage("_system/installed-frameworks")
+      .catch(() => "");
+    if (!/^\s*slug:/m.test(frameworksText)) return false;
+
+    // At least one active Path. listPages is lightweight enough for the
+    // panel render path; we then read each candidate's YAML.
+    const allPages = await space.listPages();
+    let hasActivePath = false;
+    for (const p of allPages) {
+      if (!p.name.startsWith("paths/")) continue;
+      if (p.name.endsWith("-coverage") || p.name === "paths/index") continue;
+      const text = await space.readPage(p.name).catch(() => "");
+      const parsed = parseFrontmatter(text);
+      const status = parsed?.fields.find((f) => f.key === "status")?.value;
+      const type = parsed?.fields.find((f) => f.key === "type")?.value;
+      if (type === "path" && status === "active") {
+        hasActivePath = true;
+        break;
+      }
+    }
+    if (!hasActivePath) return false;
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function buildLeftPanel(): Promise<{ html: string; script: string }> {
   const unreadCount = await announcementsUnreadCount();
+  const onboardingDone = await isOnboardingComplete();
   const sections: {
     title: string;
     items: {
@@ -1462,8 +1511,16 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
     },
     {
       title: "Workspace",
+      // Setup is suppressed once onboarding is complete (profile +
+      // framework + active Path all in place). Add framework, Export,
+      // Manual, About, and AI context all moved out: Add framework
+      // lives in the Setup arc itself; Export and Manual moved to the
+      // Toolbar; About is now under manual/about; AI context is rare
+      // enough to access via the command palette / Open.
       items: [
-        { label: "Setup", icon: "check-square", navigate: "Setup" },
+        ...(onboardingDone
+          ? []
+          : [{ label: "Setup", icon: "check-square", navigate: "Setup" }]),
         {
           label: "Announcements",
           icon: "bell",
@@ -1471,15 +1528,6 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
           badge: unreadCount,
         },
         { label: "Recent", icon: "clock", navigate: "Recent" },
-        { label: "Export to Word", icon: "file-text", command: "Path: Export to Word" },
-        { label: "AI context", icon: "cpu", navigate: "_system/mcp-context" },
-        { label: "Manual", icon: "book-open", navigate: "manual/cheatsheet" },
-        {
-          label: "Add framework",
-          icon: "download",
-          command: "Path: Add framework",
-        },
-        { label: "About", icon: "info", navigate: "About" },
       ],
     },
   ];

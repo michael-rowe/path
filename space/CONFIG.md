@@ -763,27 +763,53 @@ actionButton.define {
   run = toggleTheme,
 }
 
--- Focus mode — priority 1.05, sits between SB's RunCmd (≈1.1) and Search.
--- This places it: ... RunCmd | FocusMode | Sync | Search | Theme.
+-- Focus mode is keyboard-only (Ctrl-Alt-z); the previous toolbar
+-- actionButton was removed because the action is rare enough that the
+-- toolbar slot wasn't justified.
+
+-- Capture — primary creation action. Bumped above sidecar actions so
+-- it sits prominently. STYLE.md adds a larger icon + indigo accent so
+-- it stands out from the other (uniform) toolbar buttons.
 actionButton.define {
-  icon = "columns",
-  description = "Focus mode — hide/restore panels (Ctrl-Alt-z)",
-  priority = 1.05,
+  icon = "plus",
+  description = "Capture (Path: Capture)",
+  priority = 1.15,
   run = function()
-    editor.invokeCommand("Path: Toggle focus mode")
+    editor.invokeCommand("Path: Capture")
   end
 }
 
--- Sync to cloud — priority 1.04, app-scoped operation. Placed here
--- (not on the page-scoped Inspector Tools tab) because syncing the
--- whole space is not a per-page action. Status is shown via flash
--- notification on click; persistent state lives in rclone-svc.
+-- Sync to cloud — app-scoped operation, not a per-page action. Status
+-- is shown via flash notification on click; persistent state lives in
+-- rclone-svc's sync-status.json.
 actionButton.define {
   icon = "upload-cloud",
   description = "Sync space to cloud",
   priority = 1.04,
   run = function()
     editor.invokeCommand("Path: Sync to cloud")
+  end
+}
+
+-- Export to Word — app-scoped one-click export (was previously a
+-- Navigator → Workspace item).
+actionButton.define {
+  icon = "file-text",
+  description = "Export to Word",
+  priority = 1.03,
+  run = function()
+    editor.invokeCommand("Path: Export to Word")
+  end
+}
+
+-- Manual — quick access to the in-Path documentation (was previously
+-- a Navigator → Workspace item).
+actionButton.define {
+  icon = "book-open",
+  description = "Open the manual",
+  priority = 1.02,
+  run = function()
+    editor.navigate("manual/cheatsheet")
   end
 }
 
