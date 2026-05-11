@@ -55,7 +55,7 @@ services:
     profiles:
       - search
     ports:
-      - "7700:7700"
+      - "127.0.0.1:7700:7700"
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
       - MEILI_NO_ANALYTICS=true
@@ -88,7 +88,7 @@ services:
     build: ./git-watcher
     container_name: path-git-watcher
     ports:
-      - "8020:8020"
+      - "127.0.0.1:8020:8020"
     volumes:
       - ./space:/space
     networks:
@@ -103,7 +103,7 @@ services:
     profiles:
       - writing
     ports:
-      - "8010:8010"
+      - "127.0.0.1:8010:8010"
     networks:
       path-net:
     restart: unless-stopped
@@ -116,7 +116,7 @@ services:
     profiles:
       - writing
     ports:
-      - "8030:8030"
+      - "127.0.0.1:8030:8030"
     volumes:
       - ./space:/space:ro
     networks:
@@ -132,7 +132,7 @@ services:
     profiles:
       - backup
     ports:
-      - "8040:8040"
+      - "127.0.0.1:8040:8040"
     environment:
       - RCLONE_REMOTE=${RCLONE_REMOTE:-gdrive}
     volumes:

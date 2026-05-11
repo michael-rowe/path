@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Path Rclone API")
 
-# Enable CORS
+# Restrict CORS to the SilverBullet UI origin. The sidecar is also bound to
+# 127.0.0.1 in compose; CORS is belt-and-braces.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
