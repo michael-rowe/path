@@ -27,6 +27,11 @@ const SKIP_KEYS = new Set([
   "lastModified",
   "pageDecoration",
   "title",
+  // Internal preview-mode flags written by previewSnapshot — they drive
+  // the Restore banner via showAttributesPanel rather than appearing as
+  // editable rows.
+  "path_preview_of",
+  "path_preview_hash",
 ]);
 
 const PRETTY_KEYS: Record<string, string> = {
@@ -445,6 +450,11 @@ interface MultiSelectData {
   criteria: { code: string; title: string }[];
 }
 
+interface PreviewState {
+  originalPage: string;
+  hash: string;
+}
+
 function buildPanelContent(
   pageName: string,
   fields: Field[],
@@ -461,6 +471,7 @@ function buildPanelContent(
     rcloneUrl: "http://localhost:8040",
     languageToolUrl: "http://localhost:8010",
   },
+  preview: PreviewState | null = null,
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
   const editableDescs: { key: string; list: boolean }[] = [];
@@ -690,6 +701,16 @@ function buildPanelContent(
   .search-snip { font-size: 0.82em; color: #4b5563; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .search-snip em { font-style: normal; background: rgba(79, 70, 229, 0.15); border-radius: 2px; }
 
+  .preview-banner { margin-bottom: 1.2em; padding: 0.9em 1em; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; }
+  .preview-banner-title { font-size: 0.92em; font-weight: 600; color: #3730a3; margin-bottom: 0.15em; }
+  .preview-banner-title code, .preview-banner-sub code { background: rgba(79, 70, 229, 0.12); padding: 0.05em 0.4em; border-radius: 3px; font-size: 0.92em; }
+  .preview-banner-sub { font-size: 0.82em; color: #4338ca; margin-bottom: 0.85em; word-break: break-word; }
+  .preview-banner-actions { display: flex; gap: 0.5em; flex-wrap: wrap; }
+  .btn-restore { background: #4f46e5; }
+  .btn-restore:hover { background: #4338ca; }
+  .btn-secondary { background: white; color: #4338ca; border: 1px solid #c7d2fe; padding: 0.4em 0.95em; border-radius: 4px; cursor: pointer; font-size: 0.82em; font-weight: 500; font-family: inherit; }
+  .btn-secondary:hover { background: #f5f3ff; }
+
   .section-danger { margin-top: 2em; padding-top: 1.2em; border-top: 1px solid #e5e7eb; display: flex; justify-content: center; }
   .btn-danger { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; padding: 0.45em 1em; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500; font-family: inherit; transition: all 0.12s; }
   .btn-danger:hover { background: #fee2e2; color: #991b1b; }
@@ -714,6 +735,11 @@ function buildPanelContent(
   html[data-theme="dark"] .history-item { border-bottom-color: #1e293b; }
   html[data-theme="dark"] .history-item:hover { background: #1e293b; }
   html[data-theme="dark"] .history-date { color: #f1f5f9; }
+  html[data-theme="dark"] .preview-banner { background: #1e1b4b; border-color: #312e81; }
+  html[data-theme="dark"] .preview-banner-title { color: #c7d2fe; }
+  html[data-theme="dark"] .preview-banner-sub { color: #a5b4fc; }
+  html[data-theme="dark"] .btn-secondary { background: #1e293b; color: #c7d2fe; border-color: #312e81; }
+  html[data-theme="dark"] .btn-secondary:hover { background: #312e81; }
   html[data-theme="dark"] .field { background: #1e293b; border-color: #475569; color: #f1f5f9; }
   html[data-theme="dark"] .multi-list { background: #1e293b; border-color: #475569; }
   html[data-theme="dark"] .search-title { color: #818cf8; }
@@ -722,12 +748,29 @@ function buildPanelContent(
 </style>
 <div id="panel" class="panel">
   ${searchBody}
+  ${
+    preview
+      ? `
+  <div class="preview-banner">
+    <div class="preview-banner-title">Previewing snapshot <code>${
+        escapeHtml(preview.hash.slice(0, 7))
+      }</code></div>
+    <div class="preview-banner-sub">of <code>${
+        escapeHtml(preview.originalPage)
+      }</code></div>
+    <div class="preview-banner-actions">
+      <button class="btn btn-restore" id="btn-preview-restore">Restore this version</button>
+      <button class="btn-secondary" id="btn-preview-back">Back to current</button>
+    </div>
+  </div>`
+      : ""
+  }
   <div class="tabs">
-    <button class="tab-btn active" data-tab="page">Page</button>
+    <button class="tab-btn ${preview ? "" : "active"}" data-tab="page">Page</button>
     <button class="tab-btn" data-tab="tools">Tools</button>
-    <button class="tab-btn" data-tab="history">History</button>
+    <button class="tab-btn ${preview ? "active" : ""}" data-tab="history">History</button>
   </div>
-  <div id="tab-page" class="tab-content active">
+  <div id="tab-page" class="tab-content ${preview ? "" : "active"}">
     ${tocBody}
     ${attrsBody}
     ${mentionsBody}
@@ -735,7 +778,7 @@ function buildPanelContent(
   <div id="tab-tools" class="tab-content">
     ${toolsBody}
   </div>
-  <div id="tab-history" class="tab-content">
+  <div id="tab-history" class="tab-content ${preview ? "active" : ""}">
     ${historyBody}
   </div>
 </div>
@@ -746,6 +789,8 @@ function buildPanelContent(
   const pageJson = JSON.stringify(pageName);
   const focusSearchJson = JSON.stringify(focusSearch);
   const configJson = JSON.stringify(pathConfig);
+  const previewOfJson = JSON.stringify(preview?.originalPage ?? "");
+  const previewHashJson = JSON.stringify(preview?.hash ?? "");
   const script = `
 (function() {
   var FIELDS = ${fieldsJson};
@@ -754,6 +799,10 @@ function buildPanelContent(
   var CFG = ${configJson};
   var MEILI_URL = CFG.meiliUrl;
   var MEILI_KEY = CFG.meiliKey;
+  // Stored on window so previewSnapshot/restoreSnapshot can read them
+  // without re-threading every call signature.
+  window.PREVIEW_OF = ${previewOfJson};
+  window.PREVIEW_HASH = ${previewHashJson};
 
   function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
 
@@ -805,8 +854,11 @@ function buildPanelContent(
 
   async function updateHistory() {
     var list = document.getElementById('history-list');
+    // In preview mode the iframe's PAGE is "_system/history-preview"; the
+    // snapshot list users actually want is for the original page.
+    var anchor = (window.PREVIEW_OF && window.PREVIEW_OF.length) ? window.PREVIEW_OF : PAGE;
     try {
-      var resp = await fetch(CFG.gitWatcherUrl + '/history?path=' + encodeURIComponent(PAGE));
+      var resp = await fetch(CFG.gitWatcherUrl + '/history?path=' + encodeURIComponent(anchor));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       var data = await resp.json();
       var history = data.history || [];
@@ -843,8 +895,9 @@ function buildPanelContent(
     }
   }
 
-  async function fetchSnapshot(hash) {
-    var url = CFG.gitWatcherUrl + '/version?path=' + encodeURIComponent(PAGE) + '&hash=' + encodeURIComponent(hash);
+  async function fetchSnapshot(hash, page) {
+    var p = page || PAGE;
+    var url = CFG.gitWatcherUrl + '/version?path=' + encodeURIComponent(p) + '&hash=' + encodeURIComponent(hash);
     var resp = await fetch(url);
     if (!resp.ok) throw new Error('Snapshot not found');
     return await resp.json();
@@ -852,10 +905,19 @@ function buildPanelContent(
 
   async function previewSnapshot(hash) {
     try {
-      var data = await fetchSnapshot(hash);
+      // ANCHOR is the page the snapshot belongs to: while *on* a preview
+      // page, we're already showing snapshots for the original page (via
+      // PREVIEW_OF rewiring of updateHistory), so a click on another
+      // snapshot here previews from that same original — not from the
+      // preview-of-the-preview.
+      var anchor = (window.PREVIEW_OF && window.PREVIEW_OF.length) ? window.PREVIEW_OF : PAGE;
+      var data = await fetchSnapshot(hash, anchor);
       var previewPage = '_system/history-preview';
-      var banner = '---\\nreadonly: true\\n---\\n\\n# History preview\\n\\n*Snapshot \`' + hash.slice(0, 7) + '\` of \`' + PAGE + '\`.* To restore, return to the original page and use the Restore button.\\n\\n---\\n\\n';
-      await syscall('space.writePage', previewPage, banner + data.content);
+      // YAML carries the original page + hash so showAttributesPanel can
+      // detect preview mode on next pageLoaded and inject the banner +
+      // rewire the History tab.
+      var yaml = '---\\nreadonly: true\\npath_preview_of: ' + anchor + '\\npath_preview_hash: ' + hash + '\\n---\\n\\n';
+      await syscall('space.writePage', previewPage, yaml + data.content);
       await syscall('editor.navigate', previewPage);
     } catch (e) {
       await syscall('editor.flashNotification', 'Preview failed: ' + String(e));
@@ -863,12 +925,15 @@ function buildPanelContent(
   }
 
   async function restoreSnapshot(hash) {
-    if (!window.confirm('Restore "' + PAGE + '" to snapshot ' + hash.slice(0, 7) + '? Unsaved changes will be lost.')) return;
+    // When called from inside a preview, target the original page (not
+    // the preview file itself, which has no history of its own).
+    var target = (window.PREVIEW_OF && window.PREVIEW_OF.length) ? window.PREVIEW_OF : PAGE;
+    if (!window.confirm('Restore "' + target + '" to snapshot ' + hash.slice(0, 7) + '? Unsaved changes will be lost.')) return;
     try {
-      var data = await fetchSnapshot(hash);
-      await syscall('space.writePage', PAGE, data.content);
+      var data = await fetchSnapshot(hash, target);
+      await syscall('space.writePage', target, data.content);
       await syscall('editor.flashNotification', 'Restored snapshot ' + hash.slice(0, 7));
-      await syscall('editor.reloadPage');
+      await syscall('editor.navigate', target);
     } catch (e) {
       await syscall('editor.flashNotification', 'Restore failed: ' + String(e));
     }
@@ -926,6 +991,14 @@ function buildPanelContent(
     } catch (e) {
       await syscall('editor.flashNotification', 'Link check failed: ' + String(e));
     } finally { btn.disabled = false; }
+  });
+
+  // Preview banner buttons (only present when in preview mode).
+  document.getElementById('btn-preview-restore')?.addEventListener('click', function() {
+    if (window.PREVIEW_HASH) restoreSnapshot(window.PREVIEW_HASH);
+  });
+  document.getElementById('btn-preview-back')?.addEventListener('click', function() {
+    if (window.PREVIEW_OF) syscall('editor.navigate', window.PREVIEW_OF);
   });
 
   // Search logic
@@ -1174,6 +1247,18 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
   }
 
   const pathConfig = await getPathConfig();
+
+  // Preview state: when the page YAML carries path_preview_of /
+  // path_preview_hash (written by previewSnapshot), surface a Restore
+  // banner and re-anchor the History tab to the original page.
+  const previewOf = parsed?.fields.find((f) => f.key === "path_preview_of")
+    ?.value as string | undefined;
+  const previewHash = parsed?.fields.find((f) => f.key === "path_preview_hash")
+    ?.value as string | undefined;
+  const preview: PreviewState | null = previewOf && previewHash
+    ? { originalPage: previewOf, hash: previewHash }
+    : null;
+
   const { html, script } = buildPanelContent(
     pageName,
     parsed?.fields ?? [],
@@ -1183,6 +1268,7 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
     multiSelect,
     focusSearch,
     pathConfig,
+    preview,
   );
   // Second arg = flex grow. Editor is flex:1, so 0.7 puts the panel
   // at roughly 40% of the available space.

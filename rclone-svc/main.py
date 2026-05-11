@@ -1,8 +1,10 @@
 import os
+import json
 import subprocess
 import logging
 import threading
 from datetime import datetime
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,6 +38,36 @@ last_sync_status = {
 # itself. A non-blocking acquire means a second concurrent /sync returns
 # 409 instead of interleaving with the first.
 _sync_lock = threading.Lock()
+
+# Persistent status file. The rclone config dir is bind-mounted from the
+# host (rclone_config:/config/rclone in compose), so anything written here
+# survives container restarts. Stored alongside rclone.conf rather than
+# under /space (which is mounted read-only).
+STATUS_FILE = Path(os.path.dirname(CONFIG_PATH)) / "sync-status.json"
+
+
+def _load_status() -> None:
+    """Restore last_sync_status from disk on startup. Quiet on missing /
+    malformed file — defaults are fine."""
+    try:
+        if STATUS_FILE.exists():
+            data = json.loads(STATUS_FILE.read_text())
+            for k in ("last_run", "status", "details"):
+                if k in data:
+                    last_sync_status[k] = data[k]
+            logger.info(f"Loaded persisted sync status: {last_sync_status['status']}")
+    except Exception as e:
+        logger.warning(f"Could not load {STATUS_FILE}: {e}")
+
+
+def _save_status() -> None:
+    """Persist current last_sync_status to disk. Called from inside the
+    _sync_lock so writes never race with concurrent updates."""
+    try:
+        STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATUS_FILE.write_text(json.dumps(last_sync_status, indent=2))
+    except Exception as e:
+        logger.warning(f"Could not persist sync status: {e}")
 
 
 @app.get("/health")
@@ -106,15 +138,18 @@ async def trigger_sync(remote: str = None):
             last_sync_status["details"] = (result.stderr or "")[:500]
             logger.error(f"Sync failed: {result.stderr}")
 
+        _save_status()
         return last_sync_status
     except subprocess.TimeoutExpired:
         last_sync_status["status"] = "Timeout"
         last_sync_status["details"] = "Sync operation timed out after 5 minutes."
+        _save_status()
         return last_sync_status
     except Exception as e:
         logger.error(f"Sync error: {e}")
         last_sync_status["status"] = "Error"
         last_sync_status["details"] = str(e)
+        _save_status()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         _sync_lock.release()
@@ -123,4 +158,5 @@ if __name__ == "__main__":
     import uvicorn
     # Create config dir if it doesn't exist
     os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    _load_status()
     uvicorn.run(app, host="0.0.0.0", port=8040)
