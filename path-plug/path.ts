@@ -640,8 +640,10 @@ function buildPanelContent(
   * { box-sizing: border-box; }
   .panel { padding: 0 1.1em 1.3em 1.1em; color: #1f2937; }
   
-  /* Pinned search with 4.5em top spacing */
-  .search-container { margin-top: 4.5em; margin-bottom: 1.5em; }
+  /* Pinned search bar — small top gap to clear the SB toolbar (which is
+     position:fixed at ~44px) plus a hairline so the field doesn't feel
+     glued to the chrome. */
+  .search-container { margin-top: 1em; margin-bottom: 1.2em; }
   
   .tabs { display: flex; border-bottom: 1px solid #e5e7eb; margin-bottom: 1.4em; gap: 0.5em; position: sticky; top: 0; background: #f8fafc; z-index: 10; padding-top: 1em; }
   .tab-btn { background: none; border: none; padding: 0.6em 0.8em; cursor: pointer; font-size: 0.85em; font-weight: 500; color: #6b7280; border-bottom: 2px solid transparent; transition: all 0.15s; }
@@ -1021,7 +1023,17 @@ function buildPanelContent(
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MEILI_KEY },
           body: JSON.stringify({ q: query, attributesToHighlight: ['content', 'title'], limit: 8 })
         });
+        if (!response.ok) {
+          var errBody = '';
+          try { errBody = await response.text(); } catch (_) {}
+          searchResults.innerHTML = '<div class="empty">Meilisearch HTTP ' + response.status + ': ' + errBody.replace(/[<>]/g, '').slice(0, 200) + '</div>';
+          return;
+        }
         var data = await response.json();
+        if (!data.hits || data.hits.length === 0) {
+          searchResults.innerHTML = '<div class="empty">No results for "' + query.replace(/[<>]/g, '') + '". (Index has ' + (data.estimatedTotalHits || 0) + ' total hits for blank query — check meili-indexer is running.)</div>';
+          return;
+        }
         searchResults.innerHTML = (data.hits || []).map(function(hit) {
           var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
           var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || '';
@@ -1038,7 +1050,9 @@ function buildPanelContent(
             await syscall('editor.navigate', el.getAttribute('data-path'));
           });
         });
-      } catch (err) { searchResults.innerHTML = '<div class="empty">Search unavailable.</div>'; }
+      } catch (err) {
+        searchResults.innerHTML = '<div class="empty">Search unavailable: ' + String(err).replace(/[<>]/g, '').slice(0, 200) + '</div>';
+      }
     });
   }
 
@@ -1680,13 +1694,14 @@ export async function hello(): Promise<void> {
 }
 
 // Sync space to the configured rclone remote. Triggered from the
-// toolbar cloud-upload button (registered in CONFIG.md). Reaches the
-// rclone-svc by docker service name — this command only makes sense
-// when running inside the compose stack.
+// toolbar cloud-upload button (registered in CONFIG.md). Hits the
+// rclone-svc by its static path-net IP — SB's plug sandbox fetch
+// proxy mangles non-IP hostnames into HTTPS, so docker service-name
+// resolution doesn't work here (same constraint as pandoc-svc).
 export async function syncToCloud(): Promise<void> {
   await editor.flashNotification("Syncing to cloud...");
   try {
-    const resp = await fetch("http://rclone-svc:8040/sync", {
+    const resp = await fetch("http://172.28.0.11:8040/sync", {
       method: "POST",
     });
     const data = await resp.json().catch(() => ({}));

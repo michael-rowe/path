@@ -178,8 +178,13 @@ services:
     volumes:
       - ./space:/space:ro
       - ./rclone_config:/config/rclone
+    # Static IP so the path plug can reach this sidecar by bare IP from
+    # the SB container's sandbox fetch. SB's HTTP proxy auto-detects
+    # HTTPS for non-IP hostnames (per pandoc-svc note above), which
+    # mangles plain-text http:// requests to a docker service name.
     networks:
       path-net:
+        ipv4_address: 172.28.0.11
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8040/health', timeout=2); sys.exit(0 if r.status==200 else 1)"]
