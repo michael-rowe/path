@@ -51,7 +51,9 @@ Built and maintained by [[Michael Rowe]] — physiotherapist, academic, and Dire
 
 ## Licence
 
-Path's source code is released under the MIT licence. The bundled framework definitions are made available for personal use; their underlying criteria remain the intellectual property of their respective issuers (HCPC, Advance HE, the University of Lincoln, etc.).
+Path's source code is released under the [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) licence. Individuals, charities, educational institutions, public research organisations, and government bodies can use, copy, modify, and distribute Path freely for any noncommercial purpose. Commercial use — selling Path, offering it as a paid service, or building a commercial product around it — is not permitted under this licence; contact the maintainer for commercial licensing.
+
+The bundled framework definitions are made available for personal use; their underlying criteria remain the intellectual property of their respective issuers (HCPC, Advance HE, the University of Lincoln, etc.). Path's dependencies (SilverBullet, Pandoc, Inter, Feather Icons) retain their own original licences as listed above.
 
 ## What to do next
 

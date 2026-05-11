@@ -250,6 +250,10 @@ Issues are easier and very welcome. Bug reports with reproduction steps and your
 
 ## Licence
 
-MIT — same as [SilverBullet](https://silverbullet.md), which Path is built on.
+[PolyForm Noncommercial 1.0.0](LICENSE).
 
-In practical terms, MIT means: anyone can use, copy, modify, distribute, or sell Path, as long as they keep the copyright notice. There's no warranty, and I'm not liable if it breaks anything for you. For me, it means I retain copyright on what I've written but I've explicitly given everyone permission to use it however they like — including forking it, taking the parts they want, and never speaking of me again. That's the deal: take it as-is, do what you want with it, don't expect me to fix it.
+In practical terms: individuals, charities, educational institutions, public research organisations, government bodies, and similar noncommercial users can use, copy, modify, and distribute Path freely. Commercial use — selling it, offering it as a paid service, or building a commercial product on top of it — is not permitted under this licence. If you need a commercial licence, get in touch.
+
+Why this licence rather than MIT? Path is being shared as scholarly infrastructure for health professions education, not as a product someone else can enclose. PolyForm Noncommercial keeps it free for the people it's meant for (clinicians, academics, students, institutions running internal CPD) while preventing it being taken closed-source and sold back to them.
+
+There's no warranty, and I'm not liable if anything breaks for you. SilverBullet, Pandoc, and the other open-source projects Path builds on keep their own licences (MIT, GPL, etc.) — this licence applies to the Path-specific code and content in this repository.
