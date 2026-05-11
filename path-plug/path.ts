@@ -606,14 +606,6 @@ function buildPanelContent(
       <h3>Link Checker</h3>
       <button class="btn-tool" id="btn-links">Check broken links</button>
     </div>
-    <div class="tool-section">
-      <h3>Cloud Backup</h3>
-      <button class="btn-tool" id="btn-sync">Sync to cloud</button>
-      <div id="backup-status" class="status-area">
-        <div>Last run: <span id="last-run">...</span></div>
-        <div>Status: <span id="status-text">...</span></div>
-      </div>
-    </div>
     ${isReadonly ? "" : `
     <div class="section-danger" style="margin-top: 3em;">
       <button class="btn-danger" id="btn-delete" type="button">Delete this page</button>
@@ -789,7 +781,6 @@ function buildPanelContent(
       var store = ls();
       if (store) store.setItem('path-active-tab', tab);
 
-      if (tab === 'tools') updateBackupStatus();
       if (tab === 'history') updateHistory();
     });
   });
@@ -810,23 +801,6 @@ function buildPanelContent(
       var d = new Date(iso);
       return d.toLocaleString();
     } catch (_) { return iso; }
-  }
-
-  async function updateBackupStatus() {
-    var lastRun = document.getElementById('last-run');
-    var statusText = document.getElementById('status-text');
-    if (!lastRun || !statusText) return;
-    try {
-      var resp = await fetch(CFG.rcloneUrl + '/status');
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      var data = await resp.json();
-      var last = data.last_sync || {};
-      lastRun.textContent = last.last_run ? fmtDate(last.last_run) : 'Never';
-      statusText.textContent = last.status || (data.config_exists ? 'Idle' : 'Not configured');
-    } catch (e) {
-      lastRun.textContent = '—';
-      statusText.textContent = 'Sidecar unreachable';
-    }
   }
 
   async function updateHistory() {
@@ -951,21 +925,6 @@ function buildPanelContent(
       await syscall('editor.navigate', '_system/last-link-check');
     } catch (e) {
       await syscall('editor.flashNotification', 'Link check failed: ' + String(e));
-    } finally { btn.disabled = false; }
-  });
-
-  document.getElementById('btn-sync')?.addEventListener('click', async function() {
-    var btn = this;
-    btn.disabled = true;
-    try {
-      await syscall('editor.flashNotification', 'Syncing to cloud...');
-      var resp = await fetch(CFG.rcloneUrl + '/sync', { method: 'POST' });
-      var data = await resp.json();
-      if (!resp.ok) throw new Error(data.detail || ('HTTP ' + resp.status));
-      await syscall('editor.flashNotification', 'Sync: ' + (data.status || 'unknown'));
-      await updateBackupStatus();
-    } catch (e) {
-      await syscall('editor.flashNotification', 'Sync failed: ' + String(e));
     } finally { btn.disabled = false; }
   });
 
@@ -1407,7 +1366,7 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
           navigate: "Announcements",
           badge: unreadCount,
         },
-        { label: "History", icon: "clock", navigate: "History" },
+        { label: "Recent", icon: "clock", navigate: "Recent" },
         { label: "Export to Word", icon: "file-text", command: "Path: Export to Word" },
         { label: "AI context", icon: "cpu", navigate: "_system/mcp-context" },
         { label: "Manual", icon: "book-open", navigate: "manual/cheatsheet" },
@@ -1628,6 +1587,30 @@ export async function onPageLoaded(): Promise<void> {
 
 export async function hello(): Promise<void> {
   await editor.flashNotification("Hello from the Path plug!");
+}
+
+// Sync space to the configured rclone remote. Triggered from the
+// toolbar cloud-upload button (registered in CONFIG.md). Reaches the
+// rclone-svc by docker service name — this command only makes sense
+// when running inside the compose stack.
+export async function syncToCloud(): Promise<void> {
+  await editor.flashNotification("Syncing to cloud...");
+  try {
+    const resp = await fetch("http://rclone-svc:8040/sync", {
+      method: "POST",
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      const detail = data?.detail || `HTTP ${resp.status}`;
+      throw new Error(detail);
+    }
+    const status = data?.status || "complete";
+    const when = data?.last_run ? ` (${data.last_run})` : "";
+    await editor.flashNotification(`Sync: ${status}${when}`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await editor.flashNotification(`Sync failed: ${msg}`);
+  }
 }
 
 // Debug: writes title="DEBUG_TEST" to current page, bypassing the iframe.

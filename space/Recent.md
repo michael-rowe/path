@@ -2,7 +2,7 @@
 readonly: true
 ---
 
-# History
+# Recent
 
 Recently modified pages, newest first.
 

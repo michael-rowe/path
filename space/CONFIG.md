@@ -764,13 +764,26 @@ actionButton.define {
 }
 
 -- Focus mode — priority 1.05, sits between SB's RunCmd (≈1.1) and Search.
--- This places it: ... RunCmd | FocusMode | Search | Theme.
+-- This places it: ... RunCmd | FocusMode | Sync | Search | Theme.
 actionButton.define {
   icon = "columns",
   description = "Focus mode — hide/restore panels (Ctrl-Alt-z)",
   priority = 1.05,
   run = function()
     editor.invokeCommand("Path: Toggle focus mode")
+  end
+}
+
+-- Sync to cloud — priority 1.04, app-scoped operation. Placed here
+-- (not on the page-scoped Inspector Tools tab) because syncing the
+-- whole space is not a per-page action. Status is shown via flash
+-- notification on click; persistent state lives in rclone-svc.
+actionButton.define {
+  icon = "cloud-upload",
+  description = "Sync space to cloud",
+  priority = 1.04,
+  run = function()
+    editor.invokeCommand("Path: Sync to cloud")
   end
 }
 

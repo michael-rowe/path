@@ -40,4 +40,9 @@ functions:
       name: "Path: Search"
       key: "Ctrl-Shift-f"
 
+  syncToCloud:
+    path: path.ts:syncToCloud
+    command:
+      name: "Path: Sync to cloud"
+
 
