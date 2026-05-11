@@ -1,6 +1,7 @@
 import os
 import subprocess
 import logging
+import threading
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +32,16 @@ last_sync_status = {
     "status": "Never run",
     "details": ""
 }
+# Guards both last_sync_status writes and the subprocess.run for the sync
+# itself. A non-blocking acquire means a second concurrent /sync returns
+# 409 instead of interleaving with the first.
+_sync_lock = threading.Lock()
+
+
+@app.get("/health")
+async def health():
+    return {"ok": True, "config_exists": os.path.exists(CONFIG_PATH)}
+
 
 @app.get("/status")
 async def get_status():
@@ -59,36 +70,42 @@ async def get_status():
 async def trigger_sync(remote: str = None):
     """Triggers an rclone sync operation."""
     target_remote = remote or DEFAULT_REMOTE
-    
+
     if not os.path.exists(CONFIG_PATH):
         raise HTTPException(status_code=400, detail="Rclone not configured. Please run 'rclone config' first.")
+
+    # Refuse to interleave concurrent syncs — the second caller gets a
+    # clear 409 rather than racing on last_sync_status mid-write.
+    if not _sync_lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Sync already in progress")
 
     try:
         last_sync_status["status"] = "Running..."
         last_sync_status["last_run"] = datetime.now().isoformat()
-        
-        # Build command: rclone sync /space remote:Path-Portfolio-Backup
+
         dest = f"{target_remote}:{DEFAULT_DEST}"
         logger.info(f"Starting sync to {dest}")
-        
-        # Run sync in background? No, let's wait for now to give immediate feedback.
-        # If it takes too long, we might need to move to background tasks.
+
+        # Drop --verbose: with capture_output it buffers the entire log in
+        # memory for the whole run, which on a large space can be hundreds
+        # of MB. Rclone's default output is enough for the status line.
         result = subprocess.run(
-            ["rclone", "sync", SPACE_PATH, dest, "--verbose"],
+            ["rclone", "sync", SPACE_PATH, dest],
             capture_output=True,
             text=True,
-            timeout=300 # 5 minute timeout
+            timeout=300,  # 5 minute timeout
         )
-        
+
         if result.returncode == 0:
             last_sync_status["status"] = "Success"
             last_sync_status["details"] = "Sync completed successfully."
             logger.info("Sync success")
         else:
             last_sync_status["status"] = "Error"
-            last_sync_status["details"] = result.stderr
+            # Truncate stderr in the response — keep full output in logs.
+            last_sync_status["details"] = (result.stderr or "")[:500]
             logger.error(f"Sync failed: {result.stderr}")
-            
+
         return last_sync_status
     except subprocess.TimeoutExpired:
         last_sync_status["status"] = "Timeout"
@@ -99,6 +116,8 @@ async def trigger_sync(remote: str = None):
         last_sync_status["status"] = "Error"
         last_sync_status["details"] = str(e)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _sync_lock.release()
 
 if __name__ == "__main__":
     import uvicorn
