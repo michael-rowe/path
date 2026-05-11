@@ -79,7 +79,7 @@ _User interface with Navigator panel on the left, Toolbar on the top, and tabbed
 <img width="2161" height="1473" alt="path_inspector_panel" src="https://github.com/user-attachments/assets/101a5a2d-1bd1-4789-9ac1-811282b44870" /><br />
 
 _Dark mode_
-<img width="2174" height="1519" alt="path_dark_mode" src="https://github.com/user-attachments/assets/716aac1b-b435-4473-96af-2e9493dce230" /><br />
+<img width="2174" height="1519" alt="path_dark_mode" src="https://github.com/user-attachments/assets/2544bdf2-eb36-47d3-8c05-c3eabbabe9cc" /><br />
 
 _Automated heatmap showing coverage of content against framework criteria._
 <img width="1309" height="1163" alt="path_heatmap" src="https://github.com/user-attachments/assets/f8d9b3ce-1bfc-4175-bb03-3b5486ee05c8" /><br />
