@@ -275,7 +275,7 @@ Both share `to_jdn` / `from_jdn` / `jdn_dow` helpers. **`jdn_dow(jdn) = jdn % 7`
 
 ## About page
 
-`space/About.md` — Workspace nav entry covering version, attribution (SilverBullet, Pandoc, TeX Live, Inter, Feather Icons), framework provenance, data/privacy posture (no telemetry, opt-out config keys for both the news feed and the framework registry), source links, MIT licence.
+`space/About.md` — Workspace nav entry covering version, attribution (SilverBullet, Pandoc, TeX Live, Inter, Feather Icons), framework provenance, data/privacy posture (no telemetry, opt-out config keys for both the news feed and the framework registry), source links, PolyForm Noncommercial 1.0.0 licence (the dependency credits still note their own MIT/GPL/etc. licences).
 
 ## Known deferred items
 
