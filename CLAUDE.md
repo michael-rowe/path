@@ -216,6 +216,15 @@ The 1:1 collapse is fine for typical use (one user, one Path per framework). The
 
 A `pageLoaded` Lua listener sets `js.window.document.title = "Path | <H1 or page name>"` and replaces the favicon with the inline-SVG Path "route" logo (data URL, indigo `#4f46e5`). Re-runs on every page load so SB navigations don't revert it.
 
+## Path config page
+
+`space/_system/path-config.md` — soft-locked YAML page holding runtime settings the plug reads at panel-render time. Currently used for Meilisearch:
+
+- `meili_url` — defaults to `http://localhost:7700` (host-published Meilisearch port; the search box runs in the iframe which is same-origin with the SB UI on the host).
+- `meili_key` — defaults to `masterKey`, must match `MEILI_MASTER_KEY` in `.env` / compose.
+
+`getPathConfig()` in `path.ts` reads the page; defaults apply if the page is missing or fields are blank. Falls through into `buildPanelContent` → injected as `MEILI_URL` / `MEILI_KEY` in the iframe script. Previously these were hardcoded (`masterKey123` in plug vs `masterKey` in compose) which broke search on fresh stacks.
+
 ## Search
 
 Full-text search is **not built into SB core** — it's the `basic-search` plug (formerly built-in). We bundle it at `space/Library/silverbulletmd/basic-search/` so the search action button (top-bar magnifying glass, defined in CONFIG.md, priority 1.02) can invoke its `Search Space` command (`Ctrl-Shift-F`). Requires a one-time `Space: Reindex` after first install for results to populate.

@@ -332,6 +332,31 @@ async function fetchAllPaths(): Promise<
   }
 }
 
+// Read Meilisearch URL/key from `_system/path-config.md` frontmatter, with
+// defaults that work against the compose stack out of the box. The page is a
+// soft-locked YAML-only config surface; if missing, the defaults are used.
+// Shape:
+//   ---
+//   meili_url: http://localhost:7700
+//   meili_key: masterKey
+//   ---
+async function getPathConfig(): Promise<{ meiliUrl: string; meiliKey: string }> {
+  const defaults = { meiliUrl: "http://localhost:7700", meiliKey: "masterKey" };
+  try {
+    const text = await space.readPage("_system/path-config");
+    const parsed = parseFrontmatter(text);
+    if (!parsed) return defaults;
+    const url = parsed.fields.find((f) => f.key === "meili_url")?.value;
+    const key = parsed.fields.find((f) => f.key === "meili_key")?.value;
+    return {
+      meiliUrl: typeof url === "string" && url ? url : defaults.meiliUrl,
+      meiliKey: typeof key === "string" && key ? key : defaults.meiliKey,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 // Criteria of a given framework, used to populate the multi-select for
 // `standards` fields. Sorted by code so 1.1, 1.2, ..., 4.2 stay in order.
 async function fetchCriteriaForFramework(
@@ -410,6 +435,10 @@ function buildPanelContent(
   isReadonly: boolean = false,
   multiSelect: MultiSelectData = { allPaths: [], criteria: [] },
   focusSearch: boolean = false,
+  meiliConfig: { meiliUrl: string; meiliKey: string } = {
+    meiliUrl: "http://localhost:7700",
+    meiliKey: "masterKey",
+  },
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
   const editableDescs: { key: string; list: boolean }[] = [];
@@ -702,11 +731,15 @@ function buildPanelContent(
   const fieldsJson = JSON.stringify(editableDescs);
   const pageJson = JSON.stringify(pageName);
   const focusSearchJson = JSON.stringify(focusSearch);
+  const meiliUrlJson = JSON.stringify(meiliConfig.meiliUrl);
+  const meiliKeyJson = JSON.stringify(meiliConfig.meiliKey);
   const script = `
 (function() {
   var FIELDS = ${fieldsJson};
   var PAGE = ${pageJson};
   var FOCUS_SEARCH = ${focusSearchJson};
+  var MEILI_URL = ${meiliUrlJson};
+  var MEILI_KEY = ${meiliKeyJson};
 
   function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
 
@@ -814,8 +847,6 @@ function buildPanelContent(
   // Search logic
   var searchInput = document.getElementById('search-input');
   var searchResults = document.getElementById('search-results');
-  var MEILI_URL = 'http://localhost:7700';
-  var MEILI_KEY = 'masterKey123';
 
   if (searchInput) {
     if (FOCUS_SEARCH) setTimeout(function() { searchInput.focus(); }, 100);
@@ -1058,6 +1089,7 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
     return;
   }
 
+  const meiliConfig = await getPathConfig();
   const { html, script } = buildPanelContent(
     pageName,
     parsed?.fields ?? [],
@@ -1066,6 +1098,7 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
     isReadonly,
     multiSelect,
     focusSearch,
+    meiliConfig,
   );
   // Second arg = flex grow. Editor is flex:1, so 0.7 puts the panel
   // at roughly 40% of the available space.
