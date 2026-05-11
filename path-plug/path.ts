@@ -332,25 +332,43 @@ async function fetchAllPaths(): Promise<
   }
 }
 
-// Read Meilisearch URL/key from `_system/path-config.md` frontmatter, with
-// defaults that work against the compose stack out of the box. The page is a
-// soft-locked YAML-only config surface; if missing, the defaults are used.
-// Shape:
-//   ---
-//   meili_url: http://localhost:7700
-//   meili_key: masterKey
-//   ---
-async function getPathConfig(): Promise<{ meiliUrl: string; meiliKey: string }> {
-  const defaults = { meiliUrl: "http://localhost:7700", meiliKey: "masterKey" };
+type PathConfig = {
+  meiliUrl: string;
+  meiliKey: string;
+  gitWatcherUrl: string;
+  lycheeUrl: string;
+  rcloneUrl: string;
+  languageToolUrl: string;
+};
+
+// Read sidecar URLs and the Meilisearch key from `_system/path-config.md`
+// frontmatter, with defaults that match the compose stack out of the box.
+// The page is a soft-locked YAML-only config surface; if missing, defaults
+// are used.
+async function getPathConfig(): Promise<PathConfig> {
+  const defaults: PathConfig = {
+    meiliUrl: "http://localhost:7700",
+    meiliKey: "masterKey",
+    gitWatcherUrl: "http://localhost:8020",
+    lycheeUrl: "http://localhost:8030",
+    rcloneUrl: "http://localhost:8040",
+    languageToolUrl: "http://localhost:8010",
+  };
   try {
     const text = await space.readPage("_system/path-config");
     const parsed = parseFrontmatter(text);
     if (!parsed) return defaults;
-    const url = parsed.fields.find((f) => f.key === "meili_url")?.value;
-    const key = parsed.fields.find((f) => f.key === "meili_key")?.value;
+    const get = (k: string) => {
+      const v = parsed.fields.find((f) => f.key === k)?.value;
+      return typeof v === "string" && v ? v : undefined;
+    };
     return {
-      meiliUrl: typeof url === "string" && url ? url : defaults.meiliUrl,
-      meiliKey: typeof key === "string" && key ? key : defaults.meiliKey,
+      meiliUrl: get("meili_url") ?? defaults.meiliUrl,
+      meiliKey: get("meili_key") ?? defaults.meiliKey,
+      gitWatcherUrl: get("git_watcher_url") ?? defaults.gitWatcherUrl,
+      lycheeUrl: get("lychee_url") ?? defaults.lycheeUrl,
+      rcloneUrl: get("rclone_url") ?? defaults.rcloneUrl,
+      languageToolUrl: get("languagetool_url") ?? defaults.languageToolUrl,
     };
   } catch {
     return defaults;
@@ -435,9 +453,13 @@ function buildPanelContent(
   isReadonly: boolean = false,
   multiSelect: MultiSelectData = { allPaths: [], criteria: [] },
   focusSearch: boolean = false,
-  meiliConfig: { meiliUrl: string; meiliKey: string } = {
+  pathConfig: PathConfig = {
     meiliUrl: "http://localhost:7700",
     meiliKey: "masterKey",
+    gitWatcherUrl: "http://localhost:8020",
+    lycheeUrl: "http://localhost:8030",
+    rcloneUrl: "http://localhost:8040",
+    languageToolUrl: "http://localhost:8010",
   },
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
@@ -731,15 +753,15 @@ function buildPanelContent(
   const fieldsJson = JSON.stringify(editableDescs);
   const pageJson = JSON.stringify(pageName);
   const focusSearchJson = JSON.stringify(focusSearch);
-  const meiliUrlJson = JSON.stringify(meiliConfig.meiliUrl);
-  const meiliKeyJson = JSON.stringify(meiliConfig.meiliKey);
+  const configJson = JSON.stringify(pathConfig);
   const script = `
 (function() {
   var FIELDS = ${fieldsJson};
   var PAGE = ${pageJson};
   var FOCUS_SEARCH = ${focusSearchJson};
-  var MEILI_URL = ${meiliUrlJson};
-  var MEILI_KEY = ${meiliKeyJson};
+  var CFG = ${configJson};
+  var MEILI_URL = CFG.meiliUrl;
+  var MEILI_KEY = CFG.meiliKey;
 
   function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
 
@@ -782,21 +804,39 @@ function buildPanelContent(
     }
   }
 
-  async function updateBackupStatus() {
+  function fmtDate(iso) {
+    if (!iso) return '';
     try {
-      var status = await syscall('system.invokeFunction', 'path.getBackupStatus');
-      document.getElementById('last-run').textContent = status.lastRun || 'Never';
-      document.getElementById('status-text').textContent = status.status || 'Unknown';
+      var d = new Date(iso);
+      return d.toLocaleString();
+    } catch (_) { return iso; }
+  }
+
+  async function updateBackupStatus() {
+    var lastRun = document.getElementById('last-run');
+    var statusText = document.getElementById('status-text');
+    if (!lastRun || !statusText) return;
+    try {
+      var resp = await fetch(CFG.rcloneUrl + '/status');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      var last = data.last_sync || {};
+      lastRun.textContent = last.last_run ? fmtDate(last.last_run) : 'Never';
+      statusText.textContent = last.status || (data.config_exists ? 'Idle' : 'Not configured');
     } catch (e) {
-      console.error('Backup status fetch failed', e);
+      lastRun.textContent = '—';
+      statusText.textContent = 'Sidecar unreachable';
     }
   }
 
   async function updateHistory() {
     var list = document.getElementById('history-list');
     try {
-      var history = await syscall('system.invokeFunction', 'path.getHistory', PAGE);
-      if (!history || history.length === 0) {
+      var resp = await fetch(CFG.gitWatcherUrl + '/history?path=' + encodeURIComponent(PAGE));
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      var history = data.history || [];
+      if (history.length === 0) {
         list.innerHTML = '<div class="empty">No snapshots found.</div>';
         return;
       }
@@ -804,14 +844,14 @@ function buildPanelContent(
         return \`
           <div class="history-item">
             <div class="history-info">
-              <div class="history-date">\${item.date}</div>
+              <div class="history-date">\${fmtDate(item.timestamp)}</div>
               <div class="history-msg">\${item.message}</div>
             </div>
             <div class="history-actions">
-              <button class="btn-icon btn-history-preview" data-id="\${item.id}" title="Preview snapshot">
+              <button class="btn-icon btn-history-preview" data-hash="\${item.hash}" title="Preview snapshot">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
               </button>
-              <button class="btn-icon btn-history-restore" data-id="\${item.id}" title="Restore snapshot">
+              <button class="btn-icon btn-history-restore" data-hash="\${item.hash}" title="Restore snapshot">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
@@ -819,29 +859,114 @@ function buildPanelContent(
       }).join('');
 
       list.querySelectorAll('.btn-history-preview').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
-          await syscall('system.invokeCommand', 'Path: Preview History', btn.getAttribute('data-id'));
-        });
+        btn.addEventListener('click', function() { previewSnapshot(btn.getAttribute('data-hash')); });
       });
       list.querySelectorAll('.btn-history-restore').forEach(function(btn) {
-        btn.addEventListener('click', async function() {
-          await syscall('system.invokeCommand', 'Path: Restore History', btn.getAttribute('data-id'));
-        });
+        btn.addEventListener('click', function() { restoreSnapshot(btn.getAttribute('data-hash')); });
       });
     } catch (e) {
-      list.innerHTML = '<div class="empty">History unavailable.</div>';
+      list.innerHTML = '<div class="empty">History unavailable — is the git-watcher sidecar running?</div>';
     }
   }
 
-  // Tool buttons
+  async function fetchSnapshot(hash) {
+    var url = CFG.gitWatcherUrl + '/version?path=' + encodeURIComponent(PAGE) + '&hash=' + encodeURIComponent(hash);
+    var resp = await fetch(url);
+    if (!resp.ok) throw new Error('Snapshot not found');
+    return await resp.json();
+  }
+
+  async function previewSnapshot(hash) {
+    try {
+      var data = await fetchSnapshot(hash);
+      var previewPage = '_system/history-preview';
+      var banner = '---\\nreadonly: true\\n---\\n\\n# History preview\\n\\n*Snapshot \`' + hash.slice(0, 7) + '\` of \`' + PAGE + '\`.* To restore, return to the original page and use the Restore button.\\n\\n---\\n\\n';
+      await syscall('space.writePage', previewPage, banner + data.content);
+      await syscall('editor.navigate', previewPage);
+    } catch (e) {
+      await syscall('editor.flashNotification', 'Preview failed: ' + String(e));
+    }
+  }
+
+  async function restoreSnapshot(hash) {
+    if (!window.confirm('Restore "' + PAGE + '" to snapshot ' + hash.slice(0, 7) + '? Unsaved changes will be lost.')) return;
+    try {
+      var data = await fetchSnapshot(hash);
+      await syscall('space.writePage', PAGE, data.content);
+      await syscall('editor.flashNotification', 'Restored snapshot ' + hash.slice(0, 7));
+      await syscall('editor.reloadPage');
+    } catch (e) {
+      await syscall('editor.flashNotification', 'Restore failed: ' + String(e));
+    }
+  }
+
+  // Tool buttons — fetch directly from sidecars. Results for grammar/links
+  // are written to a transient _system page and opened.
   document.getElementById('btn-grammar')?.addEventListener('click', async function() {
-    await syscall('system.invokeCommand', 'Path: LanguageTool');
+    var btn = this;
+    btn.disabled = true;
+    try {
+      var text = await syscall('editor.getText');
+      var body = 'text=' + encodeURIComponent(text) + '&language=en-GB';
+      var resp = await fetch(CFG.languageToolUrl + '/v2/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body,
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      var matches = data.matches || [];
+      var lines = ['---', 'readonly: true', '---', '', '# Grammar & style check', '', '*Source:* \`' + PAGE + '\`  ', '*Issues found:* ' + matches.length, ''];
+      matches.forEach(function(m) {
+        var ctx = (m.context && m.context.text) || '';
+        lines.push('## ' + (m.shortMessage || m.message));
+        lines.push('');
+        lines.push('> ' + ctx);
+        lines.push('');
+        lines.push('*Rule:* ' + (m.rule && m.rule.id ? m.rule.id : '—'));
+        lines.push('');
+      });
+      await syscall('space.writePage', '_system/last-grammar-check', lines.join('\\n'));
+      await syscall('editor.flashNotification', matches.length + ' issue(s) found.');
+      await syscall('editor.navigate', '_system/last-grammar-check');
+    } catch (e) {
+      await syscall('editor.flashNotification', 'Grammar check failed: ' + String(e));
+    } finally { btn.disabled = false; }
   });
+
   document.getElementById('btn-links')?.addEventListener('click', async function() {
-    await syscall('system.invokeCommand', 'Path: Lychee');
+    var btn = this;
+    btn.disabled = true;
+    try {
+      var resp = await fetch(CFG.lycheeUrl + '/check?path=' + encodeURIComponent(PAGE));
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      var data = await resp.json();
+      var issues = data.issues || [];
+      var lines = ['---', 'readonly: true', '---', '', '# Broken link check', '', '*Source:* \`' + PAGE + '\`  ', '*Broken / unreachable:* ' + issues.length, ''];
+      issues.forEach(function(i) {
+        lines.push('- **' + i.status + '** — ' + i.uri + (i.message ? ' (' + i.message + ')' : ''));
+      });
+      await syscall('space.writePage', '_system/last-link-check', lines.join('\\n'));
+      await syscall('editor.flashNotification', issues.length + ' broken link(s).');
+      await syscall('editor.navigate', '_system/last-link-check');
+    } catch (e) {
+      await syscall('editor.flashNotification', 'Link check failed: ' + String(e));
+    } finally { btn.disabled = false; }
   });
+
   document.getElementById('btn-sync')?.addEventListener('click', async function() {
-    await syscall('system.invokeCommand', 'Path: Rclone');
+    var btn = this;
+    btn.disabled = true;
+    try {
+      await syscall('editor.flashNotification', 'Syncing to cloud...');
+      var resp = await fetch(CFG.rcloneUrl + '/sync', { method: 'POST' });
+      var data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || ('HTTP ' + resp.status));
+      await syscall('editor.flashNotification', 'Sync: ' + (data.status || 'unknown'));
+      await updateBackupStatus();
+    } catch (e) {
+      await syscall('editor.flashNotification', 'Sync failed: ' + String(e));
+    } finally { btn.disabled = false; }
   });
 
   // Search logic
@@ -1089,7 +1214,7 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
     return;
   }
 
-  const meiliConfig = await getPathConfig();
+  const pathConfig = await getPathConfig();
   const { html, script } = buildPanelContent(
     pageName,
     parsed?.fields ?? [],
@@ -1098,7 +1223,7 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
     isReadonly,
     multiSelect,
     focusSearch,
-    meiliConfig,
+    pathConfig,
   );
   // Second arg = flex grow. Editor is flex:1, so 0.7 puts the panel
   // at roughly 40% of the available space.
