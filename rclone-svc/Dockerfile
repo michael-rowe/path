@@ -1,10 +1,9 @@
 FROM rclone/rclone:latest AS rclone
 
-FROM python:3.12-slim
+FROM python:3.12-alpine
 COPY --from=rclone /usr/local/bin/rclone /usr/local/bin/rclone
 
-# Install dependencies
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 COPY requirements.txt .

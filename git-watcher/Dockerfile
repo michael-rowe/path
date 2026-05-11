@@ -1,7 +1,6 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
-# Install git
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git
 
 WORKDIR /app
 

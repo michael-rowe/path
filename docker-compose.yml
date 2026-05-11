@@ -35,7 +35,7 @@ services:
   # Start with: docker compose --profile ai up -d
   # Configure your AI client to connect at http://localhost:3001/sse
   path-mcp:
-    build: ./path-mcp
+    image: ghcr.io/michael-rowe/path-mcp:latest
     container_name: path-mcp
     profiles:
       - ai
@@ -82,7 +82,7 @@ services:
   # Meili-indexer — watches the space and indexes YAML/body into Meilisearch.
   # Start with: docker compose --profile search up -d
   meili-indexer:
-    build: ./meili-indexer
+    image: ghcr.io/michael-rowe/path-meili-indexer:latest
     container_name: path-meili-indexer
     profiles:
       - search
@@ -107,7 +107,7 @@ services:
 
   # Git-watcher — automated "Time Machine" versioning.
   git-watcher:
-    build: ./git-watcher
+    image: ghcr.io/michael-rowe/path-git-watcher:latest
     container_name: path-git-watcher
     ports:
       - "127.0.0.1:8020:8020"
@@ -145,7 +145,7 @@ services:
   # Lychee — broken link checker.
   # Start with: docker compose --profile writing up -d
   lychee-svc:
-    build: ./lychee-svc
+    image: ghcr.io/michael-rowe/path-lychee-svc:latest
     container_name: path-lychee-svc
     profiles:
       - writing
@@ -167,7 +167,7 @@ services:
   # Start with: docker compose --profile backup up -d
   # Configure with: docker compose run --rm rclone-svc rclone config
   rclone-svc:
-    build: ./rclone-svc
+    image: ghcr.io/michael-rowe/path-rclone-svc:latest
     container_name: path-rclone-svc
     profiles:
       - backup

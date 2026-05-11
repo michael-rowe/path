@@ -1,10 +1,9 @@
-FROM lycheeverse/lychee:latest AS lychee
+FROM lycheeverse/lychee:latest-alpine AS lychee
 
-FROM python:3.12-slim
+FROM python:3.12-alpine
 COPY --from=lychee /usr/local/bin/lychee /usr/local/bin/lychee
 
-# Install dependencies for lychee (needs openssl/libssl)
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ca-certificates openssl
 
 WORKDIR /app
 COPY requirements.txt .
