@@ -701,7 +701,9 @@ function buildPanelContent(
   .search-snip { font-size: 0.82em; color: #4b5563; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .search-snip em { font-style: normal; background: rgba(79, 70, 229, 0.15); border-radius: 2px; }
 
-  .preview-banner { margin-bottom: 1.2em; padding: 0.9em 1em; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; }
+  /* Sticky inside the History tab so it stays visible as users scroll a long snapshot list.
+     Top offset matches .tabs sticky bar height (~2.6em including padding). */
+  .preview-banner { position: sticky; top: 3em; z-index: 9; margin-bottom: 1em; padding: 0.9em 1em; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px; }
   .preview-banner-title { font-size: 0.92em; font-weight: 600; color: #3730a3; margin-bottom: 0.15em; }
   .preview-banner-title code, .preview-banner-sub code { background: rgba(79, 70, 229, 0.12); padding: 0.05em 0.4em; border-radius: 3px; font-size: 0.92em; }
   .preview-banner-sub { font-size: 0.82em; color: #4338ca; margin-bottom: 0.85em; word-break: break-word; }
@@ -735,6 +737,8 @@ function buildPanelContent(
   html[data-theme="dark"] .history-item { border-bottom-color: #1e293b; }
   html[data-theme="dark"] .history-item:hover { background: #1e293b; }
   html[data-theme="dark"] .history-date { color: #f1f5f9; }
+  html[data-theme="dark"] .toc-item { color: #cbd5e1; }
+  html[data-theme="dark"] .toc-item:hover { background: #1e1b4b; color: #c7d2fe; }
   html[data-theme="dark"] .preview-banner { background: #1e1b4b; border-color: #312e81; }
   html[data-theme="dark"] .preview-banner-title { color: #c7d2fe; }
   html[data-theme="dark"] .preview-banner-sub { color: #a5b4fc; }
@@ -748,23 +752,6 @@ function buildPanelContent(
 </style>
 <div id="panel" class="panel">
   ${searchBody}
-  ${
-    preview
-      ? `
-  <div class="preview-banner">
-    <div class="preview-banner-title">Previewing snapshot <code>${
-        escapeHtml(preview.hash.slice(0, 7))
-      }</code></div>
-    <div class="preview-banner-sub">of <code>${
-        escapeHtml(preview.originalPage)
-      }</code></div>
-    <div class="preview-banner-actions">
-      <button class="btn btn-restore" id="btn-preview-restore">Restore this version</button>
-      <button class="btn-secondary" id="btn-preview-back">Back to current</button>
-    </div>
-  </div>`
-      : ""
-  }
   <div class="tabs">
     <button class="tab-btn ${preview ? "" : "active"}" data-tab="page">Page</button>
     <button class="tab-btn" data-tab="tools">Tools</button>
@@ -779,6 +766,23 @@ function buildPanelContent(
     ${toolsBody}
   </div>
   <div id="tab-history" class="tab-content ${preview ? "active" : ""}">
+    ${
+      preview
+        ? `
+    <div class="preview-banner">
+      <div class="preview-banner-title">Previewing snapshot <code>${
+          escapeHtml(preview.hash.slice(0, 7))
+        }</code></div>
+      <div class="preview-banner-sub">of <code>${
+          escapeHtml(preview.originalPage)
+        }</code></div>
+      <div class="preview-banner-actions">
+        <button class="btn btn-restore" id="btn-preview-restore">Restore this version</button>
+        <button class="btn-secondary" id="btn-preview-back">Back to current</button>
+      </div>
+    </div>`
+        : ""
+    }
     ${historyBody}
   </div>
 </div>

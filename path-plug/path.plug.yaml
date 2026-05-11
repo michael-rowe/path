@@ -1,4 +1,9 @@
 name: path
+# Plug needs network access to reach the rclone-svc sidecar from
+# Path: Sync to cloud. Without this, fetch() throws
+# "Missing permission 'fetch' for syscall sandboxFetch.fetch".
+requiredPermissions:
+  - fetch
 functions:
   hello:
     path: path.ts:hello

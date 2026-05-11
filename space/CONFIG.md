@@ -779,7 +779,7 @@ actionButton.define {
 -- whole space is not a per-page action. Status is shown via flash
 -- notification on click; persistent state lives in rclone-svc.
 actionButton.define {
-  icon = "cloud-upload",
+  icon = "upload-cloud",
   description = "Sync space to cloud",
   priority = 1.04,
   run = function()
