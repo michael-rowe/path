@@ -6,6 +6,7 @@ import frontmatter
 import yaml
 
 SPACE_DIR = os.environ.get("SPACE_DIR", "/space")
+_SPACE_ROOT = Path(SPACE_DIR).resolve()
 
 # Directories excluded from general searches and listings
 EXCLUDE_DIRS = {"Library", "_system", "_assets", "templates", "evidence-inventory"}
@@ -13,15 +14,37 @@ EXCLUDE_DIRS = {"Library", "_system", "_assets", "templates", "evidence-inventor
 # Page types that should never be returned from list operations
 EXCLUDE_TYPES = {"profile"}
 
+# New pages may only be created under these prefixes. Updates to existing pages
+# anywhere in the space are allowed when the caller passes allow_update=True.
+ALLOWED_WRITE_PREFIXES = ("Inbox/",)
+
 
 def space_path(*parts) -> Path:
     return Path(SPACE_DIR).joinpath(*parts)
 
 
+def _safe_path(relative_path: str) -> tuple[Path, str]:
+    """Resolve relative_path against SPACE_DIR and assert it stays inside.
+
+    Returns (absolute_path, normalised_relative_path). Raises ValueError on
+    traversal or non-.md targets so the MCP tool surface reports a clear error.
+    """
+    target = (_SPACE_ROOT / relative_path).resolve()
+    if not target.is_relative_to(_SPACE_ROOT):
+        raise ValueError(f"Path '{relative_path}' escapes the space directory.")
+    if target.suffix != ".md":
+        raise ValueError(f"Path '{relative_path}' must be a .md file.")
+    normalised = str(target.relative_to(_SPACE_ROOT)).replace("\\", "/")
+    return target, normalised
+
+
 def read_page(relative_path: str) -> dict | None:
     """Read a markdown page from the space. Returns {meta, content, slug} or None."""
-    path = space_path(relative_path)
-    if not path.exists() or path.suffix != ".md":
+    try:
+        path, normalised = _safe_path(relative_path)
+    except ValueError:
+        return None
+    if not path.exists():
         return None
     try:
         post = frontmatter.load(str(path))
@@ -29,7 +52,7 @@ def read_page(relative_path: str) -> dict | None:
             "meta": dict(post.metadata),
             "content": post.content,
             "slug": path.stem,
-            "page": str(path.relative_to(SPACE_DIR)).replace("\\", "/"),
+            "page": normalised,
         }
     except Exception:
         return None
@@ -59,14 +82,36 @@ def list_pages(directory: str, type_filter: str = None) -> list[dict]:
     return results
 
 
-def write_page(relative_path: str, meta: dict, content: str) -> str:
-    """Write a markdown page to the space. Returns the page path."""
-    path = space_path(relative_path)
+def write_page(
+    relative_path: str,
+    meta: dict,
+    content: str,
+    allow_update: bool = False,
+) -> str:
+    """Write a markdown page to the space. Returns the page path.
+
+    New pages may only be created under ALLOWED_WRITE_PREFIXES (currently
+    Inbox/) — this means an MCP client cannot manufacture content directly in
+    claims/, cpd/, reflections/, etc. To overwrite an existing page anywhere
+    in the space (e.g. update_claim_status), pass allow_update=True.
+    """
+    path, normalised = _safe_path(relative_path)
+    is_new = not path.exists()
+    if is_new:
+        if not any(normalised.startswith(p) for p in ALLOWED_WRITE_PREFIXES):
+            raise ValueError(
+                f"New pages may only be created under "
+                f"{list(ALLOWED_WRITE_PREFIXES)}; got '{normalised}'."
+            )
+    elif not allow_update:
+        raise ValueError(
+            f"Page '{normalised}' exists; pass allow_update=True to overwrite."
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     post = frontmatter.Post(content, **meta)
     with open(str(path), "w", encoding="utf-8") as f:
         f.write(frontmatter.dumps(post))
-    return str(path.relative_to(SPACE_DIR)).replace("\\", "/")
+    return normalised
 
 
 def load_framework_yaml(framework_short: str) -> dict | None:

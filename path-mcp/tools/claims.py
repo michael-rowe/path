@@ -103,7 +103,7 @@ def register_tools(mcp):
         old_status = meta.get("status", "unknown")
         meta["status"] = status
 
-        written = write_page(page_name, meta, page["content"])
+        written = write_page(page_name, meta, page["content"], allow_update=True)
         return {
             "page": written,
             "title": meta.get("title"),
