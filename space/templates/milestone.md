@@ -10,8 +10,7 @@ title: ""
 target_date: ""
 status: planned
 path: ${selectActivePath()}
-evidence:
-  - "[[]]"
+evidence: []
 ---
 
 # |^|Type milestone title here

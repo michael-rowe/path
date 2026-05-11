@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - pandoc/**
+    tags:
+      # Versioned releases like v0.1.0 publish pinnable image tags
+      # alongside :latest. Tag the release commit with `git tag v0.1.0
+      # && git push origin v0.1.0` to trigger.
+      - "v*.*.*"
   workflow_dispatch:
 
 env:
@@ -36,6 +41,9 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
