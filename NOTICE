@@ -1,0 +1,18 @@
+Required Notice: Copyright Michael Rowe (https://github.com/michael-rowe/path)
+
+Path is licensed under the PolyForm Noncommercial License 1.0.0. See the
+accompanying LICENSE file or https://polyformproject.org/licenses/noncommercial/1.0.0
+for the full terms.
+
+Path bundles or depends on other open-source software, each retaining its
+own licence:
+
+- SilverBullet (https://silverbullet.md) — MIT
+- Pandoc (https://pandoc.org) — GPL v2 or later
+- Inter typeface (https://rsms.me/inter/) — SIL Open Font License 1.1
+- Feather Icons (https://feathericons.com) — MIT
+
+The bundled framework definitions (HCPC CPD, AdvanceHE descriptors,
+University of Lincoln TSPP) encode publicly published criteria; the
+underlying criteria remain the intellectual property of their respective
+issuers and are included here for personal portfolio use only.
