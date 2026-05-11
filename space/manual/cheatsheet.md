@@ -4,7 +4,7 @@ readonly: true
 
 # Quick reference
 
-The most useful commands and shortcuts. Bookmark this page or click the **?** icon in the Toolbar to come back to it.
+The most useful commands and shortcuts. Click the **?** icon in the Toolbar to come back to it.
 
 ## Manual — full table of contents
 
@@ -25,7 +25,6 @@ The most useful commands and shortcuts. Bookmark this page or click the **?** ic
 - [[manual/glossary|Glossary]] — plain-language definitions
 - [[manual/ai-features|AI features]] — connecting an AI assistant to your portfolio
 - [[manual/about|About]] — version, attribution, licence, source
-- [[manual/cheatsheet|Cheatsheet]] — this page
 
 ## Most useful commands
 
@@ -41,7 +40,7 @@ The most useful commands and shortcuts. Bookmark this page or click the **?** ic
 | Toggle light / dark | Click the moon/sun icon in the Toolbar |
 | Sync to cloud | Click the cloud-upload icon in the Toolbar |
 | Export to Word | Click the file icon in the Toolbar |
-| Open this manual | Click the book icon in the Toolbar |
+| Open this manual | Click the **?** icon in the Toolbar |
 | Reload the system | `Ctrl-Alt-r` (after changing styles or scripts) |
 
 ## Capture menu options

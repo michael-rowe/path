@@ -55,27 +55,37 @@ Custom styles for Path. Edit the `space-style` block below; reload (or run `Syst
   margin-top: 44px !important;
 }
 
-/* Capture toolbar button — primary creation action; visually stand out
-   from the otherwise uniform action button row. SB renders the button's
-   description as the title attribute, so we target by that. The icon
-   inherits stroke from currentColor, so tinting the button colour tints
-   the SVG. */
+/* Capture toolbar button — primary creation action; rendered as a
+   solid indigo circle with a white plus inside, distinct from the
+   otherwise outline-icon action button row. SB renders the button's
+   description as the title attribute, so we target by that. */
 #sb-top .sb-actions button[title^="Capture"] {
-  color: #4f46e5 !important;
-}
-#sb-top .sb-actions button[title^="Capture"] svg {
-  width: 22px !important;
-  height: 22px !important;
-  stroke-width: 2.4 !important;
+  background: #4f46e5 !important;
+  border-radius: 50% !important;
+  width: 30px !important;
+  height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 0.3em !important;
+  border: none !important;
 }
 #sb-top .sb-actions button[title^="Capture"]:hover {
-  color: #4338ca !important;
+  background: #4338ca !important;
+}
+#sb-top .sb-actions button[title^="Capture"] svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke: white !important;
+  stroke-width: 2.6 !important;
+  color: white !important;
 }
 html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"] {
-  color: #818cf8 !important;
+  background: #6366f1 !important;
 }
 html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"]:hover {
-  color: #a5b4fc !important;
+  background: #818cf8 !important;
 }
 
 /* ============ Frontmatter — hidden; edit via the Inspector ============ */

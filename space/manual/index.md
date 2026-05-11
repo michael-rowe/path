@@ -12,4 +12,4 @@ The manual is the place to come when you're not sure what to do next. It's writt
 
 Open **[[manual/cheatsheet]]** — the quick reference page. It links to every other section of the manual, including a short reading list for first-time users.
 
-> **tip** You can always come back here from the **Manual** link in the Navigator. There is no exam.
+> **tip** You can always come back here by clicking the **?** icon in the Toolbar. There is no exam.

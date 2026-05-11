@@ -772,7 +772,7 @@ actionButton.define {
 -- it stands out from the other (uniform) toolbar buttons.
 actionButton.define {
   icon = "plus",
-  description = "Capture (Path: Capture)",
+  description = "Capture (Ctrl-Alt-c)",
   priority = 1.15,
   run = function()
     editor.invokeCommand("Path: Capture")
@@ -802,10 +802,12 @@ actionButton.define {
   end
 }
 
--- Manual — quick access to the in-Path documentation (was previously
--- a Navigator → Workspace item).
+-- Manual — quick access to the in-Path documentation. Uses the
+-- help-circle (?-in-circle) icon so it doesn't visually clash with SB's
+-- built-in Open button (which uses a closed-book glyph). Reads as
+-- "help" to anyone arriving from a typical web app.
 actionButton.define {
-  icon = "book-open",
+  icon = "help-circle",
   description = "Open the manual",
   priority = 1.02,
   run = function()
