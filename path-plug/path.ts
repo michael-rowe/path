@@ -611,11 +611,17 @@ function buildPanelContent(
   const toolsBody = `
     <div class="tool-section">
       <h3>Writing Quality</h3>
-      <button class="btn-tool" id="btn-grammar">Check grammar & style</button>
+      <button class="btn-tool btn-tool-grammar" id="btn-grammar">
+        <svg class="btn-tool-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+        <span>Check grammar &amp; style</span>
+      </button>
     </div>
     <div class="tool-section">
       <h3>Link Checker</h3>
-      <button class="btn-tool" id="btn-links">Check broken links</button>
+      <button class="btn-tool btn-tool-links" id="btn-links">
+        <svg class="btn-tool-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span>Check broken links</span>
+      </button>
     </div>
     ${isReadonly ? "" : `
     <div class="section-danger" style="margin-top: 3em;">
@@ -663,8 +669,19 @@ function buildPanelContent(
   
   .tool-section { margin-bottom: 1.8em; }
   .tool-section h3 { font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.7em 0; font-weight: 600; }
-  .btn-tool { background: white; border: 1px solid #d1d5db; color: #111827; padding: 0.55em 0.9em; border-radius: 4px; cursor: pointer; font-size: 0.88em; font-family: inherit; transition: all 0.12s; width: fit-content; text-align: left; }
-  .btn-tool:hover { background: #f9fafb; border-color: #9ca3af; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+  /* Tool buttons: icon + label, left-accented in a per-button tint.
+     Background stays light so they don't compete with the indigo Save
+     CTA; hover deepens the accent. */
+  .btn-tool { display: inline-flex; align-items: center; gap: 0.5em; background: white; border: 1px solid #d1d5db; border-left-width: 3px; color: #111827; padding: 0.5em 0.85em; border-radius: 4px; cursor: pointer; font-size: 0.88em; font-family: inherit; transition: all 0.12s; text-align: left; }
+  .btn-tool:hover { box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .btn-tool .btn-tool-icon { flex-shrink: 0; }
+  .btn-tool-grammar { border-left-color: #4f46e5; color: #1f2937; }
+  .btn-tool-grammar .btn-tool-icon { color: #4f46e5; }
+  .btn-tool-grammar:hover { background: #eef2ff; border-color: #c7d2fe; border-left-color: #4f46e5; }
+  .btn-tool-links { border-left-color: #0d9488; color: #1f2937; }
+  .btn-tool-links .btn-tool-icon { color: #0d9488; }
+  .btn-tool-links:hover { background: #f0fdfa; border-color: #99f6e4; border-left-color: #0d9488; }
+  .btn-tool:disabled { opacity: 0.55; cursor: progress; }
   
   .status-area { margin-top: 0.8em; font-size: 0.82em; color: #6b7280; line-height: 1.5; padding: 0.6em 0.8em; background: #f1f5f9; border-radius: 4px; }
   .status-area span { color: #1f2937; font-weight: 500; }
@@ -733,7 +750,13 @@ function buildPanelContent(
   html[data-theme="dark"] .tab-btn.active { color: #818cf8; border-bottom-color: #818cf8; }
   html[data-theme="dark"] .section h2, html[data-theme="dark"] .k, html[data-theme="dark"] .tool-section h3 { color: #94a3b8; }
   html[data-theme="dark"] .btn-tool { background: #1e293b; border-color: #334155; color: #f1f5f9; }
-  html[data-theme="dark"] .btn-tool:hover { background: #334155; border-color: #475569; }
+  html[data-theme="dark"] .btn-tool:hover { background: #334155; }
+  html[data-theme="dark"] .btn-tool-grammar { border-left-color: #818cf8; }
+  html[data-theme="dark"] .btn-tool-grammar .btn-tool-icon { color: #a5b4fc; }
+  html[data-theme="dark"] .btn-tool-grammar:hover { background: #1e1b4b; border-color: #312e81; border-left-color: #818cf8; }
+  html[data-theme="dark"] .btn-tool-links { border-left-color: #2dd4bf; }
+  html[data-theme="dark"] .btn-tool-links .btn-tool-icon { color: #5eead4; }
+  html[data-theme="dark"] .btn-tool-links:hover { background: #042f2e; border-color: #134e4a; border-left-color: #2dd4bf; }
   html[data-theme="dark"] .status-area { background: #1e293b; color: #94a3b8; }
   html[data-theme="dark"] .status-area span { color: #f1f5f9; }
   html[data-theme="dark"] .history-item { border-bottom-color: #1e293b; }
