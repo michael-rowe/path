@@ -230,7 +230,37 @@ No Node, Python, or LaTeX installation needed — Docker handles all of it.
 
 ## Setup
 
-This is untested outside of my specific working environment. If anyone gets it to work on Mac or Windows, please let me know.
+### Setup scripts (recommended for most users)
+
+There are setup scripts for Linux and Windows that handle Docker installation, image download, and first run in a single step.
+
+> **These scripts are early and largely untested outside of my own machine.** They work on my Linux setup. The Windows script is written to spec but has not been run on a real Windows machine. You will likely run into something — a permission prompt, an unexpected Docker state, a WSL2 step, a package that behaves differently on your OS. If something goes wrong, the manual steps below will get you there.
+
+**Linux:**
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/michael-rowe/path/main/setup.sh)
+```
+
+Or download `setup.sh` from this repo and run `bash setup.sh`.
+
+**Windows:**
+
+Download `setup.bat` from this repo and double-click it. It will open a PowerShell window and walk you through the process.
+
+The scripts offer three installation sizes:
+
+| Tier | What's included | Installed size |
+|---|---|---|
+| Basic | Editor, version history, Word export | ~1.9 GB |
+| Standard | + full-text search | ~2.3 GB |
+| Full | + writing tools, grammar, link checker, cloud backup, AI client | ~4.0 GB |
+
+---
+
+### Manual setup
+
+For those who want direct control, or if the script doesn't work:
 
 ```bash
 git clone https://github.com/michael-rowe/path.git
@@ -262,14 +292,14 @@ The app provides notifications when udpates are available, with instructions on 
 
 ```bash
 git pull
-docker compose pull silverbullet
+docker compose pull
 docker compose up -d
 ```
 
-Your content (`space/claims/`, `space/cpd/`, etc.) is gitignored so updates don't touch it. If you're running the export profile and Pandoc has been rebuilt:
+Your content (`space/claims/`, `space/cpd/`, etc.) is gitignored so updates don't touch it. If you're running optional profiles, pass the same ones you used at install:
 
 ```bash
-docker compose --profile export up -d --build pandoc-svc
+COMPOSE_PROFILES=export,search docker compose up -d
 ```
 
 ---
