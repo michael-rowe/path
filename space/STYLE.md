@@ -1,10 +1,49 @@
 Custom styles for Path. Edit the `space-style` block below; reload (or run `System: Reload`) to apply.
 
 ```space-style
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+/* Self-hosted Figtree (offline-first — no Google CDN call). Files live in
+   space/_assets/fonts/ and are served by SilverBullet at /_assets/fonts/. */
+@font-face { font-family: 'Figtree'; font-style: normal; font-weight: 400; font-display: swap; src: url('/_assets/fonts/figtree-400.woff2') format('woff2'); }
+@font-face { font-family: 'Figtree'; font-style: normal; font-weight: 500; font-display: swap; src: url('/_assets/fonts/figtree-500.woff2') format('woff2'); }
+@font-face { font-family: 'Figtree'; font-style: normal; font-weight: 600; font-display: swap; src: url('/_assets/fonts/figtree-600.woff2') format('woff2'); }
+@font-face { font-family: 'Figtree'; font-style: normal; font-weight: 700; font-display: swap; src: url('/_assets/fonts/figtree-700.woff2') format('woff2'); }
 
 :root {
-  --editor-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  --editor-font: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+
+/* ============ SilverBullet UI chrome — warm accent ============ */
+/* SB themes its own chrome (command palette selection, primary buttons,
+   keyboard-shortcut badges, links, and the top toolbar) from these
+   variables. Override them so the built-in UI matches the warm theme
+   instead of SB's default blue. */
+:root {
+  --ui-accent-color: #bb6a4a;
+  --ui-accent-contrast-color: #fcf7ee;
+  --ui-accent-text-color: #9a5238;
+  --link-color: #9a5238;
+  --top-background-color: #ece3d2;
+  --top-border-color: #e0d5c0;
+  --action-button-hover-color: #bb6a4a;
+  --modal-hint-background-color: #bb6a4a;
+  --modal-hint-color: #fcf7ee;
+  --editor-wiki-link-color: #9a5238;
+  --editor-wiki-link-page-background-color: rgba(187, 106, 74, 0.08);
+  --notification-info-background-color: #cbdcce;
+}
+html[data-theme="dark"] {
+  --ui-accent-color: #d98a63;
+  --ui-accent-contrast-color: #241c14;
+  --ui-accent-text-color: #e0a07d;
+  --link-color: #e0a07d;
+  --top-background-color: #272219;
+  --top-border-color: #38322a;
+  --action-button-hover-color: #d98a63;
+  --modal-hint-background-color: #d98a63;
+  --modal-hint-color: #241c14;
+  --editor-wiki-link-color: #e0a07d;
+  --editor-wiki-link-page-background-color: rgba(217, 138, 99, 0.14);
+  --notification-info-background-color: #3a4a3e;
 }
 
 /* ============ Body / typography ============ */
@@ -60,7 +99,7 @@ Custom styles for Path. Edit the `space-style` block below; reload (or run `Syst
    otherwise outline-icon action button row. SB renders the button's
    description as the title attribute, so we target by that. */
 #sb-top .sb-actions button[title^="Capture"] {
-  background: #4f46e5 !important;
+  background: #5f7d66 !important;
   border-radius: 50% !important;
   width: 30px !important;
   height: 30px !important;
@@ -72,7 +111,7 @@ Custom styles for Path. Edit the `space-style` block below; reload (or run `Syst
   border: none !important;
 }
 #sb-top .sb-actions button[title^="Capture"]:hover {
-  background: #4338ca !important;
+  background: #4f6a4f !important;
 }
 #sb-top .sb-actions button[title^="Capture"] svg {
   width: 16px !important;
@@ -82,10 +121,10 @@ Custom styles for Path. Edit the `space-style` block below; reload (or run `Syst
   color: white !important;
 }
 html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"] {
-  background: #6366f1 !important;
+  background: #6f8c74 !important;
 }
 html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"]:hover {
-  background: #818cf8 !important;
+  background: #7c9a82 !important;
 }
 
 /* ============ Frontmatter — hidden; edit via the Inspector ============ */
@@ -119,9 +158,9 @@ html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"]:hover {
   padding: 0.85em 1.1em !important;
 }
 
-/* Custom admonition: 'tip' — uses a friendly teal */
+/* Custom admonition: 'tip' — uses sage (see the fuller tip rule below) */
 .sb-admonition[admonition="tip" i] {
-  --admonition-color: #2f8a5d;
+  --admonition-color: #5f7d66;
 }
 
 /* ============ Wiki links — modern, borderless ============ */
@@ -131,22 +170,22 @@ html[data-theme="dark"] #sb-top .sb-actions button[title^="Capture"]:hover {
   background: none !important;
   padding: 0 !important;
   margin: 0 !important;
-  color: #2563eb;
+  color: #9a5238;
   text-decoration: none;
   border-bottom: 1px solid transparent;
   transition: border-color 0.12s, color 0.12s;
 }
 
 .sb-wiki-link:hover {
-  color: #1d4ed8;
+  color: #7a4630;
   border-bottom-color: currentColor;
 }
 
 html[data-theme="dark"] .sb-wiki-link {
-  color: #60a5fa;
+  color: #e0a07d;
 }
 html[data-theme="dark"] .sb-wiki-link:hover {
-  color: #93c5fd;
+  color: #ecc6a8;
 }
 
 
@@ -185,37 +224,37 @@ html[data-theme="dark"] .sb-wiki-link:hover {
 /* Top-left corner cell — invisible but holds layout */
 .path-overview .path-overview-corner {
   background: transparent;
-  border-bottom: 1px solid #e0e7ff;
+  border-bottom: 1px solid #ece0cd;
 }
-/* Header row (path links) — light indigo wash + indigo bottom border */
+/* Header row (path links) — warm clay wash + border */
 .path-overview .path-overview-head {
-  background: #eef2ff;
-  border-bottom: 2px solid #c7d2fe;
+  background: #f3e7db;
+  border-bottom: 2px solid #e6cbb6;
   font-weight: 600;
   font-size: 0.92em;
 }
 .path-overview .path-overview-head a {
-  color: #4338ca;
+  color: #9a5238;
   text-decoration: none;
 }
 .path-overview .path-overview-head a:hover {
-  color: #312e81;
+  color: #7a4630;
   text-decoration: underline;
 }
 /* Left column (metric labels) — same wash but vertical */
 .path-overview .path-overview-label {
-  background: #eef2ff;
+  background: #f3e7db;
   font-weight: 500;
   font-size: 0.88em;
-  color: #4338ca;
-  border-right: 2px solid #c7d2fe;
+  color: #9a5238;
+  border-right: 2px solid #e6cbb6;
   width: 1%;
   white-space: nowrap;
 }
 .path-overview .path-overview-value {
   font-size: 0.95em;
   color: inherit;
-  border-bottom: 1px solid rgba(199, 210, 254, 0.4);
+  border-bottom: 1px solid rgba(214, 179, 140, 0.45);
 }
 .path-overview tr:last-child .path-overview-value {
   border-bottom: none;
@@ -223,25 +262,25 @@ html[data-theme="dark"] .sb-wiki-link:hover {
 
 /* Dark-mode variants */
 html[data-theme="dark"] .path-overview .path-overview-head {
-  background: rgba(79, 70, 229, 0.12);
-  border-bottom-color: rgba(165, 180, 252, 0.3);
+  background: rgba(217, 138, 99, 0.14);
+  border-bottom-color: rgba(217, 138, 99, 0.3);
 }
 html[data-theme="dark"] .path-overview .path-overview-head a {
-  color: #c7d2fe;
+  color: #e6c3a3;
 }
 html[data-theme="dark"] .path-overview .path-overview-head a:hover {
-  color: #e0e7ff;
+  color: #f3ece0;
 }
 html[data-theme="dark"] .path-overview .path-overview-label {
-  background: rgba(79, 70, 229, 0.12);
-  color: #c7d2fe;
-  border-right-color: rgba(165, 180, 252, 0.3);
+  background: rgba(217, 138, 99, 0.14);
+  color: #e6c3a3;
+  border-right-color: rgba(217, 138, 99, 0.3);
 }
 html[data-theme="dark"] .path-overview .path-overview-value {
-  border-bottom-color: rgba(99, 102, 241, 0.15);
+  border-bottom-color: rgba(217, 138, 99, 0.16);
 }
 html[data-theme="dark"] .path-overview .path-overview-corner {
-  border-bottom-color: rgba(99, 102, 241, 0.15);
+  border-bottom-color: rgba(217, 138, 99, 0.16);
 }
 
 /* ============ Subtle indigo accents across the site ============ */
@@ -252,47 +291,59 @@ html[data-theme="dark"] .path-overview .path-overview-corner {
   display: inline-block;
   width: 4px;
   height: 0.85em;
-  background: #4f46e5;
+  background: #bb6a4a;
   border-radius: 2px;
   margin-right: 0.55em;
   vertical-align: -0.05em;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-h1::before {
-  background: #818cf8;
+  background: #d98a63;
 }
 
 /* Blockquotes get a thicker indigo left border */
 #sb-main .cm-editor .cm-line.sb-line-blockquote {
-  border-left: 3px solid #c7d2fe !important;
+  border-left: 3px solid #7c9a82 !important;
+  background: rgba(124, 154, 130, 0.09) !important;
   padding-left: 0.6em !important;
 }
 html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-blockquote {
-  border-left-color: rgba(165, 180, 252, 0.4) !important;
+  border-left-color: rgba(155, 184, 159, 0.5) !important;
+  background: rgba(155, 184, 159, 0.08) !important;
 }
 
 /* H2 gets a thin indigo underline — gives manual pages and dashboards
    visual rhythm between sections without dominating */
 #sb-main .cm-editor .cm-line.sb-line-h2 {
-  border-bottom: 1px solid rgba(199, 210, 254, 0.55);
+  border-bottom: 1px solid rgba(187, 106, 74, 0.3);
   padding-bottom: 0.18em !important;
   margin-bottom: 0.25em !important;
 }
 html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-h2 {
-  border-bottom-color: rgba(99, 102, 241, 0.25);
+  border-bottom-color: rgba(217, 138, 99, 0.3);
 }
 
 /* Tip admonition uses indigo by default (other variants kept) */
-.sb-admonition[admonition="tip" i],
 .sb-admonition[admonition="note" i] {
-  --admonition-color: #4f46e5;
-  background: rgba(238, 242, 255, 0.5) !important;
-  border: 1px solid rgba(199, 210, 254, 0.7) !important;
+  --admonition-color: #bb6a4a;
+  background: rgba(243, 231, 219, 0.6) !important;
+  border: 1px solid rgba(230, 203, 182, 0.8) !important;
 }
-html[data-theme="dark"] .sb-admonition[admonition="tip" i],
 html[data-theme="dark"] .sb-admonition[admonition="note" i] {
-  background: rgba(79, 70, 229, 0.08) !important;
-  border-color: rgba(165, 180, 252, 0.2) !important;
+  background: rgba(217, 138, 99, 0.1) !important;
+  border-color: rgba(217, 138, 99, 0.25) !important;
+}
+/* Tip admonitions use sage — a calm secondary accent that balances the
+   clay and reads as a "helpful aside". Lands most in the manual. */
+.sb-admonition[admonition="tip" i] {
+  --admonition-color: #5f7d66;
+  background: rgba(111, 140, 116, 0.1) !important;
+  border: 1px solid rgba(111, 140, 116, 0.35) !important;
+}
+html[data-theme="dark"] .sb-admonition[admonition="tip" i] {
+  --admonition-color: #9bb89f;
+  background: rgba(155, 184, 159, 0.1) !important;
+  border-color: rgba(155, 184, 159, 0.28) !important;
 }
 
 /* Admonition content inline with the type label — no line break
@@ -314,12 +365,12 @@ html[data-theme="dark"] .sb-admonition[admonition="note" i] {
    `.sb-table-widget` is the SB wrapper that defaults to overflow: auto — flatten it
    so long cells wrap instead of producing a horizontal scrollbar. */
 :root {
-  --editor-table-head-background-color: #ddd6fe;
-  --editor-table-head-color: #312e81;
+  --editor-table-head-background-color: #ecd9c4;
+  --editor-table-head-color: #7a4630;
 }
 html[data-theme="dark"] {
-  --editor-table-head-background-color: #3730a3;
-  --editor-table-head-color: #ffffff;
+  --editor-table-head-background-color: #5a4030;
+  --editor-table-head-color: #f3ece0;
 }
 #sb-main .cm-editor .sb-table-widget,
 .sb-lua-wrapper .sb-table-widget {
@@ -352,15 +403,15 @@ html[data-theme="dark"] {
 
 /* Inline code gets a faint indigo tint */
 #sb-main .cm-editor .sb-code {
-  background: rgba(238, 242, 255, 0.6);
-  color: #312e81;
+  background: rgba(187, 106, 74, 0.1);
+  color: #7a4630;
   padding: 0.05em 0.35em;
   border-radius: 3px;
   font-size: 0.9em;
 }
 html[data-theme="dark"] #sb-main .cm-editor .sb-code {
-  background: rgba(79, 70, 229, 0.12);
-  color: #c7d2fe;
+  background: rgba(217, 138, 99, 0.14);
+  color: #e6c3a3;
 }
 
 /* ============ Coverage heatmap (path dashboards) ============ */
@@ -398,45 +449,45 @@ html[data-theme="dark"] #sb-main .cm-editor .sb-code {
   padding: 6px 14px;
   font-weight: 500;
   border-radius: 4px;
-  color: #111827;
+  color: #3a332b;
 }
 .ph-cell.ph-0 {
   background: transparent;
-  border: 1px dashed rgba(99, 102, 241, 0.35);
+  border: 1px dashed rgba(187, 106, 74, 0.4);
   color: rgba(0, 0, 0, 0.35);
   font-weight: 400;
 }
-.ph-cell.ph-1 { background: #eef2ff; }
-.ph-cell.ph-2 { background: #c7d2fe; }
-.ph-cell.ph-3 { background: #a5b4fc; }
-.ph-cell.ph-4 { background: #818cf8; color: white; }
-.ph-cell.ph-5 { background: #4f46e5; color: white; }
+.ph-cell.ph-1 { background: #f3e7db; }
+.ph-cell.ph-2 { background: #ecd0bb; }
+.ph-cell.ph-3 { background: #dcab86; }
+.ph-cell.ph-4 { background: #c8895f; color: white; }
+.ph-cell.ph-5 { background: #bb6a4a; color: white; }
 
-/* Dark mode: same hue, deeper shades; light text on filled cells */
+/* Dark mode: same clay hue, deeper shades; light text on filled cells */
 html[data-theme="dark"] .ph-cell {
-  color: #e2e8f0;
+  color: #ece3d6;
 }
 html[data-theme="dark"] .ph-cell.ph-0 {
-  border-color: rgba(165, 180, 252, 0.25);
-  color: rgba(226, 232, 240, 0.4);
+  border-color: rgba(217, 138, 99, 0.25);
+  color: rgba(236, 227, 214, 0.4);
   background: transparent;
 }
-html[data-theme="dark"] .ph-cell.ph-1 { background: #1e1b4b; color: #c7d2fe; }
-html[data-theme="dark"] .ph-cell.ph-2 { background: #312e81; color: #c7d2fe; }
-html[data-theme="dark"] .ph-cell.ph-3 { background: #3730a3; color: white; }
-html[data-theme="dark"] .ph-cell.ph-4 { background: #4338ca; color: white; }
-html[data-theme="dark"] .ph-cell.ph-5 { background: #4f46e5; color: white; }
+html[data-theme="dark"] .ph-cell.ph-1 { background: #2e2417; color: #e6c3a3; }
+html[data-theme="dark"] .ph-cell.ph-2 { background: #463420; color: #e6c3a3; }
+html[data-theme="dark"] .ph-cell.ph-3 { background: #6b4a2c; color: white; }
+html[data-theme="dark"] .ph-cell.ph-4 { background: #936440; color: white; }
+html[data-theme="dark"] .ph-cell.ph-5 { background: #bb7a4a; color: white; }
 
 /* ============ Task list checkboxes — theme-aware accent colour ============ */
 
 input[type="checkbox"] {
-  accent-color: #4f46e5;
+  accent-color: #bb6a4a;
   width: 1.05em;
   height: 1.05em;
   cursor: default;
 }
 html[data-theme="dark"] input[type="checkbox"] {
-  accent-color: #818cf8;
+  accent-color: #d98a63;
 }
 
 /* ============ View-only badge + editor lock — shown on readonly pages ============ */
@@ -480,7 +531,7 @@ html[data-path-readonly="true"] #sb-top::after {
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(99, 102, 241, 0.65);
+  color: rgba(154, 82, 56, 0.75);
   z-index: 152;
   pointer-events: none;
 }

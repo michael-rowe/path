@@ -19,9 +19,9 @@ navigations don't revert it.
 
 ```space-lua
 -- Inline-SVG favicon, URL-encoded data URI. Same icon as the left-panel
--- brand. Indigo stroke (#4f46e5) on transparent background.
+-- brand. Indigo stroke (#bb6a4a) on transparent background.
 local PATH_FAVICON = "data:image/svg+xml;utf8,"
-  .. "%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%234f46e5%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E"
+  .. "%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23bb6a4a%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E"
   .. "%3Ccircle%20cx%3D%226%22%20cy%3D%2219%22%20r%3D%223%22%2F%3E"
   .. "%3Cpath%20d%3D%22M9%2019h8.5a3.5%203.5%200%200%200%200-7h-11a3.5%203.5%200%200%201%200-7H15%22%2F%3E"
   .. "%3Ccircle%20cx%3D%2218%22%20cy%3D%225%22%20r%3D%223%22%2F%3E"
@@ -911,8 +911,8 @@ function onboardingStatus()
     style = "margin-bottom:14px",
     dom.div { style = "font-size:12px;opacity:0.5;margin-bottom:5px;font-family:inherit", summary_text },
     dom.div {
-      style = "height:3px;background:rgba(99,102,241,0.18);border-radius:2px",
-      dom.div { style = "height:100%;width:" .. pct .. "%;background:#4f46e5;border-radius:2px" }
+      style = "height:3px;background:rgba(187,106,74,0.18);border-radius:2px",
+      dom.div { style = "height:100%;width:" .. pct .. "%;background:#bb6a4a;border-radius:2px" }
     }
   }
 
@@ -920,8 +920,8 @@ function onboardingStatus()
   local rows = {}
   for i, s in ipairs(steps) do
     local dot_style = s.done
-      and "flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#4f46e5;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:1px"
-      or  "flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(99,102,241,0.45);color:rgba(99,102,241,0.8);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:1px"
+      and "flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#bb6a4a;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:1px"
+      or  "flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(187,106,74,0.45);color:rgba(187,106,74,0.8);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;margin-top:1px"
     local dot = dom.div { style = dot_style, s.done and "✓" or tostring(i) }
 
     local label_style = "font-size:14px;line-height:1.4;font-family:inherit;" .. (s.done and "opacity:0.4" or "font-weight:500")
@@ -1844,12 +1844,12 @@ function cpdCalendar(path_slug)
   -- Cell style by hours
   local CB = "width:11px;height:11px;border-radius:2px;"
   local function cell_bg(h)
-    if     h <= 0 then return CB .. "background:transparent;border:1px dashed rgba(99,102,241,0.2)"
-    elseif h < 1  then return CB .. "background:#eef2ff"
-    elseif h < 2  then return CB .. "background:#c7d2fe"
-    elseif h < 4  then return CB .. "background:#a5b4fc"
-    elseif h < 6  then return CB .. "background:#818cf8"
-    else               return CB .. "background:#4f46e5"
+    if     h <= 0 then return CB .. "background:transparent;border:1px dashed rgba(187,106,74,0.2)"
+    elseif h < 1  then return CB .. "background:#f3e7db"
+    elseif h < 2  then return CB .. "background:#ecd0bb"
+    elseif h < 4  then return CB .. "background:#dcab86"
+    elseif h < 6  then return CB .. "background:#c8895f"
+    else               return CB .. "background:#bb6a4a"
     end
   end
 
@@ -1887,12 +1887,12 @@ function cpdCalendar(path_slug)
 
   -- Legend
   local LEGEND = {
-    { bg = "background:transparent;border:1px dashed rgba(99,102,241,0.2)", lbl = "None" },
-    { bg = "background:#eef2ff", lbl = "<1h"  },
-    { bg = "background:#c7d2fe", lbl = "1–2h" },
-    { bg = "background:#a5b4fc", lbl = "2–4h" },
-    { bg = "background:#818cf8", lbl = "4–6h" },
-    { bg = "background:#4f46e5", lbl = "6h+"  },
+    { bg = "background:transparent;border:1px dashed rgba(187,106,74,0.2)", lbl = "None" },
+    { bg = "background:#f3e7db", lbl = "<1h"  },
+    { bg = "background:#ecd0bb", lbl = "1–2h" },
+    { bg = "background:#dcab86", lbl = "2–4h" },
+    { bg = "background:#c8895f", lbl = "4–6h" },
+    { bg = "background:#bb6a4a", lbl = "6h+"  },
   }
   local leg = { dom.span { style = "font-size:10px;opacity:0.4;margin-right:6px;font-family:inherit", "Hours:" } }
   for _, le in ipairs(LEGEND) do
@@ -1964,12 +1964,12 @@ function cpdCalendarMonth(path_slug)
 
   local CB = "width:22px;height:22px;border-radius:3px;text-align:center;font-size:11px;line-height:22px;font-family:inherit;"
   local function cell_bg(h)
-    if     h <= 0 then return CB .. "background:transparent;border:1px dashed rgba(99,102,241,0.2);color:rgba(0,0,0,0.3)"
-    elseif h < 1  then return CB .. "background:#eef2ff;color:#312e81"
-    elseif h < 2  then return CB .. "background:#c7d2fe;color:#312e81"
-    elseif h < 4  then return CB .. "background:#a5b4fc;color:#1e1b4b"
-    elseif h < 6  then return CB .. "background:#818cf8;color:white"
-    else               return CB .. "background:#4f46e5;color:white"
+    if     h <= 0 then return CB .. "background:transparent;border:1px dashed rgba(187,106,74,0.2);color:rgba(0,0,0,0.3)"
+    elseif h < 1  then return CB .. "background:#f3e7db;color:#7a4630"
+    elseif h < 2  then return CB .. "background:#ecd0bb;color:#7a4630"
+    elseif h < 4  then return CB .. "background:#dcab86;color:#5a3a22"
+    elseif h < 6  then return CB .. "background:#c8895f;color:white"
+    else               return CB .. "background:#bb6a4a;color:white"
     end
   end
 
@@ -2113,12 +2113,12 @@ function activityCalendarMonth(path_slug)
 
   local CB = "width:22px;height:22px;border-radius:3px;text-align:center;font-size:11px;line-height:22px;font-family:inherit;"
   local function cell_bg(c)
-    if     c <= 0 then return CB .. "background:transparent;border:1px dashed rgba(99,102,241,0.2);color:rgba(0,0,0,0.3)"
-    elseif c == 1 then return CB .. "background:#eef2ff;color:#312e81"
-    elseif c == 2 then return CB .. "background:#c7d2fe;color:#312e81"
-    elseif c <= 4 then return CB .. "background:#a5b4fc;color:#1e1b4b"
-    elseif c <= 6 then return CB .. "background:#818cf8;color:white"
-    else               return CB .. "background:#4f46e5;color:white"
+    if     c <= 0 then return CB .. "background:transparent;border:1px dashed rgba(187,106,74,0.2);color:rgba(0,0,0,0.3)"
+    elseif c == 1 then return CB .. "background:#f3e7db;color:#7a4630"
+    elseif c == 2 then return CB .. "background:#ecd0bb;color:#7a4630"
+    elseif c <= 4 then return CB .. "background:#dcab86;color:#5a3a22"
+    elseif c <= 6 then return CB .. "background:#c8895f;color:white"
+    else               return CB .. "background:#bb6a4a;color:white"
     end
   end
 
