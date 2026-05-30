@@ -243,7 +243,11 @@ if ($needsCreds) {
     if ($pass.Length -lt 8) {
         Write-Warn "Password is very short. Consider using something longer."
     }
-    Set-Content -Path $envFile -Value "SB_USER=${username}:${pass}" -Encoding UTF8
+    # Write .env WITHOUT a BOM. Windows PowerShell 5.1's "Set-Content -Encoding
+    # UTF8" prepends a UTF-8 BOM, which Docker Compose can misread so that the
+    # first variable (SB_USER) is treated as unset — breaking login. WriteAllText
+    # with UTF8Encoding($false) produces a clean, BOM-free file.
+    [System.IO.File]::WriteAllText($envFile, "SB_USER=${username}:${pass}`n", [System.Text.UTF8Encoding]::new($false))
     Write-Ok "Credentials saved to .env"
 }
 
