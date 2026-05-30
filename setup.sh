@@ -13,6 +13,16 @@ warn()    { echo -e "${YELLOW}!${RESET}  $*"; }
 die()     { echo -e "${RED}✗  $*${RESET}" >&2; exit 1; }
 section() { echo ""; echo -e "${BOLD}$*${RESET}"; echo "────────────────────────────────────────────────"; }
 
+# Generate a random hex key (used for the Meilisearch master key). Prefers
+# openssl; falls back to /dev/urandom so the script works on minimal systems.
+gen_key() {
+    if command -v openssl &>/dev/null; then
+        openssl rand -hex 24
+    else
+        head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n'
+    fi
+}
+
 REPO_URL="https://github.com/michael-rowe/path.git"
 DEFAULT_DIR="$HOME/path"
 PORT=3000
@@ -171,6 +181,45 @@ else
     fi
     printf "SB_USER=%s:%s\n" "$_user" "$_pass" > .env
     ok "Credentials saved to .env"
+fi
+
+# Meilisearch master key — generate a unique random key per install instead of
+# shipping the shared default ("masterKey"). Written to .env and mirrored into
+# the plug's runtime config so the in-app search bar uses the same key.
+if grep -q "^MEILI_MASTER_KEY=" .env 2>/dev/null; then
+    MEILI_KEY="$(grep '^MEILI_MASTER_KEY=' .env | head -1 | cut -d= -f2-)"
+    ok "Meilisearch key already set."
+else
+    MEILI_KEY="$(gen_key)"
+    printf "MEILI_MASTER_KEY=%s\n" "$MEILI_KEY" >> .env
+    ok "Generated a unique Meilisearch key."
+fi
+
+# Mirror the key into the plug's config page (gitignored, per-install) so the
+# browser search bar authenticates. Update in place if the page already exists
+# (preserves any custom sidecar URLs); otherwise create it.
+mkdir -p space/_system
+if [[ -f space/_system/path-config.md ]] && grep -q '^meili_key:' space/_system/path-config.md; then
+    sed -i "s|^meili_key:.*|meili_key: ${MEILI_KEY}|" space/_system/path-config.md
+    ok "Updated meili_key in existing runtime config."
+else
+    cat > space/_system/path-config.md <<EOF
+---
+readonly: true
+meili_url: http://localhost:7700
+meili_key: ${MEILI_KEY}
+git_watcher_url: http://localhost:8020
+lychee_url: http://localhost:8030
+rclone_url: http://localhost:8040
+languagetool_url: http://localhost:8010
+---
+
+# Path configuration
+
+Runtime settings the Path plug reads at panel-render time. \`meili_key\` must
+match \`MEILI_MASTER_KEY\` in \`.env\` — regenerate both together if rotating.
+EOF
+    ok "Wrote runtime config (space/_system/path-config.md)."
 fi
 
 # ── Step 6: Pull images and start ─────────────────────────────────────────────

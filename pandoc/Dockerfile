@@ -17,4 +17,9 @@ COPY main.py .
 
 EXPOSE 8000
 
+# pandoc/core sets ENTRYPOINT ["pandoc"], which would prepend onto CMD and
+# run `pandoc uvicorn main:app --host ...` (pandoc then fails on --host).
+# Reset it so CMD runs uvicorn directly.
+ENTRYPOINT []
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

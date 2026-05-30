@@ -1,0 +1,28 @@
+# Local development override — adds the build contexts the base
+# docker-compose.yml deliberately omits (it ships published GHCR images so
+# end users never build). This file is NOT auto-loaded by `docker compose`:
+# it is named docker-compose.dev.yml, not docker-compose.override.yml, on
+# purpose — so cloning the repo and running `docker compose up` still pulls
+# published images. You opt in to building from source explicitly.
+#
+# Usage (rebuild + restart one locally-built sidecar from source):
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --no-deps git-watcher
+# or the shorthand:
+#   ./dev-rebuild.sh git-watcher
+#
+# Each service inherits its `image:` tag from the base file, so a local
+# build is tagged as the published name and the running container uses it.
+
+services:
+  pandoc-svc:
+    build: ./pandoc
+  path-mcp:
+    build: ./path-mcp
+  meili-indexer:
+    build: ./meili-indexer
+  git-watcher:
+    build: ./git-watcher
+  lychee-svc:
+    build: ./lychee-svc
+  rclone-svc:
+    build: ./rclone-svc

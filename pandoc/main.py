@@ -66,7 +66,14 @@ def _read_profile() -> dict:
 
 
 def _read_page(name: str) -> tuple[dict, str] | None:
-    p = SPACE / f"{name}.md"
+    # Guard against traversal: a page name like "../../etc/passwd" must not
+    # escape the space root. Resolve and confirm containment before reading;
+    # treat an escaping path as missing (returns None → added to `missing`).
+    p = (SPACE / f"{name}.md").resolve()
+    try:
+        p.relative_to(SPACE.resolve())
+    except ValueError:
+        return None
     if not p.exists():
         return None
     return _split_frontmatter(p.read_text())

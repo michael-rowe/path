@@ -346,11 +346,19 @@ type PathConfig = {
   languageToolUrl: string;
 };
 
+// Session cache for the sidecar config. getPathConfig runs on every panel
+// render (i.e. every page load); the config page is static and rarely
+// touched, so we read it once and reuse the result. The cache lives in
+// module scope, so `Plugs: Reload` clears it — that's how a user picks up
+// an edit to _system/path-config.md.
+let cachedPathConfig: PathConfig | null = null;
+
 // Read sidecar URLs and the Meilisearch key from `_system/path-config.md`
 // frontmatter, with defaults that match the compose stack out of the box.
 // The page is a soft-locked YAML-only config surface; if missing, defaults
 // are used.
 async function getPathConfig(): Promise<PathConfig> {
+  if (cachedPathConfig) return cachedPathConfig;
   const defaults: PathConfig = {
     meiliUrl: "http://localhost:7700",
     meiliKey: "masterKey",
@@ -359,25 +367,31 @@ async function getPathConfig(): Promise<PathConfig> {
     rcloneUrl: "http://localhost:8040",
     languageToolUrl: "http://localhost:8010",
   };
+  let result = defaults;
   try {
     const text = await space.readPage("_system/path-config");
     const parsed = parseFrontmatter(text);
-    if (!parsed) return defaults;
-    const get = (k: string) => {
-      const v = parsed.fields.find((f) => f.key === k)?.value;
-      return typeof v === "string" && v ? v : undefined;
-    };
-    return {
-      meiliUrl: get("meili_url") ?? defaults.meiliUrl,
-      meiliKey: get("meili_key") ?? defaults.meiliKey,
-      gitWatcherUrl: get("git_watcher_url") ?? defaults.gitWatcherUrl,
-      lycheeUrl: get("lychee_url") ?? defaults.lycheeUrl,
-      rcloneUrl: get("rclone_url") ?? defaults.rcloneUrl,
-      languageToolUrl: get("languagetool_url") ?? defaults.languageToolUrl,
-    };
+    if (parsed) {
+      const get = (k: string) => {
+        const v = parsed.fields.find((f) => f.key === k)?.value;
+        return typeof v === "string" && v ? v : undefined;
+      };
+      result = {
+        meiliUrl: get("meili_url") ?? defaults.meiliUrl,
+        meiliKey: get("meili_key") ?? defaults.meiliKey,
+        gitWatcherUrl: get("git_watcher_url") ?? defaults.gitWatcherUrl,
+        lycheeUrl: get("lychee_url") ?? defaults.lycheeUrl,
+        rcloneUrl: get("rclone_url") ?? defaults.rcloneUrl,
+        languageToolUrl: get("languagetool_url") ?? defaults.languageToolUrl,
+      };
+    }
   } catch {
-    return defaults;
+    // Page missing or unreadable — defaults are correct. Cache them too so
+    // the common "no config page" case doesn't re-throw on every render.
+    result = defaults;
   }
+  cachedPathConfig = result;
+  return result;
 }
 
 // Criteria of a given framework, used to populate the multi-select for
@@ -454,6 +468,22 @@ interface PreviewState {
   originalPage: string;
   hash: string;
 }
+
+// Both panel iframes mirror the parent document's data-theme onto their own
+// <html> and keep it live via a MutationObserver. Same-origin, so reading
+// window.parent works. Shared here so the two panels can't drift apart.
+const THEME_SYNC_SCRIPT = `
+  try {
+    var parentHtml = window.parent.document.documentElement;
+    var sync = function() {
+      var theme = parentHtml.getAttribute('data-theme') || '';
+      if (theme) document.documentElement.setAttribute('data-theme', theme);
+      else document.documentElement.removeAttribute('data-theme');
+    };
+    sync();
+    new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
+  } catch (e) {}
+`;
 
 function buildPanelContent(
   pageName: string,
@@ -850,17 +880,8 @@ function buildPanelContent(
 
   function ls() { try { return window.parent.localStorage; } catch (_) { return null; } }
 
-  // Sync data-theme with the parent (theme toggle changes propagate live).
-  try {
-    var parentHtml = window.parent.document.documentElement;
-    var sync = function() {
-      var theme = parentHtml.getAttribute('data-theme') || '';
-      if (theme) document.documentElement.setAttribute('data-theme', theme);
-      else document.documentElement.removeAttribute('data-theme');
-    };
-    sync();
-    new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
-  } catch (e) {}
+  // Mirror the parent's theme into this iframe (shared helper).
+  ${THEME_SYNC_SCRIPT}
 
   // Tab switching
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
@@ -1335,7 +1356,7 @@ export async function search(): Promise<void> {
   // Restore if hidden (zen mode)
   if (zenMode) {
     zenMode = false;
-    await showLeftPanel();
+    await showLeftPanel(true);
   }
   await showAttributesPanel(true);
 }
@@ -1479,24 +1500,32 @@ async function isOnboardingComplete(): Promise<boolean> {
     const frameworksText = await space
       .readPage("_system/installed-frameworks")
       .catch(() => "");
-    if (!/^\s*slug:/m.test(frameworksText)) return false;
+    // Entries are markdown bullets: "- slug: hcpc-cpd | name: ... ".
+    // Allow an optional leading "- " so the check matches the format the
+    // install command actually writes (previously looked for a bare
+    // "slug:" at line start and so never matched → Setup never hid).
+    if (!/^\s*-?\s*slug:/m.test(frameworksText)) return false;
 
-    // At least one active Path. listPages is lightweight enough for the
-    // panel render path; we then read each candidate's YAML.
-    const allPages = await space.listPages();
-    let hasActivePath = false;
-    for (const p of allPages) {
-      if (!p.name.startsWith("paths/")) continue;
-      if (p.name.endsWith("-coverage") || p.name === "paths/index") continue;
-      const text = await space.readPage(p.name).catch(() => "");
-      const parsed = parseFrontmatter(text);
-      const status = parsed?.fields.find((f) => f.key === "status")?.value;
-      const type = parsed?.fields.find((f) => f.key === "type")?.value;
-      if (type === "path" && status === "active") {
-        hasActivePath = true;
-        break;
-      }
-    }
+    // At least one active Path. Query the index directly instead of
+    // listing every page and reading its YAML from disk — this runs on
+    // every page load (via the Navigator), so an indexed query keeps it
+    // off the hot path. Same expression style as fetchAllPaths().
+    const where = await lua.parseExpression(
+      'p.type == "path" and p.status == "active"',
+    );
+    // deno-lint-ignore no-explicit-any
+    const activePaths = (await indexApi.queryLuaObjects<any>("page", {
+      objectVariable: "p",
+      where,
+    })) ?? [];
+    // Exclude the coverage dashboards and the paths/index page (mirrors
+    // fetchAllPaths) in case either ever carries type/status fields.
+    const hasActivePath = activePaths.some((r) => {
+      const name = (r?.name as string) ?? "";
+      if (!name.startsWith("paths/")) return false;
+      const slug = name.replace(/^paths\//, "");
+      return !!slug && !slug.endsWith("-coverage") && name !== "paths/index";
+    });
     if (!hasActivePath) return false;
 
     return true;
@@ -1505,9 +1534,10 @@ async function isOnboardingComplete(): Promise<boolean> {
   }
 }
 
-async function buildLeftPanel(): Promise<{ html: string; script: string }> {
-  const unreadCount = await announcementsUnreadCount();
-  const onboardingDone = await isOnboardingComplete();
+function buildLeftPanel(
+  unreadCount: number,
+  onboardingDone: boolean,
+): { html: string; script: string } {
   const sections: {
     title: string;
     items: {
@@ -1639,17 +1669,8 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
 
   const script = `
 (function() {
-  // Sync data-theme with the parent (theme toggle changes propagate live).
-  try {
-    var parentHtml = window.parent.document.documentElement;
-    var sync = function() {
-      var theme = parentHtml.getAttribute('data-theme') || '';
-      if (theme) document.documentElement.setAttribute('data-theme', theme);
-      else document.documentElement.removeAttribute('data-theme');
-    };
-    sync();
-    new MutationObserver(sync).observe(parentHtml, { attributes: true, attributeFilter: ['data-theme'] });
-  } catch (e) {}
+  // Mirror the parent's theme into this iframe (shared helper).
+  ${THEME_SYNC_SCRIPT}
 
   document.querySelectorAll('.nav-item').forEach(function(el) {
     el.addEventListener('click', async function() {
@@ -1674,10 +1695,28 @@ async function buildLeftPanel(): Promise<{ html: string; script: string }> {
   return { html, script };
 }
 
-export async function showLeftPanel(): Promise<void> {
-  const { html, script } = await buildLeftPanel();
+// The Navigator's content only changes when the unread-announcements badge
+// or the Setup-item visibility (onboarding state) changes. Remember what we
+// last rendered so onPageLoaded — which fires on every navigation — can skip
+// rebuilding and re-showing an identical panel. Cleared on plug reload.
+let lastLeftRender: { unread: number; onboarding: boolean } | null = null;
+
+// Pass force=true from paths where the panel may be hidden (zen-mode
+// restore) so an unchanged-state skip can't leave it hidden.
+export async function showLeftPanel(force = false): Promise<void> {
+  const unreadCount = await announcementsUnreadCount();
+  const onboardingDone = await isOnboardingComplete();
+  if (
+    !force && lastLeftRender &&
+    lastLeftRender.unread === unreadCount &&
+    lastLeftRender.onboarding === onboardingDone
+  ) {
+    return;
+  }
+  const { html, script } = buildLeftPanel(unreadCount, onboardingDone);
   // Wide enough that the longest item ("New future-claim") fits on one line.
   await editor.showPanel("lhs", 0.5, html, script);
+  lastLeftRender = { unread: unreadCount, onboarding: onboardingDone };
 }
 
 // Ctrl-Alt-z: if any panel is hidden (zen or individual collapse), restore
@@ -1687,7 +1726,7 @@ export async function toggleZenMode(): Promise<void> {
   if (zenMode) {
     zenMode = false;
     await Promise.all([
-      showLeftPanel().catch((e) => console.error("showLeftPanel", e)),
+      showLeftPanel(true).catch((e) => console.error("showLeftPanel", e)),
       showAttributesPanel().catch((e) => console.error("showAttributesPanel", e)),
     ]);
   } else {
@@ -1768,10 +1807,6 @@ export async function onPageLoaded(): Promise<void> {
   ]);
 }
 
-export async function hello(): Promise<void> {
-  await editor.flashNotification("Hello from the Path plug!");
-}
-
 // Sync space to the configured rclone remote. Triggered from the
 // toolbar cloud-upload button (registered in CONFIG.md). Hits the
 // rclone-svc by its static path-net IP — SB's plug sandbox fetch
@@ -1797,23 +1832,5 @@ export async function syncToCloud(): Promise<void> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await editor.flashNotification(`Sync failed: ${msg}`);
-  }
-}
-
-// Debug: writes title="DEBUG_TEST" to current page, bypassing the iframe.
-// If this works but the panel Save doesn't, the bug is in the iframe path.
-// If this also fails, the bug is in the parse/save logic.
-export async function debugSave(): Promise<void> {
-  const pageName = await editor.getCurrentPage();
-  if (!pageName) {
-    await editor.flashNotification("No current page");
-    return;
-  }
-  await editor.flashNotification(`debugSave: targeting ${pageName}`);
-  try {
-    await saveAttributes(pageName, { title: "DEBUG_TEST" });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await editor.flashNotification(`debugSave threw: ${msg}`);
   }
 }

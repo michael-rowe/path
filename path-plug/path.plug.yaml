@@ -5,11 +5,6 @@ name: path
 requiredPermissions:
   - fetch
 functions:
-  hello:
-    path: path.ts:hello
-    command:
-      name: "Path: Hello from plug"
-
   showAttributesPanel:
     path: path.ts:showAttributesPanel
     command:
@@ -22,11 +17,6 @@ functions:
 
   saveAttributes:
     path: path.ts:saveAttributes
-
-  debugSave:
-    path: path.ts:debugSave
-    command:
-      name: "Path: Debug save (writes title=DEBUG_TEST)"
 
   onPageLoaded:
     path: path.ts:onPageLoaded

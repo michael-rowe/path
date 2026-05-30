@@ -9,8 +9,26 @@ from git import Repo, GitCommandError
 
 # Configuration
 SPACE_PATH = "/space"
+SPACE_ROOT = os.path.realpath(SPACE_PATH)
 COMMIT_INTERVAL = int(os.environ.get("COMMIT_INTERVAL", "1800"))  # default 30 min
 API_PORT = 8020
+
+
+def safe_rel_path(path: str) -> str:
+    """Normalise a requested path to a repo-relative .md path.
+
+    Rejects absolute paths and `..` traversal pointing outside the space
+    root (mirrors the guard in lychee-svc and the MCP server). Returns a
+    clean relative path like 'claims/uol-1-1.md'. Raises HTTPException(400)
+    on escape — only ever called from request handlers.
+    """
+    clean = path.lstrip("/")
+    if not clean.endswith(".md"):
+        clean += ".md"
+    full = os.path.realpath(os.path.join(SPACE_ROOT, clean))
+    if full != SPACE_ROOT and not full.startswith(SPACE_ROOT + os.sep):
+        raise HTTPException(status_code=400, detail="Path escapes space root")
+    return os.path.relpath(full, SPACE_ROOT)
 
 # Files / directories never to commit. Written into space/.gitignore on
 # every startup so existing repos created before this list was extended
@@ -159,10 +177,11 @@ async def health():
 @app.get("/history")
 async def get_history(path: str):
     """Returns the version history for a specific file."""
-    # Ensure the path is relative to the repo root and doesn't have leading slash
-    clean_path = path.lstrip("/")
-    if not clean_path.endswith(".md"):
-        clean_path += ".md"
+    if repo is None:
+        raise HTTPException(
+            status_code=503, detail=init_error or "Repository not initialised"
+        )
+    clean_path = safe_rel_path(path)
 
     try:
         # Get all commits that touched this file
@@ -183,9 +202,11 @@ async def get_history(path: str):
 @app.get("/version")
 async def get_version(path: str, hash: str):
     """Returns the content of a file at a specific commit."""
-    clean_path = path.lstrip("/")
-    if not clean_path.endswith(".md"):
-        clean_path += ".md"
+    if repo is None:
+        raise HTTPException(
+            status_code=503, detail=init_error or "Repository not initialised"
+        )
+    clean_path = safe_rel_path(path)
 
     try:
         commit = repo.commit(hash)

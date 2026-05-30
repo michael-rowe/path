@@ -36,6 +36,7 @@ exports/
 # --- Build artefacts ---
 path-plug/node_modules/
 path-plug/*.js.map
+__pycache__/
 
 # --- Nested repo ---
 # path-frameworks/ is a separate GitHub project (github.com/michael-rowe/path-frameworks).

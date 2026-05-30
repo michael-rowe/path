@@ -252,11 +252,14 @@ The sidecar:
 4. Saves to `/exports/submission-<slug>-<YYYY-MM-DD-HHMM>.<ext>` (mounted from `~/portfolio/exports/` on the host).
 5. Returns `{ "filename": "...", "host_path": "..." }`.
 
-After editing `pandoc/main.py` or `pandoc/templates/`, rebuild the container:
+After editing any locally-built sidecar (`pandoc/`, `git-watcher/`, `meili-indexer/`, `lychee-svc/`, `rclone-svc/`, `path-mcp/`), rebuild it from source with the dev helper:
 
 ```bash
-sudo docker compose up -d --build pandoc-svc
+./dev-rebuild.sh pandoc-svc        # one service
+./dev-rebuild.sh                   # all locally-built services
 ```
+
+The shipped `docker-compose.yml` references published GHCR images and has **no build contexts** (so end users never build). `docker-compose.dev.yml` supplies the build contexts and `dev-rebuild.sh` wires the two together; rebuilt images are tagged as the published name so the running container picks up your local build. Do **not** run `docker compose up --build <svc>` against the base file alone — there's nothing to build. After a sidecar's source changes, the published GHCR image is only updated when the corresponding `.github/workflows/publish-*.yml` action runs (on commit/push).
 
 ## SB version lock
 
@@ -401,15 +404,29 @@ Individual panel collapse was removed — it caused the collapse icon to vanish 
 
 What's needed before this can be cloned and run on someone else's machine:
 
-1. Replace hardcoded `SB_USER` with an env var; document setup.
+1. ~~Replace hardcoded `SB_USER` with an env var; document setup.~~ — done; `.env.example` ships with `SB_USER=admin:changeme`; setup scripts prompt for credentials and write `.env`.
 2. Strip personal data from `space/`; ship a clean starter pack.
-3. Bake `path.plug.js` into the SB image (or commit pre-built into the repo).
-4. Publish `pandoc-svc` image to a registry so users `pull` instead of `build`.
-5. README with first-run steps.
+3. ~~Bake `path.plug.js` into the SB image (or commit pre-built into the repo).~~ — done; compiled plug committed at `space/Library/path/path.plug.js`.
+4. ~~Publish all sidecar images to a registry so users `pull` instead of `build`.~~ — done; all nine images published to GHCR via GitHub Actions (pandoc-svc, git-watcher, meili-indexer, path-mcp, rclone-svc, lychee-svc); plus upstream silverbullet, meilisearch, languagetool. Zero local builds required.
+5. ~~README with first-run steps.~~ — done; `setup.sh` (Linux) and `setup.bat`/`setup.ps1` (Windows) added; README leads with these as the recommended install path, with manual steps as fallback.
 6. ~~Encode at least HCPC standards as the bundled framework.~~ — done; framework registry at github.com/michael-rowe/path-frameworks ships HCPC + AdvanceHE D4. New users run `Path: Add framework` after install.
 7. (Optional) docker-compose `plug-builder` service for contributors who don't have Node.
 
-Image size at install: **~250 MB** total (silverbullet ~150 MB + pandoc-svc ~100 MB). PDF export was dropped; `pandoc-svc` uses `pandoc/core` (no TeX Live) and produces Word (`.docx`) only. Browser print handles PDF.
+Install tiers (2026-05-11): **Basic** ~1.9 GB (silverbullet + pandoc-svc + git-watcher), **Standard** ~2.3 GB (+ meilisearch + meili-indexer), **Full** ~4.0 GB (+ path-mcp + languagetool + rclone-svc + lychee-svc). Locally-built services use Alpine base images. Download sizes ~45% of installed.
+
+## Conceptual framework (next design priority)
+
+Path has the technical infrastructure but lacks an explicit theory of how professional expertise develops. The next major piece of work — before extending the impact/evidence model — is writing a short practical framework document that answers:
+
+- Why some activities move professionals forward and others don't (deliberate practice)
+- How the arc of development works (non-linear; Dreyfus stages inform scaffolded flexibility)
+- What evidence of expertise looks like vs. evidence of activity (Miller's Pyramid)
+- How the Contact network embodies communities of practice (Wenger) — impact on colleagues is the signal of transition from competent to expert
+- Why reflection is generative rather than documentary (Schön)
+
+This framework will resolve open design questions: how forceful templates should be, how the future-claim → claim lifecycle should work, where impact lives in the IA, and how gap analysis serves both retrospective (forgot to log) and prospective (still need to do) purposes.
+
+Full brief in `~/planning/projects/Path CPD app/Project - Path CPD app.md` § Next step.
 
 ## Update conventions for this file
 

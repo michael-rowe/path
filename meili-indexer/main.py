@@ -42,12 +42,14 @@ def serialize_value(value):
         return {k: serialize_value(v) for k, v in value.items()}
     return value
 
-def index_file(file_path):
+def build_doc(file_path):
+    """Build a Meilisearch document from a markdown file, or None if it
+    should be skipped (non-.md or excluded dir) or can't be read."""
     if not file_path.endswith(".md"):
-        return
+        return None
     
     if "_system/" in file_path or ".git/" in file_path or "Library/" in file_path:
-        return
+        return None
 
     try:
         rel_path = os.path.relpath(file_path, SPACE_PATH)
@@ -69,10 +71,19 @@ def index_file(file_path):
         for key, value in post.metadata.items():
             doc[key] = serialize_value(value)
             
-        index.add_documents([doc])
-        logger.info(f"Indexed: {logical_path}")
+        return doc
     except Exception as e:
         logger.error(f"Error indexing {file_path}: {e}")
+        return None
+
+
+def index_file(file_path):
+    """Index a single file immediately — the incremental watchdog path."""
+    doc = build_doc(file_path)
+    if doc is None:
+        return
+    index.add_documents([doc])
+    logger.info(f"Indexed: {doc['path']}")
 
 def delete_file(file_path):
     rel_path = os.path.relpath(file_path, SPACE_PATH)
@@ -132,11 +143,16 @@ class SpaceHandler(FileSystemEventHandler):
 
 def full_reindex():
     logger.info("Starting full reindex...")
+    docs = []
     for root, dirs, files in os.walk(SPACE_PATH):
         for file in files:
             if file.endswith(".md"):
-                index_file(os.path.join(root, file))
-    logger.info("Full reindex complete.")
+                doc = build_doc(os.path.join(root, file))
+                if doc is not None:
+                    docs.append(doc)
+    if docs:
+        index.add_documents(docs)
+    logger.info(f"Full reindex complete: {len(docs)} document(s) in one batch.")
 
 def configure_index():
     """Apply index settings. Called after the Meilisearch health check
