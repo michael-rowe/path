@@ -164,10 +164,10 @@ CONFIG.md exposes these helpers as space-lua globals:
 - **`selectActivePath()`** — interactive helper used in `paths:` / `path:` template fields. Queries active Paths; silent default if 1, `editor.filterBox` picker if 2+, returns "" if cancelled / none. Memoises the chosen Path record into `_lastSelectedPath` so a follow-up `selectedPathFramework()` call in the same template evaluation reuses the choice without re-prompting. Used by every content template (cpd, claim, claim-future, capture, credential, evidence, personal-statement, reflection-{gibbs,era,driscoll,rolfe}).
 - **`selectedPathFramework()`** — companion to `selectActivePath()`; returns the framework slug for the just-picked Path. Used in `claim.md` and `claim-future.md` to auto-fill the `framework:` field consistent with the chosen Path.
 - **`pathCoverage(slug)`** — returns counts of `{claims, cpd, reflections, evidence}` per criterion code for a Path. Four queries total. Powers the heatmap and gap helpers; replaces what would otherwise be 40+ inline `${#query[[...]]}` cells.
-- **`pathHeatmap(slug, criteria)`** — `widget.html(dom.table {...})` emitting `<td class="ph-cell ph-N">`; styling lives in STYLE.md (`.ph-table` uses `table-layout: fixed; width: 100%` so columns are equal-width). Five columns: Criterion, Claims, CPD, Reflections, Evidence. Single-hue indigo scale: empty cells get a dashed border and `—`; filled cells scale 1 → 5+. Dark-mode variants in STYLE.md.
+- **`pathHeatmap(slug, criteria)`** — `widget.html(dom.table {...})` emitting `<td class="ph-cell ph-N">`; styling lives in STYLE.md (`.ph-table` uses `table-layout: fixed; width: 100%` so columns are equal-width). Five columns: Criterion, Claims, CPD, Reflections, Evidence. Single-hue clay scale: empty cells get a dashed border and `—`; filled cells scale 1 → 5+. Dark-mode variants in STYLE.md.
 - **`pathGaps(slug, criteria)`** — markdown bullet list of any criterion missing claim/CPD/reflection. Replaces the hand-curated gap section.
 - **`pathCriterionDetail(slug, code)`** — three-list block (claims, CPD, reflections) for one criterion. Used in the per-criterion sections of coverage dashboards.
-- **`activePathsOverview()`** — transposed dashboard widget: paths as columns, metrics as rows (Framework / Criteria covered / Claims ready / Target). Renders via `widget.html(dom.table {...})` with `.path-overview-*` classes (header row + label column tinted indigo). Adapts to 1, 2, or 3 active Paths.
+- **`activePathsOverview()`** — transposed dashboard widget: paths as columns, metrics as rows (Framework / Criteria covered / Claims ready / Target). Renders via `widget.html(dom.table {...})` with `.path-overview-*` classes (header row + label column tinted clay). Adapts to 1, 2, or 3 active Paths.
 - **`cpdCalendarMonth(path_slug)`** — current-month CPD activity grid (7-column day-of-week layout). Used on `index.md`. The 52-week `cpdCalendar()` is still available for Path landing pages where the longer view fits.
 - **`tasksForPath(slug, limit)` / `allOpenTasksByPath(limit)`** — task queries scoped by Path. `tasksForPath` is currently unused on Path landing pages (tasks are now native markdown checkboxes inline) but kept for potential future use. `allOpenTasksByPath` powers the dashboard's "Open tasks by Path" section: iterates `tags.task` where `not done`, infers Path scope from `t.page == "paths/<slug>"` (path landing page) OR the parent page's `path` / `paths` field. Renders as `- [ ] description ([[page@pos|source]]) · path-chip` — SB's first-WikiLink-with-positional-ref convention keeps checkbox toggle wired regardless of where the source link sits in the line.
 
@@ -214,7 +214,7 @@ The 1:1 collapse is fine for typical use (one user, one Path per framework). The
 
 ## Browser tab title and favicon (CONFIG.md)
 
-A `pageLoaded` Lua listener sets `js.window.document.title = "Path | <H1 or page name>"` and replaces the favicon with the inline-SVG Path "route" logo (data URL, indigo `#4f46e5`). Re-runs on every page load so SB navigations don't revert it.
+A `pageLoaded` Lua listener sets `js.window.document.title = "Path | <H1 or page name>"` and replaces the favicon with the inline-SVG Path "route" logo (data URL, clay `#bb6a4a`). Re-runs on every page load so SB navigations don't revert it.
 
 ## Path config page
 
@@ -271,7 +271,7 @@ To upgrade SB: `sudo docker compose pull silverbullet && sudo docker compose up 
 
 Two related helpers, both in CONFIG.md, both rendering via `widget.html` with Julian Day Number arithmetic (no `os.date`).
 
-- **`cpdCalendar(path_slug)`** — 52-week GitHub-style grid shaded by CPD `hours`. Used on Path landing pages where hour totals matter for revalidation reporting. Empty cells get a dashed border; a 5-level indigo scale shades the rest.
+- **`cpdCalendar(path_slug)`** — 52-week GitHub-style grid shaded by CPD `hours`. Used on Path landing pages where hour totals matter for revalidation reporting. Empty cells get a dashed border; a 5-level clay scale shades the rest.
 - **`activityCalendarMonth(path_slug)`** — current-month grid powering the dashboard's *Path activity this month*. Counts every dated record type the user can capture (`cpd`, `reflection`, `credential`, `cpd-claim`, `capture`) and shades cells by **`lastModified`** rather than the YAML `date` field — i.e. it records *when the user worked on the portfolio*, not when the activity occurred. Timestamps come from `space.listPages()` because SB's query language doesn't reliably surface system fields like `lastModified` on iterated results; the typed queries are used only to build the name-set for filtering.
 
 Both share `to_jdn` / `from_jdn` / `jdn_dow` helpers. **`jdn_dow(jdn) = jdn % 7`** (0 = Mon, 6 = Sun) — a previous `(jdn + 1) % 7` was off by one and placed Fridays under the Saturday column. The fix is in the calendar's space-lua block.
@@ -310,7 +310,7 @@ Two SB editor behaviours that survive `forcedROMode` and we couldn't suppress wi
 
 `Path: Capture` (Ctrl-Alt-c) is the unified entry point — a `filterBox` picker routing to ten template-bound commands: CPD activity, Reflection (with sub-picker for Gibbs/ERA/Driscoll/Rolfe), Claim, Future-claim, Evidence, Task, Quick capture, Contact, Credential, Path, Personal statement.
 
-The Navigator's Create section was collapsed into a single indigo "Capture" button (`.section-capture .nav-capture`, ~50% panel width, left-aligned with the rest of the navigator) that runs the same picker.
+The Navigator's Create section was collapsed into a single clay "Capture" button (`.section-capture .nav-capture`, ~50% panel width, left-aligned with the rest of the navigator) that runs the same picker.
 
 Templates use `${selectActivePath()}` for the `path:` / `paths:` field and `${selectedPathFramework()}` for the `framework:` field where applicable. H1 placeholders read `# |^|Type X title here` so users see they should overwrite, not extend.
 
@@ -351,21 +351,21 @@ Hidden `<input>` of the same key holds the comma-joined value, kept in sync by a
 
 Falls back to the plain comma-separated text input when no options data is available (e.g. fresh install with no Paths).
 
-CSS classes: `.multi-list`, `.multi-opt`, `.multi-opt-label`. Indigo accent color on checked checkboxes via `accent-color: #4f46e5`.
+CSS classes: `.multi-list`, `.multi-opt`, `.multi-opt-label`. Clay accent colour on checked checkboxes via `accent-color: var(--accent)`.
 
-## Site-wide indigo accent palette
+## Site-wide warm accent palette
 
-Centralised in `STYLE.md`:
+The "Warm & calm" theme (chosen 2026-05-30, Phase 5). Primary accent is **clay** (`#bb6a4a` light / `#d98a63` dark, exposed in the plug as `var(--accent)`); secondary accent is **sage** (`#5f7d66`); backgrounds are cream (`#fcf7ee`). Centralised in `STYLE.md` (editor surface) and the panel `:root` blocks in `path.ts` (Navigator/Inspector):
 
-- **H1** gets a 4px indigo `::before` bar at the start of the line.
-- **H2** gets a thin indigo `border-bottom`.
-- **Blockquotes** have a 3px indigo left border (overriding SB's grey).
-- **Tip and note admonitions** use indigo border + light indigo wash.
-- **Inline code** has a faint indigo background tint.
-- **Active Paths overview table** (`.path-overview`) has indigo header row + label column.
-- **Path coverage heatmap** uses single-hue indigo scale (already in place).
-- **Capture button** (Navigator) is solid indigo with hover darkening.
-- **Multi-select checkboxes** use `accent-color` indigo.
+- **H1** gets a 4px clay `::before` bar at the start of the line.
+- **H2** gets a thin clay `border-bottom`.
+- **Blockquotes** have a 3px clay left border (overriding SB's grey).
+- **Admonitions** differ by type: `note` uses clay; `tip` uses sage (the calm secondary accent).
+- **Inline code** has a faint clay background tint.
+- **Active Paths overview table** (`.path-overview`) has clay header row + label column.
+- **Path coverage heatmap** uses single-hue clay scale.
+- **Capture button**: the Navigator button is solid clay (`var(--accent)`) with hover darkening; the Toolbar `+` button is sage (`#5f7d66`) — a deliberate distinction between the two capture surfaces.
+- **Multi-select checkboxes** use `accent-color: var(--accent)` (clay).
 - **Delete button** (Inspector) is the only red element — danger-zone signal.
 
 All variants have dark-mode equivalents using `html[data-theme="dark"]`.
@@ -398,7 +398,7 @@ Individual panel collapse was removed — it caused the collapse icon to vanish 
 
 ## Gap navigation
 
-`pathGaps(slug, criteria)` in CONFIG.md now outputs wikilinks for each criterion code (e.g. `[[criteria/uol-1-1|1.1]]` instead of `**1.1**`). It looks up the path's `framework` field, queries criterion pages by `type == "criterion" and framework == X`, and builds a code→page map via the local `criterion_page_map(framework)` helper. The heatmap above the gap list stays unchanged (widget.html with indigo colour scale); the gap list below is the navigation surface.
+`pathGaps(slug, criteria)` in CONFIG.md now outputs wikilinks for each criterion code (e.g. `[[criteria/uol-1-1|1.1]]` instead of `**1.1**`). It looks up the path's `framework` field, queries criterion pages by `type == "criterion" and framework == X`, and builds a code→page map via the local `criterion_page_map(framework)` helper. The heatmap above the gap list stays unchanged (widget.html with clay colour scale); the gap list below is the navigation surface.
 
 ## Distribution checklist (for v0.1)
 

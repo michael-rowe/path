@@ -19,7 +19,7 @@ navigations don't revert it.
 
 ```space-lua
 -- Inline-SVG favicon, URL-encoded data URI. Same icon as the left-panel
--- brand. Indigo stroke (#bb6a4a) on transparent background.
+-- brand. Clay stroke (#bb6a4a) on transparent background.
 local PATH_FAVICON = "data:image/svg+xml;utf8,"
   .. "%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23bb6a4a%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E"
   .. "%3Ccircle%20cx%3D%226%22%20cy%3D%2219%22%20r%3D%223%22%2F%3E"
@@ -400,7 +400,7 @@ function activePathsOverview()
 
   -- Inline HTML — markdown tables choke on the empty leading cell
   -- `| | a | b |` and on the `|` inside wikilinks. Styled inline with
-  -- a subtle indigo tint on the header row and label column to match
+  -- a subtle clay tint on the header row and label column to match
   -- the rest of Path's accent palette. CSS classes (.path-overview-*)
   -- carry the colour so theming stays in STYLE.md.
   local hdr = { dom.th { class = "path-overview-corner", "" } }
@@ -580,9 +580,9 @@ function pathCoverage(slug)
   return out
 end
 
--- Render a coverage heatmap as an HTML table. Single-hue indigo scale:
+-- Render a coverage heatmap as an HTML table. Single-hue clay scale:
 -- empty cells get a dashed border and "—" (absence ≠ score zero); filled
--- cells scale 1 → 5+ in indigo intensity. All styling lives in STYLE.md
+-- cells scale 1 → 5+ in clay intensity. All styling lives in STYLE.md
 -- under the .ph-* classes so the palette can be themed (light/dark) and
 -- iterated without touching Lua.
 function pathHeatmap(slug, criteria)
@@ -768,7 +768,7 @@ actionButton.define {
 -- toolbar slot wasn't justified.
 
 -- Capture — primary creation action. Bumped above sidecar actions so
--- it sits prominently. STYLE.md adds a larger icon + indigo accent so
+-- it sits prominently. STYLE.md adds a larger icon + sage accent so
 -- it stands out from the other (uniform) toolbar buttons.
 actionButton.define {
   icon = "plus",
@@ -1920,7 +1920,7 @@ end
 -- Compact month-only variant of cpdCalendar — for the dashboard, where
 -- the full 12-month view is too wide. Renders a standard 7-column
 -- (Mon–Sun) grid for the current calendar month, with day numbers in
--- each cell and the same indigo intensity scale for hours.
+-- each cell and the same clay intensity scale for hours.
 function cpdCalendarMonth(path_slug)
   local entries
   if path_slug then

@@ -95,7 +95,7 @@ html[data-theme="dark"] {
 }
 
 /* Capture toolbar button — primary creation action; rendered as a
-   solid indigo circle with a white plus inside, distinct from the
+   solid sage circle with a white plus inside, distinct from the
    otherwise outline-icon action button row. SB renders the button's
    description as the title attribute, so we target by that. */
 #sb-top .sb-actions button[title^="Capture"] {
@@ -283,9 +283,9 @@ html[data-theme="dark"] .path-overview .path-overview-corner {
   border-bottom-color: rgba(217, 138, 99, 0.16);
 }
 
-/* ============ Subtle indigo accents across the site ============ */
+/* ============ Subtle clay accents across the site ============ */
 
-/* H1 gets a thin indigo accent bar — matches the path logo / heatmap */
+/* H1 gets a thin clay accent bar — matches the path logo / heatmap */
 #sb-main .cm-editor .cm-line.sb-line-h1::before {
   content: "";
   display: inline-block;
@@ -301,7 +301,7 @@ html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-h1::before {
   background: #d98a63;
 }
 
-/* Blockquotes get a thicker indigo left border */
+/* Blockquotes get a thicker clay left border */
 #sb-main .cm-editor .cm-line.sb-line-blockquote {
   border-left: 3px solid #7c9a82 !important;
   background: rgba(124, 154, 130, 0.09) !important;
@@ -312,7 +312,7 @@ html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-blockquote {
   background: rgba(155, 184, 159, 0.08) !important;
 }
 
-/* H2 gets a thin indigo underline — gives manual pages and dashboards
+/* H2 gets a thin clay underline — gives manual pages and dashboards
    visual rhythm between sections without dominating */
 #sb-main .cm-editor .cm-line.sb-line-h2 {
   border-bottom: 1px solid rgba(187, 106, 74, 0.3);
@@ -323,7 +323,7 @@ html[data-theme="dark"] #sb-main .cm-editor .cm-line.sb-line-h2 {
   border-bottom-color: rgba(217, 138, 99, 0.3);
 }
 
-/* Tip admonition uses indigo by default (other variants kept) */
+/* Note admonition uses clay by default (other variants kept) */
 .sb-admonition[admonition="note" i] {
   --admonition-color: #bb6a4a;
   background: rgba(243, 231, 219, 0.6) !important;
@@ -401,7 +401,7 @@ html[data-theme="dark"] {
   vertical-align: top;
 }
 
-/* Inline code gets a faint indigo tint */
+/* Inline code gets a faint clay tint */
 #sb-main .cm-editor .sb-code {
   background: rgba(187, 106, 74, 0.1);
   color: #7a4630;
@@ -443,7 +443,7 @@ html[data-theme="dark"] #sb-main .cm-editor .sb-code {
   color: inherit;
 }
 
-/* Cells: indigo single-hue scale */
+/* Cells: clay single-hue scale */
 .ph-cell {
   text-align: center;
   padding: 6px 14px;

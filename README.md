@@ -59,7 +59,7 @@ Every piece of content is a structured markdown page with YAML frontmatter (you 
 
 Path is a SilverBullet plug, not a fork. The editor is SilverBullet — wikilinks, transclusion, markdown. Path adds:
 
-- A **Toolbar** at the top for app-level actions: a distinctive indigo **Capture** button (the primary creation action), **Sync to cloud**, **Export to Word**, **Manual** (`?`), and the light/dark theme toggle. Each is one click, no menu diving.
+- A **Toolbar** at the top for app-level actions: a distinctive **Capture** button (the primary creation action), **Sync to cloud**, **Export to Word**, **Manual** (`?`), and the light/dark theme toggle. Each is one click, no menu diving.
 - A branded left-hand **Navigator** with browse links per page type, an **Announcements** feed (unread badge), and a **Recent** list of edited pages.
 - A right-hand **Inspector** with three tabs:
   - **Page** — pinned full-text search, table of contents, editable YAML attributes (dropdowns for enums, multi-select checkboxes for `paths` and `standards`), and Linked Mentions.
@@ -75,20 +75,20 @@ Path is a SilverBullet plug, not a fork. The editor is SilverBullet — wikilink
 
 A few screenshots to give you a sense of what it looks like.
 
-_User interface with Navigator panel on the left, Toolbar on the top, and tabbed Inspector panel on the right. New, enhanced search. And new version controlled notes with the ability to roll back to any previous version._
-<img width="2161" height="1473" alt="path_inspector_panel" src="https://github.com/user-attachments/assets/101a5a2d-1bd1-4789-9ac1-811282b44870" /><br />
+_The interface: a branded Navigator on the left, the Toolbar across the top, and the tabbed Inspector on the right with pinned full-text search and linked mentions._
+<img width="2409" height="1656" alt="path_interface" src="media/path-interface.png" /><br />
 
-_Dark mode_
-<img width="2174" height="1519" alt="path_dark_mode" src="https://github.com/user-attachments/assets/2544bdf2-eb36-47d3-8c05-c3eabbabe9cc" /><br />
+_A single Capture action opens a picker that routes to the right template — CPD activity, reflection, claim, future-claim, evidence, and more._
+<img width="2409" height="1656" alt="path_capture" src="media/path-capture.png" /><br />
 
-_Automated heatmap showing coverage of content against framework criteria._
-<img width="1309" height="1163" alt="path_heatmap" src="https://github.com/user-attachments/assets/f8d9b3ce-1bfc-4175-bb03-3b5486ee05c8" /><br />
+_Automated heatmap showing coverage of your content against the framework's criteria, with an auto-derived gap list below._
+<img width="2409" height="1644" alt="path_heatmap" src="media/path-heatmap.png" /><br />
 
-_Ability to download new frameworks._
-<img width="1431" height="739" alt="path_frameworks" src="https://github.com/user-attachments/assets/b1ff2ba0-b652-4b5d-9a4b-4af0df52e9ef" /><br />
+_The task dashboard aggregates open tasks from across your portfolio into one place._
+<img width="2409" height="1656" alt="path_tasks" src="media/path-tasks.png" /><br />
 
-_Task dashboard aggregates tasks from across Path into one convenient location._
-<img width="1308" height="504" alt="path_task_dashboard" src="https://github.com/user-attachments/assets/206a8cff-a39e-49ff-8ed1-87087d8aca99" /><br />
+_Dark mode. The Inspector's Page tab shows editable attributes — including multi-select checkboxes for the Paths and standards an entry counts towards._
+<img width="2409" height="1656" alt="path_dark_mode" src="media/path-dark-mode.png" /><br />
 
 ---
 
@@ -288,7 +288,7 @@ Open http://localhost:3000, log in with whatever you put in `.env`, and follow t
 
 ## Updating
 
-The app provides notifications when udpates are available, with instructions on how to follow through.
+The app provides notifications when updates are available, with instructions on how to follow through.
 
 ```bash
 git pull

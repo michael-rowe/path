@@ -30,7 +30,7 @@ The most useful commands and shortcuts. Click the **?** icon in the Toolbar to c
 
 | Action | How |
 |---|---|
-| Capture something new | Click the **+ Capture** icon in the Toolbar (indigo), the Capture button in the Navigator, or press `Ctrl-Alt-c` |
+| Capture something new | Click the green **+ Capture** icon in the Toolbar, the Capture button in the Navigator, or press `Ctrl-Alt-c` |
 | Open the command palette | `Ctrl-/` (then start typing) |
 | Open another page | `Ctrl-K` (then start typing — fuzzy match) |
 | Go home | Click the Home icon in the Toolbar |

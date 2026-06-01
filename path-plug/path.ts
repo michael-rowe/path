@@ -1536,7 +1536,7 @@ function buildLeftPanel(
       badge?: number;
     }[];
   }[] = [
-    // Capture moved to the Toolbar (rendered as a solid indigo "+"
+    // Capture moved to the Toolbar (rendered as a solid sage "+"
     // circle, see CONFIG.md and STYLE.md). The Navigator no longer
     // duplicates it.
     {
