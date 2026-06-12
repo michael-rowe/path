@@ -33,10 +33,12 @@ space/_system/*.md
 space/criteria/rcs-*.md
 space/standards/rcs-*.yaml
 
-# Demo/personal build drivers that hardcode private application evidence
-# (citation counts, grant figures, supervision record). The generic
-# framework_builder.py module they import carries no personal data and ships.
+# Personal/transient build drivers for private job-application frameworks.
+# Both hardcode confidential person specs and application evidence (RCS DoE,
+# ForPsy AP — citation counts, grant figures, supervision record) and must
+# never reach the public repo.
 path-mcp/build_forpsy_demo.py
+path-mcp/framework_builder.py
 
 # --- Secrets and auth ---
 space/.silverbullet.auth.json

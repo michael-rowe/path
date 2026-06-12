@@ -41,6 +41,8 @@ The most useful commands and shortcuts. Click the **?** icon in the Toolbar to c
 | Sync to cloud | Click the cloud-upload icon in the Toolbar |
 | Export to Word | Click the file icon in the Toolbar |
 | Open this manual | Click the **?** icon in the Toolbar |
+| Install a framework | `Ctrl-/` → **Path: Add framework** |
+| Update installed frameworks | `Ctrl-/` → **Path: Check framework updates** |
 | Reload the system | `Ctrl-Alt-r` (after changing styles or scripts) |
 
 ## Capture menu options

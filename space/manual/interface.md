@@ -37,7 +37,16 @@ It has three sections:
 
 **Browse** — links to the main browse pages: All Paths, Claims, CPD activities, Reflections, Evidence, Network, Credentials, Captures, Tasks, All pages.
 
-**Workspace** — system pages: Setup, Announcements (with an unread badge when there's news), History, Manual, Add framework. Framework updates are now surfaced as announcements when a new version ships.
+**Workspace** — system pages: **Setup** (shown until you've completed onboarding, then hidden), **Announcements** (with an unread badge when there's news), and **Recent** (your recently edited pages).
+
+## Adding and updating frameworks
+
+Installing and updating frameworks is done from the command palette rather than a panel button — it's something you do once when you start a new goal, not day to day. Open the command palette (`Ctrl-/`, or `Cmd-/` on Mac) and run:
+
+- **Path: Add framework** — fetches the list of available frameworks (HCPC CPD, AdvanceHE D4, and others as they're published) and installs the one you choose. This is also Step 2 of [[Setup]].
+- **Path: Check framework updates** — checks your installed frameworks against the registry and pulls down any newer versions.
+
+When a new version of a framework you've installed ships, it's also flagged in **Announcements**, which links you to the update command.
 
 ## Inspector
 

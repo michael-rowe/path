@@ -100,6 +100,13 @@ def register_tools(mcp):
             return {"error": f"Claim page '{page_name}' not found."}
 
         meta = page["meta"]
+        # Guard against being steered into rewriting non-claim pages. write_page
+        # only restricts *new* pages, so without this check an agent could target
+        # CONFIG.md, _system/*, or any existing .md and corrupt it by round-tripping
+        # it through the YAML serialiser. Only genuine claim pages are editable here.
+        if meta.get("type") != "cpd-claim":
+            return {"error": f"'{page_name}' is not a claim page (type: {meta.get('type')!r}); refusing to modify."}
+
         old_status = meta.get("status", "unknown")
         meta["status"] = status
 
