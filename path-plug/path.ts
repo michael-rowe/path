@@ -1136,6 +1136,23 @@ function buildPanelContent(
     });
   }
 
+  // Multi-select sync: keep each list field's hidden input in step with its
+  // checkboxes. Without this the save handler reads the hidden input's initial
+  // value, so toggling a paths/standards checkbox is silently discarded on save
+  // (and saving any other field reverts the list to its pre-edit value).
+  (function() {
+    var boxes = document.querySelectorAll('input[type="checkbox"][data-multi-key]');
+    var syncKey = function(key) {
+      var checked = document.querySelectorAll('input[data-multi-key="' + key + '"]:checked');
+      var vals = Array.prototype.map.call(checked, function(b) { return b.value; });
+      var hidden = document.getElementById('f-' + key);
+      if (hidden) hidden.value = vals.join(',');
+    };
+    boxes.forEach(function(box) {
+      box.addEventListener('change', function() { syncKey(box.getAttribute('data-multi-key')); });
+    });
+  })();
+
   // Attrs save
   document.getElementById('btn-save')?.addEventListener('click', async function() {
     var btn = this;
