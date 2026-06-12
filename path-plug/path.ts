@@ -238,6 +238,21 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+// Pages that must never be deletable through the Inspector's Delete button.
+// Deleting CONFIG/STYLE breaks the app; deleting a _system/* or Library/* page
+// destroys runtime state or the plug itself. Manual pages are reference docs.
+const PROTECTED_PAGE_PREFIXES = ["_system/", "Library/", "manual/"];
+const PROTECTED_PAGE_EXACT = new Set([
+  "CONFIG", "STYLE", "index", "profile", "Setup", "Announcements", "About",
+  "History", "Network", "Credentials", "Browse", "Claims", "CPD", "Captures",
+  "Reflections", "Tasks", "Evidence",
+]);
+function isProtectedPage(pageName: string): boolean {
+  if (!pageName) return true;
+  if (PROTECTED_PAGE_EXACT.has(pageName)) return true;
+  return PROTECTED_PAGE_PREFIXES.some((p) => pageName.startsWith(p));
+}
+
 function yamlScalar(v: string): string {
   const needsQuote = v === "" || /[:#"'\n]/.test(v) || /^\s|\s$/.test(v);
   if (!needsQuote) return v;
@@ -520,6 +535,7 @@ function buildPanelContent(
 ): { html: string; script: string } {
   const rowsHtml: string[] = [];
   const editableDescs: { key: string; list: boolean }[] = [];
+  const isProtected = isProtectedPage(pageName);
 
   // Needed to resolve context-dependent enums (e.g. `status` differs per type).
   const pageType = (fields.find((f) => f.key === "type")?.value ?? "") as string;
@@ -668,7 +684,7 @@ function buildPanelContent(
         <span>Check broken links</span>
       </button>
     </div>
-    ${isReadonly ? "" : `
+    ${isReadonly || isProtected ? "" : `
     <div class="section-danger" style="margin-top: 3em;">
       <button class="btn-danger" id="btn-delete" type="button">Delete this page</button>
     </div>`}
@@ -872,6 +888,7 @@ function buildPanelContent(
 (function() {
   var FIELDS = ${fieldsJson};
   var PAGE = ${pageJson};
+  var IS_PROTECTED = ${JSON.stringify(isProtected)};
   var FOCUS_SEARCH = ${focusSearchJson};
   var CFG = ${configJson};
   var MEILI_URL = CFG.meiliUrl;
@@ -1177,15 +1194,26 @@ function buildPanelContent(
     });
   });
 
-  // Delete button
+  // Delete button. Two safeguards: refuse protected pages outright (defence in
+  // depth — the button is also not rendered for them), and require the user to
+  // type DELETE rather than dismiss a one-click confirm, since deletion can't be
+  // undone (the page is gone from disk; only a prior git snapshot could recover it).
   document.getElementById('btn-delete')?.addEventListener('click', async function() {
-    if (window.confirm('Delete "' + PAGE + '"?')) {
-      try {
-        await syscall('space.deletePage', PAGE);
-        await syscall('editor.navigate', 'index');
-      } catch (e) {
-        await syscall('editor.flashNotification', 'Delete failed: ' + String(e), 'error');
-      }
+    if (IS_PROTECTED) {
+      await syscall('editor.flashNotification', '"' + PAGE + '" is a protected system page and cannot be deleted here.', 'error');
+      return;
+    }
+    var answer = window.prompt('Delete "' + PAGE + '" permanently? This cannot be undone.\\n\\nType DELETE to confirm:');
+    if (answer === null) return;
+    if (answer.trim().toUpperCase() !== 'DELETE') {
+      await syscall('editor.flashNotification', 'Delete cancelled — confirmation text did not match.');
+      return;
+    }
+    try {
+      await syscall('space.deletePage', PAGE);
+      await syscall('editor.navigate', 'index');
+    } catch (e) {
+      await syscall('editor.flashNotification', 'Delete failed: ' + String(e), 'error');
     }
   });
 
@@ -1313,7 +1341,9 @@ export async function showAttributesPanel(focusSearch: boolean = false): Promise
   const parsed = parseFrontmatter(text);
   const toc = extractToc(text);
   const mentions = await fetchLinkedMentions(pageName);
-  const isReadonly = /^readonly:\s*true\s*$/m.test(text);
+  // Match readonly: true, readonly: "true", readonly: 'true' (quoted forms a
+  // YAML emitter might produce) so a soft-locked page isn't treated as editable.
+  const isReadonly = /^readonly:\s*["']?true["']?\s*$/m.test(text);
 
   // Multi-select data: only fetch if the page actually has fields that
   // can use it. The framework for `standards` is determined from the

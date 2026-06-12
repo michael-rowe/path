@@ -372,7 +372,9 @@ All variants have dark-mode equivalents using `html[data-theme="dark"]`.
 
 ## Page deletion
 
-The right-hand Inspector renders a `<button class="btn-danger" id="btn-delete">Delete this page</button>` at the bottom on non-readonly pages. Click → `window.prompt` asking for "DELETE" (case-insensitive, trimmed) → on match, `space.deletePage(PAGE)` then `editor.navigate("index")`.
+The right-hand Inspector renders a `<button class="btn-danger" id="btn-delete">Delete this page</button>` at the bottom on non-readonly, non-protected pages. Click → `window.prompt` asking for "DELETE" (case-insensitive, trimmed) → on match, `space.deletePage(PAGE)` then `editor.navigate("index")`.
+
+Protected pages never render the button and the handler refuses them as defence in depth (`IS_PROTECTED` flag): `isProtectedPage()` in `path.ts` covers the `_system/`, `Library/`, `manual/` prefixes plus the core top-level pages (CONFIG, STYLE, index, profile, Setup, Announcements, About, History, Network, Credentials, Browse, Claims, CPD, Captures, Reflections, Tasks, Evidence). `isReadonly` matches `readonly: true` and the quoted `"true"`/`'true'` forms.
 
 ## Repo workflow
 
