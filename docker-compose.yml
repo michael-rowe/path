@@ -3,8 +3,12 @@ services:
   silverbullet:
     image: ghcr.io/silverbulletmd/silverbullet
     container_name: path-silverbullet
+    # Bind to loopback by default so the portfolio (which holds all CPD data)
+    # is not reachable from the LAN. Set SB_BIND_HOST=0.0.0.0 in .env only if you
+    # deliberately want remote access — then SB_USER basic auth is the only thing
+    # protecting your data, so make it strong.
     ports:
-      - "3000:3000"
+      - "${SB_BIND_HOST:-127.0.0.1}:3000:3000"
     volumes:
       - ./space:/space
     environment:
