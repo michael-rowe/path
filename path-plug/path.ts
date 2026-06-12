@@ -485,6 +485,21 @@ const THEME_SYNC_SCRIPT = `
   } catch (e) {}
 `;
 
+// Iframe-side HTML escaper. The plug-side escapeHtml() is not in scope inside
+// the eval'd panel script, so any runtime innerHTML built from fetched data
+// (search hits, sidecar JSON) needs its own escaper or it becomes an XSS sink
+// with full syscall access. Defines a global escHtml() the panel scripts use.
+const ESCAPE_HTML_SCRIPT = `
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+`;
+
 function buildPanelContent(
   pageName: string,
   fields: Field[],
@@ -871,6 +886,9 @@ function buildPanelContent(
   // Mirror the parent's theme into this iframe (shared helper).
   ${THEME_SYNC_SCRIPT}
 
+  // HTML escaper for any innerHTML built from fetched data (see ESCAPE_HTML_SCRIPT).
+  ${ESCAPE_HTML_SCRIPT}
+
   // Tab switching
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -920,17 +938,22 @@ function buildPanelContent(
         return;
       }
       list.innerHTML = history.map(function(item) {
+        // item.message / item.hash originate from git commit data and must be
+        // escaped before reaching innerHTML — the hash also lands in a quoted
+        // attribute, so escHtml's quote handling matters here.
+        var msg = escHtml(item.message);
+        var hash = escHtml(item.hash);
         return \`
           <div class="history-item">
             <div class="history-info">
               <div class="history-date">\${fmtDate(item.timestamp)}</div>
-              <div class="history-msg">\${item.message}</div>
+              <div class="history-msg">\${msg}</div>
             </div>
             <div class="history-actions">
-              <button class="btn-icon btn-history-preview" data-hash="\${item.hash}" title="Preview snapshot">
+              <button class="btn-icon btn-history-preview" data-hash="\${hash}" title="Preview snapshot">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
               </button>
-              <button class="btn-icon btn-history-restore" data-hash="\${item.hash}" title="Restore snapshot">
+              <button class="btn-icon btn-history-restore" data-hash="\${hash}" title="Restore snapshot">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               </button>
             </div>
@@ -1068,25 +1091,35 @@ function buildPanelContent(
         var response = await fetch(MEILI_URL + '/indexes/pages/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + MEILI_KEY },
-          body: JSON.stringify({ q: query, attributesToHighlight: ['content', 'title'], limit: 8 })
+          // Use sentinel highlight tags (not <em>) so we can HTML-escape the
+          // whole field value — which is raw, attacker-influenceable page
+          // content — and then restore only our own highlight markup.
+          body: JSON.stringify({ q: query, attributesToHighlight: ['content', 'title'], highlightPreTag: '\\u0001', highlightPostTag: '\\u0002', limit: 8 })
         });
         if (!response.ok) {
           var errBody = '';
           try { errBody = await response.text(); } catch (_) {}
-          searchResults.innerHTML = '<div class="empty">Meilisearch HTTP ' + response.status + ': ' + errBody.replace(/[<>]/g, '').slice(0, 200) + '</div>';
+          searchResults.innerHTML = '<div class="empty">Meilisearch HTTP ' + response.status + ': ' + escHtml(errBody.slice(0, 200)) + '</div>';
           return;
         }
         var data = await response.json();
         if (!data.hits || data.hits.length === 0) {
-          searchResults.innerHTML = '<div class="empty">No results for "' + query.replace(/[<>]/g, '') + '". (Index has ' + (data.estimatedTotalHits || 0) + ' total hits for blank query — check meili-indexer is running.)</div>';
+          searchResults.innerHTML = '<div class="empty">No results for "' + escHtml(query) + '". (Index has ' + (data.estimatedTotalHits || 0) + ' total hits for blank query — check meili-indexer is running.)</div>';
           return;
         }
+        // Escape the field value, then turn our sentinel highlight markers
+        // back into <em> tags. Order matters: escape first so any < > " in the
+        // page content is neutralised before we reintroduce real markup.
+        var hl = function(s) {
+          return escHtml(s).split('\\u0001').join('<em>').split('\\u0002').join('</em>');
+        };
         searchResults.innerHTML = (data.hits || []).map(function(hit) {
-          var title = (hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title;
-          var snip = (hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || '';
+          var title = hl((hit._highlightResult && hit._highlightResult.title && hit._highlightResult.title.value) || hit.title || '');
+          var snip = hl((hit._highlightResult && hit._highlightResult.content && hit._highlightResult.content.value) || '');
+          var path = escHtml(hit.path);
           return \`
-            <div class="search-result" data-path="\${hit.path}">
-              <div class="search-path">\${hit.path}</div>
+            <div class="search-result" data-path="\${path}">
+              <div class="search-path">\${path}</div>
               <div class="search-title">\${title}</div>
               <div class="search-snip">\${snip}</div>
             </div>\`;
@@ -1098,7 +1131,7 @@ function buildPanelContent(
           });
         });
       } catch (err) {
-        searchResults.innerHTML = '<div class="empty">Search unavailable: ' + String(err).replace(/[<>]/g, '').slice(0, 200) + '</div>';
+        searchResults.innerHTML = '<div class="empty">Search unavailable: ' + escHtml(String(err).slice(0, 200)) + '</div>';
       }
     });
   }

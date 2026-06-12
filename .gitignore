@@ -26,6 +26,18 @@ space/paths/*.md
 # _system/ files are user state created at runtime — only the .gitkeep ships
 space/_system/*.md
 
+# Local-only framework definitions (e.g. private job-application person specs).
+# criteria/ and standards/ otherwise ship the public frameworks, so these are
+# excluded by name rather than by directory. rcs-* = Royal College of Surgeons
+# DoE application — confidential, must never reach the public repo.
+space/criteria/rcs-*.md
+space/standards/rcs-*.yaml
+
+# Demo/personal build drivers that hardcode private application evidence
+# (citation counts, grant figures, supervision record). The generic
+# framework_builder.py module they import carries no personal data and ships.
+path-mcp/build_forpsy_demo.py
+
 # --- Secrets and auth ---
 space/.silverbullet.auth.json
 .env

@@ -1375,6 +1375,28 @@ local function record_installation(slug, name, version)
   space.writePage(installed_path, body .. entry)
 end
 
+-- A framework bundle comes from a remote registry that could be substituted
+-- or compromised. Its file list is therefore untrusted: without this guard a
+-- malicious info.json could declare {"files": ["CONFIG.md"]} or
+-- {"files": ["Library/path/path.plug.js"]} and overwrite executable space-lua
+-- or the plug bundle — arbitrary code execution in the SilverBullet container,
+-- which can read and rewrite all of the user's CPD data. Restrict writes to the
+-- three directories a real framework ships into, and reject any traversal or
+-- absolute path. Returns the cleaned relative path, or nil if it is not allowed.
+local FRAMEWORK_WRITE_PREFIXES = { "criteria/", "standards/", "paths/" }
+local function safe_bundle_path(f)
+  if type(f) ~= "string" or f == "" then return nil end
+  -- Normalise separators and reject traversal / absolute / drive-letter paths.
+  local norm = f:gsub("\\", "/")
+  if norm:find("%.%.") then return nil end
+  if norm:sub(1, 1) == "/" then return nil end
+  if norm:find("^%a:") then return nil end
+  for _, prefix in ipairs(FRAMEWORK_WRITE_PREFIXES) do
+    if norm:sub(1, #prefix) == prefix then return norm end
+  end
+  return nil
+end
+
 local function install_framework(fw, base, allow_overwrite)
   local info, err = fetch_json(base .. "/" .. fw.slug .. "/info.json")
   if not info then
@@ -1384,6 +1406,28 @@ local function install_framework(fw, base, allow_overwrite)
   local files = info.files or {}
   if #files == 0 then
     editor.flashNotification("Bundle has no files")
+    return false
+  end
+
+  -- Drop any file whose destination is outside the allowed framework
+  -- directories before doing anything else (see safe_bundle_path).
+  local safe_files = {}
+  local rejected = 0
+  for _, f in ipairs(files) do
+    if safe_bundle_path(f) then
+      table.insert(safe_files, f)
+    else
+      rejected = rejected + 1
+    end
+  end
+  if rejected > 0 then
+    editor.flashNotification(
+      "Refused " .. rejected .. " file(s) from " .. fw.slug ..
+      " that wrote outside criteria/, standards/ or paths/ — bundle may be unsafe.")
+  end
+  files = safe_files
+  if #files == 0 then
+    editor.flashNotification("No installable files in bundle after safety check")
     return false
   end
 
